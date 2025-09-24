@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ServiceType {
+  UBER
+  LYFT
+  TAXI
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  savedRoutes   SavedRoute[]
+  priceAlerts   PriceAlert[]
+  rideHistories RideHistory[]
+}
+
+model SavedRoute {
+  id          String     @id @default(cuid())
+  user        User       @relation(fields: [userId], references: [id])
+  userId      String
+  fromName    String
+  fromLat     Float
+  fromLng     Float
+  toName      String
+  toLat       Float
+  toLng       Float
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  priceAlerts PriceAlert[]
+  rideHistories RideHistory[]
+
+  @@index([userId])
+}
+
+model PriceAlert {
+  id             String       @id @default(cuid())
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String
+  savedRoute     SavedRoute   @relation(fields: [savedRouteId], references: [id])
+  savedRouteId   String
+  service        ServiceType
+  targetPrice    Float
+  isActive       Boolean      @default(true)
+  lastTriggeredAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([savedRouteId])
+}
+
+model RideHistory {
+  id                 String       @id @default(cuid())
+  user               User?        @relation(fields: [userId], references: [id])
+  userId             String?
+  savedRoute         SavedRoute?  @relation(fields: [savedRouteId], references: [id])
+  savedRouteId       String?
+  service            ServiceType
+  estimatedFare      Float
+  finalFare          Float?
+  waitTimeMinutes    Int?
+  surgeMultiplier    Float?
+  comparisonSnapshot Json
+  requestedAt        DateTime     @default(now())
+
+  @@index([userId])
+  @@index([savedRouteId])
+}

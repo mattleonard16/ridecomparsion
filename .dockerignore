@@ -1,0 +1,32 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# production
+.next
+out
+
+# misc
+.DS_Store
+*.log
+*.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local env files
+.env*
+
+# build info
+tsconfig.tsbuildinfo
+
+# editor directories and files
+.idea
+.vscode
+*.swp
+

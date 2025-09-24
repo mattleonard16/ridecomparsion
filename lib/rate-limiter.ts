@@ -1,3 +1,15 @@
+/**
+ * Multi-Layer Rate Limiting System
+ * 
+ * Implements enterprise-grade protection against API abuse with 3-tier defense:
+ * 1. Burst Protection: 3 requests/10 seconds (prevents rapid-fire spam)
+ * 2. Per-Minute Limits: 10 requests/minute (normal usage throttling)  
+ * 3. Per-Hour Limits: 50 requests/hour (sustained abuse prevention)
+ * 
+ * Uses token bucket algorithm for smooth rate limiting and client fingerprinting
+ * for identification. Designed for production deployment with Vercel/Cloudflare.
+ */
+
 import { RateLimiter } from 'limiter'
 
 // Rate limiter configuration
