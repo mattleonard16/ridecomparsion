@@ -1,0 +1,36 @@
+services:
+  web:
+    container_name: rideshareappnew-web
+    build:
+      context: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://rideshare:r1d3share@db:5432/rideshareappnew?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: rideshareappnew-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=rideshare
+      - POSTGRES_PASSWORD=r1d3share
+      - POSTGRES_DB=rideshareappnew
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "rideshare"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
