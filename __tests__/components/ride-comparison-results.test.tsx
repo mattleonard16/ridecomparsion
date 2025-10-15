@@ -29,16 +29,16 @@ describe('RideComparisonResults', () => {
   it('renders the results with all ride services', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
-    expect(screen.getByText('UberX')).toBeInTheDocument()
-    expect(screen.getByText('Lyft Standard')).toBeInTheDocument()
-    expect(screen.getByText('Yellow Cab')).toBeInTheDocument()
+    expect(screen.getByText('Uber')).toBeInTheDocument()
+    expect(screen.getByText('Lyft')).toBeInTheDocument()
+    expect(screen.getByText('Taxi')).toBeInTheDocument()
   })
 
   it('displays the correct pricing information', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
     expect(screen.getByText('$25.50')).toBeInTheDocument()
-    expect(screen.getByText('$23.75')).toBeInTheDocument()
+    expect(screen.getAllByText('$23.75')).toHaveLength(2) // Summary and Lyft card
     expect(screen.getByText('$30.00')).toBeInTheDocument()
   })
 
@@ -51,28 +51,32 @@ describe('RideComparisonResults', () => {
   it('displays wait times and driver availability', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
-    expect(screen.getByText('5 min')).toBeInTheDocument()
-    expect(screen.getByText('6 min')).toBeInTheDocument()
-    expect(screen.getByText('8 min')).toBeInTheDocument()
-    expect(screen.getByText('4 drivers nearby')).toBeInTheDocument()
-    expect(screen.getByText('3 drivers nearby')).toBeInTheDocument()
-    expect(screen.getByText('2 drivers nearby')).toBeInTheDocument()
+    // Check wait times - use getAllByText since there are multiple instances
+    expect(screen.getAllByText('5 min')).toHaveLength(2) // Summary and Uber card
+    expect(screen.getByText('6 min')).toBeInTheDocument() // Lyft card
+    expect(screen.getByText('8 min')).toBeInTheDocument() // Taxi card
+    
+    // Check driver counts - use getAllByText since there are multiple instances
+    expect(screen.getAllByText('4')).toHaveLength(1) // Driver count for Uber
+    expect(screen.getAllByText('3')).toHaveLength(1) // Driver count for Lyft
+    expect(screen.getAllByText('2')).toHaveLength(1) // Driver count for Taxi
+    expect(screen.getAllByText('Drivers')).toHaveLength(3) // Label appears 3 times
   })
 
   it('displays service icons correctly', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
-    // Assuming you have icons for each service
-    expect(screen.getByTestId('uber-icon')).toBeInTheDocument()
-    expect(screen.getByTestId('lyft-icon')).toBeInTheDocument()
-    expect(screen.getByTestId('taxi-icon')).toBeInTheDocument()
+    // Check for service names instead of test IDs since the component uses text-based icons
+    expect(screen.getByText('Uber')).toBeInTheDocument()
+    expect(screen.getByText('Lyft')).toBeInTheDocument()
+    expect(screen.getByText('Taxi')).toBeInTheDocument()
   })
 
   it('formats prices consistently', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
     const prices = screen.getAllByText(/\$\d+\.\d{2}/)
-    expect(prices).toHaveLength(3)
+    expect(prices).toHaveLength(4) // Summary section + 3 service cards
   })
 
   it('handles edge case with zero drivers nearby', () => {
@@ -86,6 +90,7 @@ describe('RideComparisonResults', () => {
 
     render(<RideComparisonResults results={edgeCaseResults} insights={mockInsights} />)
 
-    expect(screen.getByText('0 drivers nearby')).toBeInTheDocument()
+    expect(screen.getByText('0')).toBeInTheDocument() // Driver count for Uber
+    expect(screen.getAllByText('Drivers')).toHaveLength(3) // Label appears 3 times
   })
 })

@@ -274,10 +274,13 @@ export const PRICING_CONFIG = {
 // API endpoints and configuration
 export const API_CONFIG = {
   NOMINATIM_BASE_URL: 'https://nominatim.openstreetmap.org/search',
-  OSRM_BASE_URL: 'http://router.project-osrm.org/route/v1/driving',
-  USER_AGENT: 'RideCompareApp/1.0 (bjwmyjackwu@gmail.com)',
+  OSRM_BASE_URL: 'https://router.project-osrm.org/route/v1/driving',
+  USER_AGENT: 'RideCompareApp/1.0',
   SEARCH_LIMIT: 5,
   CACHE_TTL: 300000, // 5 minutes in milliseconds
+  ROUTE_CACHE_TTL: 600000, // 10 minutes in milliseconds
+  REQUEST_TIMEOUT_MS: 8000,
+  MAX_RETRIES: 2,
 } as const
 
 // UI constants

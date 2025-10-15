@@ -32,26 +32,7 @@ const destinationIcon = new L.Icon({
   shadowSize: [41, 41],
 })
 
-// Performance monitoring component (only shown in development)
-function PerformanceMonitor({ 
-  updateCount, 
-  lastUpdateTime, 
-  routeLoadTime 
-}: { 
-  updateCount: number
-  lastUpdateTime: number
-  routeLoadTime: number | null
-}) {
-  if (process.env.NODE_ENV !== 'development') return null
-  
-  return (
-    <div className="absolute top-2 left-2 z-[1000] bg-black/70 text-white text-xs p-2 rounded font-mono">
-      <div>Updates: {updateCount}</div>
-      <div>Last: {lastUpdateTime}ms</div>
-      {routeLoadTime && <div>Route: {routeLoadTime}ms</div>}
-    </div>
-  )
-}
+// Performance monitoring removed - check console logs instead
 
 // Enhanced map controller with smooth transitions
 function MapViewController({ 
@@ -183,8 +164,6 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
       // Use HTTPS endpoint to avoid mixed content issues
       const url = `https://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${destLon},${destLat}?overview=full&geometries=geojson&alternatives=false`
 
-      console.log('🌐 Fetching route:', { url, pickup: [pickupLon, pickupLat], destination: [destLon, destLat] })
-
       const response = await fetch(url, { 
         signal,
         method: 'GET',
@@ -194,18 +173,11 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
         mode: 'cors'
       })
       
-      console.log('📡 Response status:', response.status, response.statusText)
-      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
       
       const data = await response.json()
-      console.log('📦 OSRM response:', { 
-        code: data.code, 
-        routesCount: data.routes?.length,
-        coordinatesCount: data.routes?.[0]?.geometry?.coordinates?.length 
-      })
 
       if (data.code === 'Ok' && data.routes?.length > 0) {
         const route = data.routes[0]
@@ -220,7 +192,6 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
           coord[0], // longitude
         ])
 
-        console.log('✅ Route success:', coordinates.length, 'waypoints')
         setRouteCoordinates(coordinates)
         setRouteError(false)
         setRouteLoadTime(Math.round(performance.now() - routeStartTime))
@@ -231,11 +202,7 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
       const errorMessage = error instanceof Error ? error.name : 'Unknown error'
       if (errorMessage === 'AbortError') return // Ignore aborted requests
       
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      console.error('❌ Route fetch failed:', message)
-      
-      // Fallback to straight line
-      console.log('⚠️ Using fallback direct route')
+      // Fallback to straight line on error
       setRouteCoordinates([
         [pickupCoords[1], pickupCoords[0]], // [lat, lon]
         [destCoords[1], destCoords[0]],     // [lat, lon]
@@ -327,13 +294,6 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
           onUpdateTiming={handleUpdateTiming}
         />
       </MapContainer>
-
-      {/* Performance Monitor (development only) */}
-      <PerformanceMonitor 
-        updateCount={updateCount}
-        lastUpdateTime={lastUpdateTime}
-        routeLoadTime={routeLoadTime}
-      />
 
       {/* Loading indicator overlay */}
       <RouteLoadingIndicator isLoading={isRouteLoading} />
