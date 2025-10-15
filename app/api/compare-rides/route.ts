@@ -10,6 +10,7 @@ import {
 import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { isAirportLocation, getAirportByCode, parseAirportCode } from '@/lib/airports'
 import { calculateEnhancedFare, getTimeBasedMultiplier, getBestTimeRecommendations } from '@/lib/pricing'
+import type { Coordinates, Longitude, Latitude } from '@/types'
 
 // POST handler
 export async function POST(request: NextRequest) {
@@ -277,10 +278,18 @@ function kmToMiles(km: number) {
   return km * 0.621371
 }
 
+const toCoordinates = (coords: [number, number]): Coordinates => [
+  coords[0] as Longitude,
+  coords[1] as Latitude,
+]
+
 // Generate simulated comparison data
 async function getRideComparisons(pickupCoords: [number, number], destCoords: [number, number]) {
   const { distanceKm, durationMin } = await getDistanceAndDuration(pickupCoords, destCoords)
-  const { multiplier, surgeReason } = getTimeBasedMultiplier(pickupCoords, destCoords)
+  const { multiplier, surgeReason } = getTimeBasedMultiplier(
+    toCoordinates(pickupCoords),
+    toCoordinates(destCoords)
+  )
   const distanceMiles = kmToMiles(distanceKm)
 
   console.log(
@@ -307,8 +316,8 @@ async function getRideComparisons(pickupCoords: [number, number], destCoords: [n
 
   // Airport fee logic
   const isAirport = (pickup: [number, number], dest: [number, number]) =>
-    isAirportLocation([pickup[0] as any, pickup[1] as any]) !== null ||
-    isAirportLocation([dest[0] as any, dest[1] as any]) !== null
+    isAirportLocation(toCoordinates(pickup)) !== null ||
+    isAirportLocation(toCoordinates(dest)) !== null
 
   // Calculate base prices first
   let uberBasePriceRaw =

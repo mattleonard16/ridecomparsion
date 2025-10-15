@@ -107,7 +107,7 @@ export class EnhancedPricingEngine {
     }
   }
 
-  private isAirport(coords: Coordinates): string | null {
+  private isAirport(coords: Coordinates) {
     return isAirportLocation(coords)
   }
 
