@@ -243,34 +243,6 @@ export const COMMON_PLACES: CommonPlaces = {
   },
 }
 
-// Pricing constants for rideshare services
-export const PRICING_CONFIG = {
-  UBER: {
-    base: 1.25,
-    perMile: 1.08,
-    perMin: 0.28,
-    booking: 0.85,
-    airportSurcharge: 4.25,
-    minFare: 8.5,
-  },
-  LYFT: {
-    base: 1.2,
-    perMile: 1.15,
-    perMin: 0.3,
-    booking: 0.85,
-    airportSurcharge: 4.0,
-    minFare: 8.25,
-  },
-  TAXI: {
-    base: 3.5,
-    perMile: 2.75,
-    perMin: 0.55,
-    booking: 0.0,
-    airportSurcharge: 5.0,
-    minFare: 12.0,
-  },
-} as const
-
 // API endpoints and configuration
 export const API_CONFIG = {
   NOMINATIM_BASE_URL: 'https://nominatim.openstreetmap.org/search',

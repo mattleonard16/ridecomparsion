@@ -2,17 +2,17 @@
 export type Brand<K, T extends string> = K & { __brand: T }
 
 // Location and coordinate types
-export type Latitude = Brand<number, 'latitude'>
-export type Longitude = Brand<number, 'longitude'>
+export type Latitude = number
+export type Longitude = number
 export type Coordinates = [Longitude, Latitude]
 
 // Price and currency types
-export type PriceAmount = Brand<number, 'price'>
-export type PriceString = Brand<string, 'priceString'>
+export type PriceAmount = number
+export type PriceString = string
 
 // Service and ride types
 export type ServiceType = 'uber' | 'lyft' | 'taxi'
-export type RideService = Brand<string, 'rideService'>
+export type RideService = string
 
 // Location suggestion interface
 export interface LocationSuggestion {
@@ -33,10 +33,14 @@ export interface RideResult {
 }
 
 // Complete comparison results
-export interface ComparisonResults {
-  uber: RideResult
-  lyft: RideResult
-  taxi: RideResult
+export type ComparisonResults = Partial<Record<ServiceType, RideResult>>
+
+export interface ComparisonPersistenceContext {
+  routeId: string | null
+  pickupAddress: string
+  destinationAddress: string
+  userId?: string | null
+  sessionId?: string | null
 }
 
 // Surge information

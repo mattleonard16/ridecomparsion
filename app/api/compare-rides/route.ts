@@ -10,7 +10,9 @@ import {
 import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { isAirportLocation, getAirportByCode, parseAirportCode } from '@/lib/airports'
 import { calculateEnhancedFare, getTimeBasedMultiplier, getBestTimeRecommendations } from '@/lib/pricing'
+import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import type { Coordinates, Longitude, Latitude } from '@/types'
+import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
 
 // POST handler
 export async function POST(request: NextRequest) {
@@ -150,16 +152,21 @@ export async function POST(request: NextRequest) {
        }
 
        // Get comparisons
-       const comparisons = await getRideComparisons(pickupCoords, destinationCoords)
+       const comparisons = await compareRidesByAddresses(pickup, destination, ['uber', 'lyft', 'taxi'], new Date(), {
+        userId: null,
+        sessionId: request.headers.get('x-session-id') ?? undefined,
+        persist: true,
+      })
 
-       // Generate recommendation
-       const insights = generateAlgorithmicRecommendation(comparisons)
+      if (!comparisons) {
+        return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
+      }
 
        return NextResponse.json({
-         comparisons,
-         insights,
-         pickupCoords,
-         destinationCoords,
+         comparisons: comparisons.results,
+         insights: comparisons.insights,
+         pickupCoords: comparisons.pickup,
+         destinationCoords: comparisons.destination,
          surgeInfo: comparisons.surgeInfo,
          timeRecommendations: comparisons.timeRecommendations,
        }, {
@@ -175,26 +182,22 @@ export async function POST(request: NextRequest) {
      const pickup = requestData.from.name
      const destination = requestData.to.name
 
-     // Convert addresses to coordinates
-     const pickupCoords = await getCoordinatesFromAddress(pickup)
-     const destinationCoords = await getCoordinatesFromAddress(destination)
+     const comparisons = await compareRidesByAddresses(pickup, destination, requestData.services, new Date(), {
+      userId: request.headers.get('x-user-id'),
+      sessionId: request.headers.get('x-session-id') ?? undefined,
+      persist: true,
+    })
 
-     if (!pickupCoords || !destinationCoords) {
-       return NextResponse.json({ error: 'Could not geocode addresses' }, { status: 400 })
-     }
-
-     // Get comparisons
-     const comparisons = await getRideComparisons(pickupCoords, destinationCoords)
-
-     // Generate recommendation
-     const insights = generateAlgorithmicRecommendation(comparisons)
+    if (!comparisons) {
+      return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
+    }
 
             // 8. Add rate limit headers to successful responses
      return NextResponse.json({
-       comparisons,
-       insights,
-       pickupCoords,
-       destinationCoords,
+       comparisons: comparisons.results,
+       insights: comparisons.insights,
+       pickupCoords: comparisons.pickup,
+       destinationCoords: comparisons.destination,
        surgeInfo: comparisons.surgeInfo,
        timeRecommendations: comparisons.timeRecommendations,
      }, {

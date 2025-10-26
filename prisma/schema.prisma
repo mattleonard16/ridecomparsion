@@ -20,15 +20,114 @@ enum ServiceType {
   TAXI
 }
 
-model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
-  name          String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  savedRoutes   SavedRoute[]
-  priceAlerts   PriceAlert[]
-  rideHistories RideHistory[]
+model Route {
+  id             String         @id @default(cuid())
+  pickup_address String
+  pickup_lat     Float
+  pickup_lng     Float
+  destination_address String
+  destination_lat Float
+  destination_lng Float
+  distance_miles Float?
+  duration_minutes Float?
+  route_hash     String         @unique
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  savedRoutes    SavedRoute[]
+  priceAlerts    PriceAlert[]
+  rideHistories  RideHistory[]
+  searchLogs     SearchLog[]
+  priceSnapshots PriceSnapshot[]
+  trafficLogs    TrafficLog[]
+}
+
+model PriceSnapshot {
+  id              String     @id @default(cuid())
+  route           Route      @relation(fields: [routeId], references: [id])
+  routeId         String
+  service         ServiceType
+  base_price      Float
+  surge_multiplier Float     @default(1.0)
+  final_price     Float
+  wait_time_minutes Int?
+  drivers_nearby  Int?
+  day_of_week     Int
+  hour_of_day     Int
+  weather_condition String?
+  weather_temp_f  Float?
+  is_raining      Boolean    @default(false)
+  traffic_level   TrafficLevel?
+  nearby_events   String[]   @default([])
+  createdAt       DateTime   @default(now())
+  is_holiday      Boolean    @default(false)
+  confidence      Float?
+
+  @@index([routeId, service, createdAt])
+}
+
+model SearchLog {
+  id           String   @id @default(cuid())
+  user         User?    @relation(fields: [userId], references: [id])
+  userId       String?
+  route        Route?   @relation(fields: [routeId], references: [id])
+  routeId      String?
+  session_id   String?
+  results_shown Json?
+  ip_address    String?
+  user_agent    String?
+  did_book      Boolean   @default(false)
+  booked_service ServiceType?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([routeId])
+}
+
+model EventLog {
+  id          String   @id @default(cuid())
+  event_name  String
+  venue       String?
+  coords_lat  Float?
+  coords_lng  Float?
+  event_type  String?
+  start_time  DateTime
+  end_time    DateTime?
+  expected_attendance Int?
+  raw_data    Json?
+  createdAt   DateTime @default(now())
+  ticket_price_range String?
+}
+
+model WeatherLog {
+  id          String   @id @default(cuid())
+  coords_lat  Float
+  coords_lng  Float
+  temperature_f Float?
+  condition   String?
+  precipitation_inch Float?
+  wind_speed_mph Float?
+  visibility_miles Float?
+  is_severe   Boolean  @default(false)
+  raw_data    Json?
+  createdAt   DateTime @default(now())
+  loggedAt    DateTime @default(now())
+}
+
+model TrafficLog {
+  id          String      @id @default(cuid())
+  route       Route       @relation(fields: [routeId], references: [id])
+  routeId     String
+  traffic_level TrafficLevel?
+  delay_minutes Int?
+  incidents    Json?
+  createdAt    DateTime @default(now())
+}
+
+enum TrafficLevel {
+  LIGHT
+  MODERATE
+  HEAVY
+  SEVERE
 }
 
 model SavedRoute {
@@ -41,12 +140,11 @@ model SavedRoute {
   toName      String
   toLat       Float
   toLng       Float
+  routeId     String?   @unique
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   priceAlerts PriceAlert[]
   rideHistories RideHistory[]
-
-  @@index([userId])
 }
 
 model PriceAlert {
@@ -59,11 +157,9 @@ model PriceAlert {
   targetPrice    Float
   isActive       Boolean      @default(true)
   lastTriggeredAt DateTime?
+  triggerCount   Int         @default(0)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-
-  @@index([userId])
-  @@index([savedRouteId])
 }
 
 model RideHistory {
@@ -72,6 +168,8 @@ model RideHistory {
   userId             String?
   savedRoute         SavedRoute?  @relation(fields: [savedRouteId], references: [id])
   savedRouteId       String?
+  route              Route?       @relation(fields: [routeId], references: [id])
+  routeId            String?
   service            ServiceType
   estimatedFare      Float
   finalFare          Float?
@@ -79,7 +177,24 @@ model RideHistory {
   surgeMultiplier    Float?
   comparisonSnapshot Json
   requestedAt        DateTime     @default(now())
+}
 
-  @@index([userId])
-  @@index([savedRouteId])
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  avatarUrl     String?
+  preferredService ServiceType?
+  notificationEnabled Boolean @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  savedRoutes   SavedRoute[]
+  priceAlerts   PriceAlert[]
+  rideHistories RideHistory[]
+  searchLogs    SearchLog[]
+}
+
+enum AlertType {
+  BELOW
+  ABOVE
 }

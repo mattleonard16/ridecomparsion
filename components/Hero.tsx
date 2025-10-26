@@ -1,8 +1,13 @@
 'use client'
 
+import { UserMenu } from '@/components/user-menu'
+
 export default function Hero() {
   return (
     <section className="snap-start min-h-screen flex items-center bg-gradient-to-b from-white to-slate-50">
+      <div className="absolute top-4 right-4 z-10">
+        <UserMenu />
+      </div>
       <div className="container mx-auto px-4 max-w-4xl w-full">
         <div className="text-center">
           <div className="animate-fade-in-up">
