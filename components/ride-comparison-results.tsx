@@ -233,16 +233,16 @@ export default memo(function RideComparisonResults({
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
       {/* Clean Header Section */}
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold text-gray-900">Your Ride Options</h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-white">Your Ride <span className="gradient-text-blue">Options</span></h2>
           <div className="flex gap-2">
             <button
               onClick={handleSaveRoute}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all duration-300 ${
                 routeSaved
-                  ? 'bg-green-50 border-green-500 text-green-700'
-                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                  : 'glass-card border-white/20 text-gray-300 hover:bg-white/10'
               }`}
               title={user ? 'Save this route' : 'Sign in to save routes'}
             >
@@ -251,14 +251,14 @@ export default memo(function RideComparisonResults({
             </button>
             <button
               onClick={handleShare}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 glass-card text-gray-300 hover:bg-white/10 transition-all duration-300"
             >
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
             </button>
             <button
               onClick={() => setShowPriceAlert(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/20 glass-card text-gray-300 hover:bg-white/10 transition-all duration-300"
               title={user ? 'Set price alert' : 'Sign in to set alerts'}
             >
               <Bell className="h-4 w-4" />
@@ -268,39 +268,39 @@ export default memo(function RideComparisonResults({
         </div>
 
         {/* Quick Summary */}
-        <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl p-6 border border-blue-100">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-green-600">{bestPrice.data.price}</div>
-              <div className="text-sm text-gray-600">Best Price ({bestPrice.name})</div>
+        <div className="glass-card-strong rounded-2xl p-8 border border-white/20 shadow-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="space-y-2">
+              <div className="text-3xl font-black text-green-400">{bestPrice.data.price}</div>
+              <div className="text-sm text-gray-400">Best Price <span className="text-white font-semibold">({bestPrice.name})</span></div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{bestWaitTime.data.waitTime}</div>
-              <div className="text-sm text-gray-600">Fastest Pickup ({bestWaitTime.name})</div>
+            <div className="space-y-2">
+              <div className="text-3xl font-black text-blue-400">{bestWaitTime.data.waitTime}</div>
+              <div className="text-sm text-gray-400">Fastest Pickup <span className="text-white font-semibold">({bestWaitTime.name})</span></div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600">
+            <div className="space-y-2">
+              <div className="text-3xl font-black text-purple-400">
                 $
                 {(
                   services.reduce((sum, s) => sum + parseFloat(s.data.price.replace('$', '')), 0) /
                   3
                 ).toFixed(0)}
               </div>
-              <div className="text-sm text-gray-600">Average Price</div>
+              <div className="text-sm text-gray-400">Average Price</div>
             </div>
           </div>
         </div>
 
         {/* Smart Recommendation */}
         {insights && (
-          <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
+          <div className="glass-card-strong border border-blue-500/30 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <AlertCircle className="h-5 w-5 text-blue-400" />
               </div>
-              <div className="text-left">
-                <div className="font-semibold text-gray-900 mb-1">💡 Smart Recommendation</div>
-                <div className="text-gray-700">{insights}</div>
+              <div className="text-left flex-1">
+                <div className="font-bold text-white mb-2 text-lg">💡 Smart Recommendation</div>
+                <div className="text-gray-300 leading-relaxed">{insights}</div>
               </div>
             </div>
           </div>
@@ -312,25 +312,26 @@ export default memo(function RideComparisonResults({
         {services.map(service => (
           <div
             key={service.name}
-            className={`bg-white rounded-2xl border-2 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 ${
+            className={`glass-card-strong rounded-2xl border-2 overflow-hidden shadow-2xl hover-lift transition-all duration-300 ${
               service.name === bestPrice.name
-                ? 'border-green-300 ring-2 ring-green-100'
-                : 'border-gray-200'
+                ? 'border-green-500/50 ring-2 ring-green-500/20'
+                : 'border-white/10'
             }`}
           >
             {/* Service Header */}
-            <div className={`${service.color} p-4`}>
-              <div className="flex items-center justify-between">
+            <div className={`${service.color} p-5 relative overflow-hidden`}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+              <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                    <span className={`font-bold text-lg ${service.textColor}`}>
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                    <span className={`font-black text-xl ${service.textColor}`}>
                       {service.name[0]}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">{service.name}</h3>
+                  <h3 className="text-2xl font-black text-white">{service.name}</h3>
                 </div>
                 {service.data.surgeMultiplier && (
-                  <span className="bg-orange-100 text-orange-800 text-xs font-medium px-3 py-1 rounded-full">
+                  <span className="bg-orange-500/20 text-orange-300 text-xs font-bold px-3 py-1.5 rounded-full border border-orange-500/30">
                     {service.data.surgeMultiplier} surge
                   </span>
                 )}
@@ -338,61 +339,63 @@ export default memo(function RideComparisonResults({
             </div>
 
             {/* Price Highlight */}
-            <div className="p-6 text-center border-b border-gray-100">
+            <div className="p-8 text-center border-b border-white/10">
               <div
-                className={`text-4xl font-bold mb-2 ${
-                  service.name === bestPrice.name ? 'text-green-600' : 'text-gray-800'
+                className={`text-5xl font-black mb-3 ${
+                  service.name === bestPrice.name ? 'text-green-400 animate-pulse' : 'text-white'
                 }`}
               >
                 {service.data.price}
               </div>
               {service.name === bestPrice.name && (
-                <div className="text-green-600 text-sm font-medium">💰 Best Price</div>
+                <div className="inline-block bg-green-500/20 border border-green-500/40 text-green-400 text-sm font-bold px-4 py-1.5 rounded-full">
+                  💰 Best Price
+                </div>
               )}
             </div>
 
             {/* Details */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
+                <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
                   <div
-                    className={`text-2xl font-bold ${
-                      service.name === bestWaitTime.name ? 'text-blue-600' : 'text-gray-700'
+                    className={`text-3xl font-black mb-1 ${
+                      service.name === bestWaitTime.name ? 'text-blue-400' : 'text-white'
                     }`}
                   >
                     {service.data.waitTime}
                   </div>
-                  <div className="text-gray-500 text-sm">
+                  <div className="text-gray-400 text-xs font-medium">
                     {service.name === bestWaitTime.name ? '⚡ Fastest' : 'Wait Time'}
                   </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-700">
+                <div className="text-center p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="text-3xl font-black text-white mb-1">
                     {service.data.driversNearby}
                   </div>
-                  <div className="text-gray-500 text-sm">Drivers</div>
+                  <div className="text-gray-400 text-xs font-medium">Drivers</div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3">
                 <button
                   onClick={() => handleBooking(service.name)}
-                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
+                  className={`w-full py-4 px-6 rounded-xl font-bold transition-all duration-300 shadow-lg ${
                     service.name === 'Taxi'
-                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : `${service.color} text-white hover:opacity-90 transform hover:scale-105`
+                      ? 'bg-white/5 text-gray-500 cursor-not-allowed border border-white/10'
+                      : `${service.color} text-white hover:opacity-90 hover-lift hover:shadow-2xl`
                   }`}
                   disabled={service.name === 'Taxi'}
                 >
-                  {service.name === 'Taxi' ? `Call ${service.name}` : `Book ${service.name}`}
+                  {service.name === 'Taxi' ? `Call ${service.name}` : `🚗 Book ${service.name}`}
                 </button>
 
                 <button
                   onClick={() => handleShareETA(service.name, service.data.waitTime)}
-                  className="w-full py-2 px-4 text-sm bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 text-sm bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 border border-white/10"
                 >
-                  <Share2 className="h-3 w-3" />
+                  <Share2 className="h-4 w-4" />
                   Share ETA
                 </button>
               </div>
@@ -405,14 +408,14 @@ export default memo(function RideComparisonResults({
       <div className="space-y-4">
         {/* Surge Information */}
         {surgeInfo && surgeInfo.isActive && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 text-sm">⚡</span>
+          <div className="glass-card-strong border border-orange-500/30 rounded-2xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-orange-400 text-xl">⚡</span>
               </div>
-              <div className="text-orange-800">
-                <strong>Surge Pricing Active:</strong> {surgeInfo.reason} (approx.{' '}
-                {surgeInfo.multiplier.toFixed(1)}× increase)
+              <div className="text-orange-300">
+                <strong className="text-white">Surge Pricing Active:</strong> {surgeInfo.reason} (approx.{' '}
+                <span className="text-orange-400 font-bold">{surgeInfo.multiplier.toFixed(1)}×</span> increase)
               </div>
             </div>
           </div>
@@ -420,18 +423,18 @@ export default memo(function RideComparisonResults({
 
         {/* Time Recommendations */}
         {timeRecommendations.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-            <div className="text-green-800">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 text-sm">💡</span>
+          <div className="glass-card-strong border border-green-500/30 rounded-2xl p-6">
+            <div className="text-green-300">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-green-400 text-xl">💡</span>
                 </div>
-                <strong>Best Time Tips:</strong>
+                <strong className="text-white text-lg">Best Time Tips:</strong>
               </div>
-              <ul className="ml-8 space-y-1">
+              <ul className="ml-13 space-y-2">
                 {timeRecommendations.map((tip, index) => (
-                  <li key={index} className="text-sm">
-                    {tip}
+                  <li key={index} className="text-sm text-gray-300">
+                    • {tip}
                   </li>
                 ))}
               </ul>
@@ -441,19 +444,19 @@ export default memo(function RideComparisonResults({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-center gap-3 pt-6 border-t border-gray-200">
+      <div className="flex justify-center gap-4 pt-6 border-t border-white/10">
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover-lift font-semibold"
         >
-          <Share2 className="h-4 w-4" />
+          <Share2 className="h-5 w-5" />
           Share Results
         </button>
         <button
           onClick={() => setShowPriceAlert(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors shadow-sm"
+          className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 transition-all duration-300 shadow-lg hover-lift font-semibold"
         >
-          <Bell className="h-4 w-4" />
+          <Bell className="h-5 w-5" />
           Price Alert
         </button>
       </div>
