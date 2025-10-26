@@ -923,8 +923,8 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Finding rides...
                 </div>
-              ) : (
-                '🚀 Compare Prices'
+                  ) : (
+                'Compare Prices'
               )}
             </button>
             

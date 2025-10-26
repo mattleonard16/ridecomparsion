@@ -65,6 +65,15 @@ body {
   }
 }
 
+@keyframes color-shift {
+  0%, 100% {
+    color: #9CA3AF; /* Gray-400 */
+  }
+  50% {
+    color: #10B981; /* Green-500 */
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -155,6 +164,10 @@ body {
   
   .animate-float {
     animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-color-shift {
+    animation: color-shift 4s ease-in-out infinite;
   }
   
   /* Background Grid */

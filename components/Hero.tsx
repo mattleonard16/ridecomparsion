@@ -24,7 +24,7 @@ export default function Hero() {
         <div className="text-center">
           <div className="animate-fade-in-up">
             <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 leading-tight">
-              <span className="gradient-text-blue">
+              <span className="animate-color-shift">
                 Compare Rideshares
               </span>
               <br />

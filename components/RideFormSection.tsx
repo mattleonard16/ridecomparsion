@@ -35,7 +35,7 @@ export default function RideFormSection({ selectedRoute, onRouteProcessed }: Rid
 
         <div className="mt-10 text-center">
           <p className="text-sm text-gray-500 max-w-md mx-auto">
-            🔒 We compare prices from multiple services to help you find the best deal. 
+            We compare prices from multiple services to help you find the best deal. 
             <span className="text-gray-400 font-medium"> No booking fees or hidden charges.</span>
           </p>
         </div>
