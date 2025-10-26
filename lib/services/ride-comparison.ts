@@ -1,6 +1,7 @@
 import { API_CONFIG } from '@/lib/constants'
+import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
 import { getAirportByCode, parseAirportCode } from '@/lib/airports'
-import { getBestTimeRecommendations, getTimeBasedMultiplier, pricingEngine } from '@/lib/pricing-final'
+import { getBestTimeRecommendations, getTimeBasedMultiplier, pricingEngine } from '@/lib/pricing'
 import { sanitizeString } from '@/lib/validation'
 import type {
   ComparisonResults,
@@ -10,7 +11,10 @@ import type {
   ServiceType,
   SurgeInfo,
   Longitude,
+  PriceString,
+  RideService,
 } from '@/types'
+import type { Database } from '@/types/supabase'
 
 const GEOCODE_CACHE = new Map<string, { value: Coordinates; expiresAt: number }>()
 const ROUTE_CACHE = new Map<string, { value: RouteMetrics; expiresAt: number }>()
@@ -44,7 +48,12 @@ export async function compareRidesByAddresses(
   pickupAddress: string,
   destinationAddress: string,
   services: ServiceType[] = DEFAULT_SERVICES,
-  timestamp: Date = new Date()
+  timestamp: Date = new Date(),
+  options?: {
+    userId?: string | null
+    sessionId?: string | null
+    persist?: boolean
+  }
 ): Promise<ComparisonComputation | null> {
   const sanitizedPickup = sanitizeString(pickupAddress)
   const sanitizedDestination = sanitizeString(destinationAddress)
@@ -60,7 +69,14 @@ export async function compareRidesByAddresses(
     { name: sanitizedPickup, coordinates: pickupCoords },
     { name: sanitizedDestination, coordinates: destinationCoords },
     services,
-    timestamp
+    timestamp,
+    {
+      userId: options?.userId ?? null,
+      sessionId: options?.sessionId ?? null,
+      persist: options?.persist ?? true,
+      pickupAddress: sanitizedPickup,
+      destinationAddress: sanitizedDestination,
+    }
   )
 }
 
@@ -68,7 +84,14 @@ export async function compareRidesByCoordinates(
   pickup: { name: string; coordinates: Coordinates },
   destination: { name: string; coordinates: Coordinates },
   services: ServiceType[] = DEFAULT_SERVICES,
-  timestamp: Date = new Date()
+  timestamp: Date = new Date(),
+  options?: {
+    userId?: string | null
+    sessionId?: string | null
+    persist?: boolean
+    pickupAddress?: string
+    destinationAddress?: string
+  }
 ): Promise<ComparisonComputation> {
   const normalisedServices = services.length ? services : DEFAULT_SERVICES
   const uniqueServices = Array.from(
@@ -76,6 +99,23 @@ export async function compareRidesByCoordinates(
   )
 
   const metrics = await getRouteMetrics(pickup.coordinates, destination.coordinates)
+
+  const shouldPersist = options?.persist !== false
+  const pickupAddress = options?.pickupAddress ?? pickup.name
+  const destinationAddress = options?.destinationAddress ?? destination.name
+
+  let routeId: string | null = null
+
+  if (shouldPersist) {
+    routeId = await findOrCreateRoute(
+      pickupAddress,
+      [pickup.coordinates[0], pickup.coordinates[1]],
+      destinationAddress,
+      [destination.coordinates[0], destination.coordinates[1]],
+      metrics.distanceKm,
+      metrics.durationMin
+    )
+  }
 
   const resultsEntries = uniqueServices.map((service) => {
     const computation = pricingEngine.calculateFare({
@@ -88,6 +128,20 @@ export async function compareRidesByCoordinates(
       osrmDurationSec: metrics.osrmDurationSec,
       expectedDurationSec: metrics.durationMin * 60,
     })
+
+    if (shouldPersist && routeId) {
+      logPriceSnapshot(
+        routeId,
+        service,
+        computation.breakdown.finalFare,
+        computation.breakdown.surgeMultiplier,
+        deriveWaitMinutes(service, computation.breakdown.surgeMultiplier, metrics.durationMin),
+        {
+          weather: computation.surgeReason,
+          trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
+        }
+      )
+    }
 
     return [service, buildRideResult(service, computation, metrics)] as const
   })
@@ -106,6 +160,15 @@ export async function compareRidesByCoordinates(
     isActive: multiplier > 1.05,
   }
 
+  if (shouldPersist) {
+    logSearch(
+      routeId,
+      options?.userId ?? null,
+      comparisonResults,
+      options?.sessionId ?? undefined
+    )
+  }
+
   return {
     results: comparisonResults,
     surgeInfo,
@@ -114,6 +177,13 @@ export async function compareRidesByCoordinates(
     destination: destination.coordinates,
     insights: generateRecommendation(comparisonResults),
   }
+}
+
+function classifyTraffic(multiplier: number): Database['public']['Enums']['traffic_level'] | undefined {
+  if (multiplier <= 1.1) return 'light'
+  if (multiplier <= 1.25) return 'moderate'
+  if (multiplier <= 1.4) return 'heavy'
+  return 'severe'
 }
 
 async function geocodeWithCache(address: string): Promise<Coordinates | null> {
@@ -245,7 +315,7 @@ function buildRideResult(
     price: formatCurrency(computation.price),
     waitTime: `${waitMinutes} min`,
     driversNearby,
-    service: SERVICE_LABELS[service],
+    service: SERVICE_LABELS[service] as RideService,
     surgeMultiplier: surgeMultiplier > 1.05 ? `${surgeMultiplier.toFixed(2)}x` : undefined,
   }
 }
@@ -274,7 +344,7 @@ function deriveDriversNearby(
   return Math.max(1, baseDrivers - surgePenalty - distanceFactor)
 }
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number): PriceString {
   return `$${amount.toFixed(2)}`
 }
 

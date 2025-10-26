@@ -1,5 +1,18 @@
 import { render, screen } from '@testing-library/react'
 import RideComparisonResults from '@/components/ride-comparison-results'
+import { AuthProvider } from '@/lib/auth-context'
+
+// Mock the auth context
+jest.mock('@/lib/auth-context', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useAuth: () => ({
+    user: null,
+    session: null,
+    loading: false,
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+  }),
+}))
 
 describe('RideComparisonResults', () => {
   const mockResults = {

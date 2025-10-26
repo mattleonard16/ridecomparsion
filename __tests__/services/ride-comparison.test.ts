@@ -1,6 +1,12 @@
 import { compareRidesByAddresses, compareRidesByCoordinates } from '@/lib/services/ride-comparison'
 import type { Coordinates } from '@/types'
 
+jest.mock('@/lib/supabase', () => ({
+  findOrCreateRoute: jest.fn(async () => 'mock-route-id'),
+  logPriceSnapshot: jest.fn(async () => undefined),
+  logSearch: jest.fn(async () => undefined),
+}))
+
 const mockFetch = jest.fn()
 const originalFetch = global.fetch
 
@@ -230,7 +236,8 @@ describe('ride-comparison service', () => {
         ['uber']
       )
 
-      expect(result.results.uber.price).toMatch(/^\$\d+\.\d{2}$/)
+      expect(result.results.uber).toBeDefined()
+      expect(result.results.uber!.price).toMatch(/^\$\d+\.\d{2}$/)
     })
 
     it('should include wait time in results', async () => {
@@ -240,7 +247,8 @@ describe('ride-comparison service', () => {
         ['uber']
       )
 
-      expect(result.results.uber.waitTime).toMatch(/^\d+ min$/)
+      expect(result.results.uber).toBeDefined()
+      expect(result.results.uber!.waitTime).toMatch(/^\d+ min$/)
     })
 
     it('should include drivers nearby count', async () => {
@@ -250,8 +258,9 @@ describe('ride-comparison service', () => {
         ['uber']
       )
 
-      expect(typeof result.results.uber.driversNearby).toBe('number')
-      expect(result.results.uber.driversNearby).toBeGreaterThan(0)
+      expect(result.results.uber).toBeDefined()
+      expect(typeof result.results.uber!.driversNearby).toBe('number')
+      expect(result.results.uber!.driversNearby).toBeGreaterThan(0)
     })
 
     it('should deduplicate service types', async () => {
@@ -444,9 +453,11 @@ describe('ride-comparison service', () => {
         timestamp
       )
 
-      expect(result1.results.uber.price).toBe(result2.results.uber.price)
-      expect(result1.results.uber.waitTime).toBe(result2.results.uber.waitTime)
-      expect(result1.results.uber.driversNearby).toBe(result2.results.uber.driversNearby)
+      expect(result1.results.uber).toBeDefined()
+      expect(result2.results.uber).toBeDefined()
+      expect(result1.results.uber!.price).toBe(result2.results.uber!.price)
+      expect(result1.results.uber!.waitTime).toBe(result2.results.uber!.waitTime)
+      expect(result1.results.uber!.driversNearby).toBe(result2.results.uber!.driversNearby)
     })
 
     it('should derive wait times based on service and surge', async () => {
@@ -457,8 +468,10 @@ describe('ride-comparison service', () => {
         timestamp
       )
 
-      const uberWait = parseInt(result.results.uber.waitTime.replace(' min', ''))
-      const taxiWait = parseInt(result.results.taxi.waitTime.replace(' min', ''))
+      expect(result.results.uber).toBeDefined()
+      expect(result.results.taxi).toBeDefined()
+      const uberWait = parseInt(result.results.uber!.waitTime.replace(' min', ''))
+      const taxiWait = parseInt(result.results.taxi!.waitTime.replace(' min', ''))
 
       expect(uberWait).toBeGreaterThanOrEqual(2)
       expect(uberWait).toBeLessThanOrEqual(18)
@@ -474,9 +487,12 @@ describe('ride-comparison service', () => {
         timestamp
       )
 
-      expect(result.results.uber.driversNearby).toBeGreaterThanOrEqual(1)
-      expect(result.results.lyft.driversNearby).toBeGreaterThanOrEqual(1)
-      expect(result.results.taxi.driversNearby).toBeGreaterThanOrEqual(1)
+      expect(result.results.uber).toBeDefined()
+      expect(result.results.lyft).toBeDefined()
+      expect(result.results.taxi).toBeDefined()
+      expect(result.results.uber!.driversNearby).toBeGreaterThanOrEqual(1)
+      expect(result.results.lyft!.driversNearby).toBeGreaterThanOrEqual(1)
+      expect(result.results.taxi!.driversNearby).toBeGreaterThanOrEqual(1)
     })
   })
 })

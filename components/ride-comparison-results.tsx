@@ -1,7 +1,10 @@
-import { AlertCircle, Share2, Bell } from 'lucide-react'
+import { AlertCircle, Share2, Bell, Bookmark } from 'lucide-react'
 // import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useState, memo } from 'react'
 import PriceAlert from './price-alert'
+import { useAuth } from '@/lib/auth-context'
+import { saveRouteForUser } from '@/lib/supabase'
+import { AuthDialog } from './auth-dialog'
 
 type RideData = {
   price: string
@@ -38,15 +41,24 @@ export default memo(function RideComparisonResults({
   pickup = '',
   destination = '',
 }: RideComparisonResultsProps) {
+  const { user } = useAuth()
   const [showPriceAlert, setShowPriceAlert] = useState(false)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
+  const [routeSaved, setRouteSaved] = useState(false)
   // const [priceAlerts] = useState<Array<{ threshold: number; timestamp: Date }>>([])
 
-  // Function to generate booking URLs
-  const getBookingUrl = (serviceName: string) => {
+  // Function to generate booking URLs with deep links
+  const getBookingUrl = (serviceName: string, pickupCoords?: [number, number], destCoords?: [number, number]) => {
     switch (serviceName.toLowerCase()) {
       case 'uber':
+        if (pickupCoords && destCoords) {
+          return `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${pickupCoords[1]}&pickup[longitude]=${pickupCoords[0]}&dropoff[latitude]=${destCoords[1]}&dropoff[longitude]=${destCoords[0]}`
+        }
         return 'https://m.uber.com/looking'
       case 'lyft':
+        if (pickupCoords && destCoords) {
+          return `https://lyft.com/ride?origin=${pickupCoords[1]},${pickupCoords[0]}&destination=${destCoords[1]},${destCoords[0]}`
+        }
         return 'https://www.lyft.com/'
       default:
         return '#'
@@ -133,8 +145,32 @@ export default memo(function RideComparisonResults({
     }
   }
 
+  // Handle save route
+  const handleSaveRoute = async () => {
+    if (!user) {
+      setShowAuthDialog(true)
+      return
+    }
+
+    // For now, we'll use a mock route ID since we need coordinates
+    // In production, this would come from the API response
+    const mockRouteId = `route-${Date.now()}`
+    const nickname = `${pickup?.split(',')[0] || 'Pickup'} → ${destination?.split(',')[0] || 'Destination'}`
+    
+    const success = await saveRouteForUser(user.id, mockRouteId, nickname)
+    if (success) {
+      setRouteSaved(true)
+      setTimeout(() => setRouteSaved(false), 3000)
+    }
+  }
+
   // Handle price alert setting
   const handleSetPriceAlert = (threshold: number) => {
+    if (!user) {
+      setShowAuthDialog(true)
+      return
+    }
+
     const newAlert = { threshold, timestamp: new Date() }
     // setPriceAlerts(prev => [...prev, newAlert])
 
@@ -198,7 +234,38 @@ export default memo(function RideComparisonResults({
     <div className="w-full max-w-6xl mx-auto space-y-8">
       {/* Clean Header Section */}
       <div className="text-center space-y-4">
-        <h2 className="text-3xl font-bold text-gray-900">Your Ride Options</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold text-gray-900">Your Ride Options</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveRoute}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                routeSaved
+                  ? 'bg-green-50 border-green-500 text-green-700'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+              title={user ? 'Save this route' : 'Sign in to save routes'}
+            >
+              <Bookmark className={`h-4 w-4 ${routeSaved ? 'fill-current' : ''}`} />
+              <span className="hidden sm:inline">{routeSaved ? 'Saved!' : 'Save Route'}</span>
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Share</span>
+            </button>
+            <button
+              onClick={() => setShowPriceAlert(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+              title={user ? 'Set price alert' : 'Sign in to set alerts'}
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Alert</span>
+            </button>
+          </div>
+        </div>
 
         {/* Quick Summary */}
         <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-xl p-6 border border-blue-100">
@@ -398,6 +465,18 @@ export default memo(function RideComparisonResults({
           onSetAlert={handleSetPriceAlert}
           onClose={() => setShowPriceAlert(false)}
         />
+      )}
+
+      {/* Auth Dialog */}
+      {showAuthDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md">
+            <AuthDialog
+              onClose={() => setShowAuthDialog(false)}
+              onSuccess={() => setShowAuthDialog(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   )
