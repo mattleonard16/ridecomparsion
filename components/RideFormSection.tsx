@@ -19,7 +19,7 @@ export default function RideFormSection({ selectedRoute, onRouteProcessed }: Rid
       <div className="relative z-10 container mx-auto px-4 max-w-4xl w-full">
         <div className="text-center mb-10 sm:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4">
-            Compare Prices <span className="gradient-text-blue">Now</span>
+            Compare Prices <span className="animate-color-shift">Now</span>
           </h2>
           <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto">
             Enter your pickup and destination to get <span className="text-white font-semibold">real-time price comparisons</span>

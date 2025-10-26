@@ -55,7 +55,7 @@ export default function FeatureGrid() {
       <div className="relative z-10 container mx-auto px-4 max-w-6xl w-full">
         <div className="text-center mb-12 sm:mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4">
-            Why Choose <span className="gradient-text-blue">Our Platform</span>
+            Why Choose <span className="animate-color-shift">Our Platform</span>
           </h2>
           <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto">
             Advanced features designed to <span className="text-white font-semibold">save you time and money</span> on every ride

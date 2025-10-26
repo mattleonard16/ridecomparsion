@@ -62,7 +62,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
       <div className="relative z-10 container mx-auto px-4 max-w-5xl w-full">
         <div className="text-center mb-10 sm:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4">
-            Popular <span className="gradient-text-blue">Bay Area</span> Routes
+            Popular <span className="animate-color-shift">Bay Area</span> Routes
           </h2>
           <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto">
             Click any route to get <span className="text-white font-semibold">instant price comparisons</span>
