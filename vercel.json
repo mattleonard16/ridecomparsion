@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/weather",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/events",
-      "schedule": "0 */6 * * *"
-    }
-  ]
-}
+{}

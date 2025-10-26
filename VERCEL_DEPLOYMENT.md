@@ -160,21 +160,34 @@ npm run typecheck
 - Analytics dashboard
 - Monitoring
 
-## 📊 Vercel Cron Jobs
+## 📊 Vercel Cron Jobs (Optional - Requires Pro Plan)
 
-The app includes two cron jobs (configured in `vercel.json`):
+⚠️ **Note:** Cron jobs require a Vercel Pro plan ($20/month). The app works perfectly without them!
 
-### Weather Updates
-- **Path:** `/api/cron/weather`
-- **Schedule:** Every 15 minutes
+The cron endpoints are available but not scheduled by default:
+
+### Weather Updates (Optional)
+- **Endpoint:** `/api/cron/weather`
+- **Manual trigger:** `curl https://your-app.vercel.app/api/cron/weather`
 - **Requires:** `OPENWEATHER_API_KEY`, `CRON_SECRET`
 
-### Events Updates
-- **Path:** `/api/cron/events`
-- **Schedule:** Every 6 hours
+### Events Updates (Optional)
+- **Endpoint:** `/api/cron/events`
+- **Manual trigger:** `curl https://your-app.vercel.app/api/cron/events`
 - **Requires:** `SEATGEEK_CLIENT_ID`, `CRON_SECRET`
 
-**Note:** Cron jobs only run in production, not in preview deployments.
+**To enable cron scheduling (Pro plan only):**
+Add to `vercel.json`:
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/weather",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
+```
 
 ## 🔐 Security Checklist
 
