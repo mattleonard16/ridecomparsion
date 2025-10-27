@@ -203,6 +203,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
   // Handle popular route selection
   useEffect(() => {
     if (selectedRoute) {
+      console.log('[AutoSubmit] detected', selectedRoute)
       setPickup(selectedRoute.pickup)
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
@@ -218,6 +219,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       
       // Auto-submit the form after setting the values
       const submitForm = async () => {
+        console.log('[AutoSubmit] Starting fetch...')
         setIsLoading(true)
         setResults(null)
         setInsights('')
@@ -244,10 +246,12 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
           const data = await response.json()
 
           if (!response.ok) {
+            console.error('[AutoSubmit] Error response:', data)
             setError('Failed to fetch ride comparisons for this route. Please try again.')
             return
           }
 
+          console.log('[AutoSubmit] Success, displaying results')
           setResults(data.comparisons)
           setInsights(data.insights)
           setPickupCoords(data.pickupCoords)
@@ -256,7 +260,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
           setTimeRecommendations(data.timeRecommendations || [])
           setShowForm(false)
         } catch (error) {
-          console.error('Error:', error)
+          console.error('[AutoSubmit] Fetch error:', error)
           setError('Failed to get pricing for this route. Please try again.')
         } finally {
           setIsLoading(false)

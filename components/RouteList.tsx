@@ -54,6 +54,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
   }, [])
 
   const handleRouteClick = useCallback((route: typeof POPULAR_ROUTES[0]) => {
+    console.log('[RouteClick]', route.pickup, '→', route.destination)
     onRouteSelect({
       pickup: route.pickup,
       destination: route.destination
@@ -63,12 +64,15 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
     setTimeout(() => {
       const compareSection = document.getElementById('compare-section')
       if (compareSection) {
+        console.log('[Scroll] to compare section')
         compareSection.scrollIntoView({
           behavior: 'smooth',
           block: 'start'
         })
+      } else {
+        console.error('[Scroll] compare-section not found!')
       }
-    }, 100)
+    }, 50)
   }, [onRouteSelect])
 
   return (
