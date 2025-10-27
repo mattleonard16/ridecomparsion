@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { AuthDialog } from '@/components/auth-dialog'
+import ModalPortal from '@/components/ModalPortal'
 
 export function UserMenu() {
   const { user, signOut, loading } = useAuth()
@@ -11,37 +12,45 @@ export function UserMenu() {
 
   if (loading) {
     return (
-      <div className="h-9 w-20 animate-pulse rounded-md bg-muted" />
+      <div className="h-10 w-24 animate-shimmer rounded-xl glass-card" />
     )
   }
 
   if (user) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground hidden sm:inline">
+      <div className="glass-card rounded-xl px-4 py-2 flex items-center gap-3 hover-glow">
+        <span className="text-sm text-gray-300 hidden sm:inline font-medium">
           {user.email}
         </span>
-        <Button onClick={signOut} variant="outline" size="sm">
+        <button
+          onClick={signOut}
+          className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all duration-300 border border-white/10"
+        >
           Sign out
-        </Button>
+        </button>
       </div>
     )
   }
 
   return (
     <>
-      <Button onClick={() => setShowAuth(true)} variant="outline" size="sm">
+      <button
+        onClick={() => setShowAuth(true)}
+        className="glass-card px-5 py-2.5 rounded-xl text-white font-medium hover-glow transition-all duration-300 border border-white/20"
+      >
         Sign in
-      </Button>
+      </button>
       {showAuth && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md">
-            <AuthDialog
-              onClose={() => setShowAuth(false)}
-              onSuccess={() => setShowAuth(false)}
-            />
+        <ModalPortal>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="relative z-[10000] w-full max-w-md">
+              <AuthDialog
+                onClose={() => setShowAuth(false)}
+                onSuccess={() => setShowAuth(false)}
+              />
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </>
   )

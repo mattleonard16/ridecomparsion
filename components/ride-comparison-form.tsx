@@ -709,13 +709,13 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       )}
 
       {showForm && (
-        <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 transition-all duration-300">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="transition-all duration-300">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2 relative" ref={pickupRef}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <MapPin className="h-5 w-5 text-gray-500 mr-2" />
-                  <label htmlFor="pickup" className="font-medium">
+                  <MapPin className="h-5 w-5 text-gray-400 mr-2" />
+                  <label htmlFor="pickup" className="font-semibold text-white">
                     Pickup Location
                   </label>
                 </div>
@@ -723,7 +723,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   type="button"
                   onClick={handleUseMyLocation}
                   disabled={isGettingLocation}
-                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 touch-none select-none"
+                  className="flex items-center text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 touch-none select-none transition-colors"
                   title="Use my current location"
                 >
                   {isGettingLocation ? (
@@ -751,7 +751,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                       }
                     }
                   }}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
+                  className="w-full px-4 py-4 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:bg-white/10 transition-all duration-300 outline-none text-base"
                   required
                 />
                 {/* Mobile-friendly clear button */}
@@ -759,7 +759,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   <button
                     type="button"
                     onClick={() => setPickup('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 touch-manipulation"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors touch-manipulation"
                   >
                     ✕
                   </button>
@@ -768,9 +768,9 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
 
               {/* Pickup Suggestions Dropdown */}
               {showPickupSuggestions && (
-                <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full glass-card-strong rounded-xl shadow-2xl max-h-60 overflow-y-auto border border-white/20 mt-2">
                   {isLoadingSuggestions ? (
-                    <div className="p-3 text-center text-gray-500">
+                    <div className="p-4 text-center text-gray-400">
                       <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                       Loading suggestions...
                     </div>
@@ -779,12 +779,12 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 transition-colors"
                       >
-                        <div className="font-medium text-sm">
+                        <div className="font-semibold text-sm text-white">
                           {suggestion.name || suggestion.display_name.split(',')[0]}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">
+                        <div className="text-xs text-gray-400 truncate mt-1">
                           {suggestion.display_name}
                         </div>
                       </div>
@@ -799,7 +799,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
               <button
                 type="button"
                 onClick={() => openAirportSelector('pickup')}
-                className="flex items-center px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                className="flex items-center px-5 py-2.5 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40"
               >
                 <Plane className="h-4 w-4 mr-2" />
                 Select Airport for Pickup
@@ -809,8 +809,8 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
             <div className="space-y-2 relative" ref={destinationRef}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Navigation2 className="h-5 w-5 text-gray-500 mr-2" />
-                  <label htmlFor="destination" className="font-medium">
+                  <Navigation2 className="h-5 w-5 text-gray-400 mr-2" />
+                  <label htmlFor="destination" className="font-semibold text-white">
                     Destination
                   </label>
                 </div>
@@ -828,7 +828,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                       navigator.vibrate(30)
                     }
                   }}
-                  className="flex items-center text-sm text-blue-600 hover:text-blue-800 touch-none select-none"
+                  className="flex items-center text-sm text-blue-400 hover:text-blue-300 touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Swap pickup and destination"
                   disabled={!pickup || !destination}
                 >
@@ -852,7 +852,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                       }
                     }
                   }}
-                  className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
+                  className="w-full px-4 py-4 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:bg-white/10 transition-all duration-300 outline-none text-base"
                   required
                 />
                 {/* Mobile-friendly clear button */}
@@ -860,7 +860,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   <button
                     type="button"
                     onClick={() => setDestination('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 touch-manipulation"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors touch-manipulation"
                   >
                     ✕
                   </button>
@@ -869,9 +869,9 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
 
               {/* Destination Suggestions Dropdown */}
               {showDestinationSuggestions && (
-                <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full glass-card-strong rounded-xl shadow-2xl max-h-60 overflow-y-auto border border-white/20 mt-2">
                   {isLoadingDestSuggestions ? (
-                    <div className="p-3 text-center text-gray-500">
+                    <div className="p-4 text-center text-gray-400">
                       <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                       Loading suggestions...
                     </div>
@@ -880,12 +880,12 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleDestinationSuggestionClick(suggestion)}
-                        className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        className="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 transition-colors"
                       >
-                        <div className="font-medium text-sm">
+                        <div className="font-semibold text-sm text-white">
                           {suggestion.name || suggestion.display_name.split(',')[0]}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">
+                        <div className="text-xs text-gray-400 truncate mt-1">
                           {suggestion.display_name}
                         </div>
                       </div>
@@ -900,7 +900,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
               <button
                 type="button"
                 onClick={() => openAirportSelector('destination')}
-                className="flex items-center px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                className="flex items-center px-5 py-2.5 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40"
               >
                 <Plane className="h-4 w-4 mr-2" />
                 Select Airport for Destination
@@ -909,7 +909,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
 
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium touch-manipulation"
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-5 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold touch-manipulation shadow-lg hover:shadow-purple-500/50 hover-lift"
               disabled={isLoading}
               onTouchStart={() => {
                 // Add haptic feedback on touch start
@@ -923,8 +923,8 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Finding rides...
                 </div>
-              ) : (
-                'Compare Rides'
+                  ) : (
+                'Compare Prices'
               )}
             </button>
             
@@ -932,11 +932,11 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
             <div className="flex items-center justify-center text-xs text-gray-500 mt-2">
               <Shield className="h-3 w-3 mr-1" />
               {isRecaptchaLoaded ? (
-                <span>Protected by reCAPTCHA</span>
+                <span className="text-gray-400">Protected by reCAPTCHA</span>
               ) : recaptchaError ? (
-                <span className="text-orange-500">Security protection loading...</span>
+                <span className="text-orange-400">Security protection loading...</span>
               ) : (
-                <span>Loading security protection...</span>
+                <span className="text-gray-500">Loading security protection...</span>
               )}
             </div>
           </form>
@@ -945,57 +945,57 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
 
       {/* Airport Selector Modal */}
       {showAirportSelector && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card-strong rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden border border-white/20 shadow-2xl">
+            <div className="p-6 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Plane className="h-5 w-5 text-blue-600" />
+                  <Plane className="h-6 w-6 text-blue-400" />
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-semibold text-white text-lg">
                       Select Airport for {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'}
                     </div>
-                    <div className="text-sm text-gray-600">Choose from major U.S. airports</div>
+                    <div className="text-sm text-gray-400 mt-1">Choose from major U.S. airports</div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAirportSelector(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-white transition-colors text-xl"
                 >
                   ✕
                 </button>
               </div>
             </div>
-            <div className="p-2 max-h-80 overflow-y-auto">
-              <div className="grid grid-cols-1 gap-1">
+            <div className="p-3 max-h-80 overflow-y-auto">
+              <div className="grid grid-cols-1 gap-2">
                 {getPopularAirports().map((airport) => (
                   <button
                     key={airport.code}
                     onClick={() => handleAirportSelect(airport.code, airport.name)}
-                    className="p-3 text-left hover:bg-blue-50 rounded-md transition-colors group"
+                    className="p-4 text-left hover:bg-white/10 rounded-xl transition-all duration-300 group border border-white/5 hover:border-blue-500/30"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 group-hover:text-blue-600">
+                        <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">
                           {airport.code} - {airport.name}
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
+                        <div className="text-sm text-gray-400 mt-1">
                           {airport.city}, {airport.state}
                         </div>
                         {airport.terminals.length > 1 && (
-                          <div className="text-xs text-blue-600 mt-1">
+                          <div className="text-xs text-blue-400 mt-1">
                             {airport.terminals.length} terminals available
                           </div>
                         )}
                       </div>
-                      <MapPin className="h-4 w-4 text-gray-400 group-hover:text-blue-500 ml-2" />
+                      <MapPin className="h-5 w-5 text-gray-500 group-hover:text-blue-400 ml-2 transition-colors" />
                     </div>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="p-3 border-t border-gray-100 bg-gray-50">
-              <div className="text-xs text-gray-600 text-center">
+            <div className="p-4 border-t border-white/10 bg-white/5">
+              <div className="text-xs text-gray-400 text-center">
                 Don&apos;t see your airport? Use the regular search above for other locations.
               </div>
             </div>
@@ -1004,8 +1004,13 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       )}
 
       {error && (
-        <div className="mt-4 p-4 bg-red-50 text-red-800 rounded-md border border-red-200">
-          {error}
+        <div className="mt-6 p-5 bg-red-500/10 text-red-400 rounded-xl border border-red-500/30 backdrop-blur-sm">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+          </div>
         </div>
       )}
 
