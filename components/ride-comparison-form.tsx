@@ -207,6 +207,15 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
       
+      // Execute reCAPTCHA immediately in background
+      let recaptchaPromise: Promise<string> = Promise.resolve('')
+      if (isRecaptchaLoaded) {
+        recaptchaPromise = executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON).catch((err) => {
+          console.warn('reCAPTCHA failed, proceeding without token:', err)
+          return ''
+        })
+      }
+      
       // Auto-submit the form after setting the values
       const submitForm = async () => {
         setIsLoading(true)
@@ -217,15 +226,8 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
         setDestinationCoords(null)
 
         try {
-          // Execute reCAPTCHA v3 (invisible, no user interaction required)
-          let recaptchaToken = ''
-          if (isRecaptchaLoaded) {
-            try {
-              recaptchaToken = await executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON)
-            } catch (recaptchaErr) {
-              console.warn('reCAPTCHA failed, proceeding without token:', recaptchaErr)
-            }
-          }
+          // Wait for reCAPTCHA to complete (should be fast since it started immediately)
+          const recaptchaToken = await recaptchaPromise
 
           const response = await fetch('/api/compare-rides', {
             method: 'POST',

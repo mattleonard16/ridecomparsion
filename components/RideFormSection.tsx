@@ -9,7 +9,7 @@ interface RideFormSectionProps {
 
 export default function RideFormSection({ selectedRoute, onRouteProcessed }: RideFormSectionProps) {
   return (
-    <section className="relative snap-start min-h-screen flex items-center bg-black overflow-hidden">
+    <section id="compare-section" className="relative snap-start min-h-screen flex items-center bg-black overflow-hidden">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/5 to-black" />
       
@@ -26,7 +26,7 @@ export default function RideFormSection({ selectedRoute, onRouteProcessed }: Rid
           </p>
         </div>
 
-        <div className="glass-card-strong rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/10">
+        <div className="glass-card-strong rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/10 scroll-mt-20">
           <RideComparisonForm 
             selectedRoute={selectedRoute}
             onRouteProcessed={onRouteProcessed}

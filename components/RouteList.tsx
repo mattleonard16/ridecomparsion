@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 // Popular routes data
 const POPULAR_ROUTES = [
@@ -44,12 +44,32 @@ interface RouteListProps {
 }
 
 export default function RouteList({ onRouteSelect, processingRouteId }: RouteListProps) {
-  const handleRouteClick = (route: typeof POPULAR_ROUTES[0]) => {
+  const handlePrefetch = useCallback((route: typeof POPULAR_ROUTES[0]) => {
+    // Fire-and-forget prefetch
+    const url = `/api/compare-rides?pickup=${encodeURIComponent(route.pickup)}&destination=${encodeURIComponent(route.destination)}`
+    fetch(url, {
+      method: 'GET',
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => {})
+  }, [])
+
+  const handleRouteClick = useCallback((route: typeof POPULAR_ROUTES[0]) => {
     onRouteSelect({
       pickup: route.pickup,
       destination: route.destination
     })
-  }
+    
+    // Scroll instantly to comparison section
+    setTimeout(() => {
+      const compareSection = document.getElementById('compare-section')
+      if (compareSection) {
+        compareSection.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        })
+      }
+    }, 100)
+  }, [onRouteSelect])
 
   return (
     <section className="relative snap-start min-h-screen flex items-center bg-black overflow-hidden">
@@ -75,6 +95,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
             return (
               <button 
                 key={route.id}
+                onMouseEnter={() => handlePrefetch(route)}
                 onClick={() => handleRouteClick(route)}
                 disabled={isProcessing}
                 className={`group glass-card-strong border-2 rounded-2xl p-6 sm:p-7 text-left transition-all duration-300 active:scale-[0.98] ${
