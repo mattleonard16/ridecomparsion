@@ -81,7 +81,7 @@ body {
   
   /* Scroll Snap Utilities */
   .scroll-snap-y {
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity;
   }
   
   .snap-start {
