@@ -40,8 +40,19 @@ export function UserMenu() {
         Sign in
       </button>
       {showAuth && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" style={{ zIndex: 99999 }}>
-          <div className="w-full max-w-md">
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-end bg-black/80 backdrop-blur-sm p-4" 
+          style={{ 
+            zIndex: 99999,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            transform: 'translateZ(0)'
+          }}
+        >
+          <div className="w-full max-w-md mr-8">
             <AuthDialog
               onClose={() => setShowAuth(false)}
               onSuccess={() => setShowAuth(false)}
