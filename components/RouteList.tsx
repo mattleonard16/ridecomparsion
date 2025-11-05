@@ -76,7 +76,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
   }, [onRouteSelect])
 
   return (
-    <section className="relative snap-start min-h-screen flex items-center bg-black overflow-hidden">
+    <section className="relative snap-start min-h-screen bg-black overflow-visible flex flex-col justify-center py-16 sm:py-24 md:py-28">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/5 to-black" />
       
