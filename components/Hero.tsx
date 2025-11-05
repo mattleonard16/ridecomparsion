@@ -4,7 +4,7 @@ import { UserMenu } from '@/components/user-menu'
 
 export default function Hero() {
   return (
-    <section className="relative snap-start min-h-screen flex items-center bg-black overflow-hidden">
+    <section className="relative snap-start min-h-screen bg-black overflow-visible flex flex-col justify-center py-16 sm:py-24 md:py-32">
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20" />
       
