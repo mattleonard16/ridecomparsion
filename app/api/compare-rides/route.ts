@@ -14,6 +14,57 @@ import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import type { Coordinates, Longitude, Latitude } from '@/types'
 import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
 
+// GET handler for prefetch
+export async function GET(request: NextRequest) {
+  try {
+    console.log('[CompareAPI GET] Request received')
+    const { searchParams } = new URL(request.url)
+    const pickup = searchParams.get('pickup')
+    const destination = searchParams.get('destination')
+
+    console.log('[CompareAPI GET] Params:', { pickup, destination })
+
+    if (!pickup || !destination) {
+      console.error('[CompareAPI GET] Missing params')
+      return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
+    }
+
+    // Get comparisons using the service
+    console.log('[CompareAPI GET] Calling compareRidesByAddresses')
+    const comparisons = await compareRidesByAddresses(pickup, destination, ['uber', 'lyft', 'taxi'], new Date(), {
+      userId: null,
+      sessionId: request.headers.get('x-session-id') ?? undefined,
+      persist: true,
+    })
+
+    if (!comparisons) {
+      console.error('[CompareAPI GET] No comparisons returned')
+      return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
+    }
+
+    console.log('[CompareAPI GET] Success, returning data')
+    return NextResponse.json({
+      comparisons: comparisons.results,
+      insights: comparisons.insights,
+      pickupCoords: comparisons.pickup,
+      destinationCoords: comparisons.destination,
+      surgeInfo: comparisons.surgeInfo,
+      timeRecommendations: comparisons.timeRecommendations,
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30',
+      }
+    })
+  } catch (error: any) {
+    console.error('[CompareAPI GET] Error:', error)
+    console.error('[CompareAPI GET] Error stack:', error?.stack)
+    return NextResponse.json({ 
+      error: 'Failed to prefetch ride comparisons',
+      detail: error?.message || 'Unknown error'
+    }, { status: 500 })
+  }
+}
+
 // POST handler
 export async function POST(request: NextRequest) {
   try {
@@ -206,9 +257,13 @@ export async function POST(request: NextRequest) {
          'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
        }
      })
-  } catch (error) {
-    console.error('Error comparing rides:', error)
-    return NextResponse.json({ error: 'Failed to compare rides' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[CompareAPI POST] Error comparing rides:', error)
+    console.error('[CompareAPI POST] Error stack:', error?.stack)
+    return NextResponse.json({ 
+      error: 'Failed to compare rides',
+      detail: error?.message || 'Unknown error'
+    }, { status: 500 })
   } finally {
     // Periodic cleanup (run occasionally)
     if (Math.random() < 0.01) { // 1% chance per request

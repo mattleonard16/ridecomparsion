@@ -203,12 +203,23 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
   // Handle popular route selection
   useEffect(() => {
     if (selectedRoute) {
+      console.log('[AutoSubmit] detected', selectedRoute)
       setPickup(selectedRoute.pickup)
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
       
+      // Execute reCAPTCHA immediately in background
+      let recaptchaPromise: Promise<string> = Promise.resolve('')
+      if (isRecaptchaLoaded) {
+        recaptchaPromise = executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON).catch((err) => {
+          console.warn('reCAPTCHA failed, proceeding without token:', err)
+          return ''
+        })
+      }
+      
       // Auto-submit the form after setting the values
       const submitForm = async () => {
+        console.log('[AutoSubmit] Starting fetch...')
         setIsLoading(true)
         setResults(null)
         setInsights('')
@@ -217,15 +228,8 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
         setDestinationCoords(null)
 
         try {
-          // Execute reCAPTCHA v3 (invisible, no user interaction required)
-          let recaptchaToken = ''
-          if (isRecaptchaLoaded) {
-            try {
-              recaptchaToken = await executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON)
-            } catch (recaptchaErr) {
-              console.warn('reCAPTCHA failed, proceeding without token:', recaptchaErr)
-            }
-          }
+          // Wait for reCAPTCHA to complete (should be fast since it started immediately)
+          const recaptchaToken = await recaptchaPromise
 
           const response = await fetch('/api/compare-rides', {
             method: 'POST',
@@ -242,10 +246,12 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
           const data = await response.json()
 
           if (!response.ok) {
+            console.error('[AutoSubmit] Error response:', data)
             setError('Failed to fetch ride comparisons for this route. Please try again.')
             return
           }
 
+          console.log('[AutoSubmit] Success, displaying results')
           setResults(data.comparisons)
           setInsights(data.insights)
           setPickupCoords(data.pickupCoords)
@@ -254,7 +260,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
           setTimeRecommendations(data.timeRecommendations || [])
           setShowForm(false)
         } catch (error) {
-          console.error('Error:', error)
+          console.error('[AutoSubmit] Fetch error:', error)
           setError('Failed to get pricing for this route. Please try again.')
         } finally {
           setIsLoading(false)
