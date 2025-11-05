@@ -9,7 +9,7 @@ interface RideFormSectionProps {
 
 export default function RideFormSection({ selectedRoute, onRouteProcessed }: RideFormSectionProps) {
   return (
-    <section id="compare-section" className="relative snap-start min-h-screen flex items-center bg-black overflow-hidden">
+    <section id="compare-section" className="relative snap-start min-h-screen bg-black overflow-visible py-8 sm:py-12">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/5 to-black" />
       
