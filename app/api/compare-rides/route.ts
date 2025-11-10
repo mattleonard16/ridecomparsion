@@ -1,15 +1,19 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, cleanupRateLimiters } from '@/lib/rate-limiter'
-import { 
-  validateInput, 
-  RideComparisonRequestSchema, 
+import {
+  validateInput,
+  RideComparisonRequestSchema,
   detectSuspiciousCoordinates,
   detectSpamPatterns,
-  sanitizeString
+  sanitizeString,
 } from '@/lib/validation'
 import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { isAirportLocation, getAirportByCode, parseAirportCode } from '@/lib/airports'
-import { calculateEnhancedFare, getTimeBasedMultiplier, getBestTimeRecommendations } from '@/lib/pricing'
+import {
+  calculateEnhancedFare,
+  getTimeBasedMultiplier,
+  getBestTimeRecommendations,
+} from '@/lib/pricing'
 import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import type { Coordinates, Longitude, Latitude } from '@/types'
 import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
@@ -31,11 +35,17 @@ export async function GET(request: NextRequest) {
 
     // Get comparisons using the service
     console.log('[CompareAPI GET] Calling compareRidesByAddresses')
-    const comparisons = await compareRidesByAddresses(pickup, destination, ['uber', 'lyft', 'taxi'], new Date(), {
-      userId: null,
-      sessionId: request.headers.get('x-session-id') ?? undefined,
-      persist: true,
-    })
+    const comparisons = await compareRidesByAddresses(
+      pickup,
+      destination,
+      ['uber', 'lyft', 'taxi'],
+      new Date(),
+      {
+        userId: null,
+        sessionId: request.headers.get('x-session-id') ?? undefined,
+        persist: true,
+      }
+    )
 
     if (!comparisons) {
       console.error('[CompareAPI GET] No comparisons returned')
@@ -43,25 +53,31 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[CompareAPI GET] Success, returning data')
-    return NextResponse.json({
-      comparisons: comparisons.results,
-      insights: comparisons.insights,
-      pickupCoords: comparisons.pickup,
-      destinationCoords: comparisons.destination,
-      surgeInfo: comparisons.surgeInfo,
-      timeRecommendations: comparisons.timeRecommendations,
-    }, {
-      headers: {
-        'Cache-Control': 'private, max-age=30',
+    return NextResponse.json(
+      {
+        comparisons: comparisons.results,
+        insights: comparisons.insights,
+        pickupCoords: comparisons.pickup,
+        destinationCoords: comparisons.destination,
+        surgeInfo: comparisons.surgeInfo,
+        timeRecommendations: comparisons.timeRecommendations,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30',
+        },
       }
-    })
+    )
   } catch (error: any) {
     console.error('[CompareAPI GET] Error:', error)
     console.error('[CompareAPI GET] Error stack:', error?.stack)
-    return NextResponse.json({ 
-      error: 'Failed to prefetch ride comparisons',
-      detail: error?.message || 'Unknown error'
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to prefetch ride comparisons',
+        detail: error?.message || 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -70,203 +86,230 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Rate Limiting Check
     const rateLimitResult = await checkRateLimit(request)
-    
+
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded', 
+        {
+          error: 'Rate limit exceeded',
           details: rateLimitResult.reason,
-          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
-        }, 
-        { 
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
+        },
+        {
           status: 429,
           headers: {
             'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
             'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-            'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
-          }
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
         }
       )
     }
 
-         // 2. Parse and validate request body
-     const body = await request.json()
-     
-     // 3. reCAPTCHA Verification (if token provided)
-     if (body.recaptchaToken) {
-       const recaptchaResult = await verifyRecaptchaToken(
-         body.recaptchaToken,
-         RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON,
-         RECAPTCHA_CONFIG.NORMAL_THRESHOLD
-       )
-       
-       if (!recaptchaResult.success) {
-         console.warn('reCAPTCHA verification failed:', recaptchaResult.error)
-         
-         // For low scores, return a more user-friendly message
-         if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.3) {
-           return NextResponse.json(
-             { 
-               error: 'Security verification failed. Please try again.',
-               details: 'Your request appears to be automated. Please try again in a few moments.'
-             }, 
-             { status: 403 }
-           )
-         }
-         
-         // For other failures, log but continue (graceful degradation)
-         console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
-       } else {
-         console.log(`reCAPTCHA verified: score ${recaptchaResult.score}, action ${recaptchaResult.action}`)
-       }
-     }
-     
-     // Legacy support: convert old format to new format
-     let requestData
-     if (body.pickup && body.destination) {
-       // Legacy format - convert to new format
-       requestData = {
-         from: {
-           name: sanitizeString(body.pickup),
-           lat: '0', // Will be geocoded
-           lng: '0'
-         },
-         to: {
-           name: sanitizeString(body.destination),
-           lat: '0', // Will be geocoded
-           lng: '0'
-         },
-         services: ['uber', 'lyft', 'taxi'] // Default all services
-       }
-     } else {
-       requestData = body
-     }
+    // 2. Parse and validate request body
+    const body = await request.json()
 
-         // Skip coordinate validation for legacy requests (will be geocoded)
-     const isLegacyRequest = body.pickup && body.destination
-     
-     if (!isLegacyRequest) {
-       // 4. Input Validation for new format
-      const validation = validateInput(RideComparisonRequestSchema, requestData, 'ride comparison request')
-      
+    // 3. reCAPTCHA Verification (if token provided)
+    if (body.recaptchaToken) {
+      const recaptchaResult = await verifyRecaptchaToken(
+        body.recaptchaToken,
+        RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON,
+        RECAPTCHA_CONFIG.NORMAL_THRESHOLD
+      )
+
+      if (!recaptchaResult.success) {
+        console.warn('reCAPTCHA verification failed:', recaptchaResult.error)
+
+        // For low scores, return a more user-friendly message
+        if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.3) {
+          return NextResponse.json(
+            {
+              error: 'Security verification failed. Please try again.',
+              details: 'Your request appears to be automated. Please try again in a few moments.',
+            },
+            { status: 403 }
+          )
+        }
+
+        // For other failures, log but continue (graceful degradation)
+        console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
+      } else {
+        console.log(
+          `reCAPTCHA verified: score ${recaptchaResult.score}, action ${recaptchaResult.action}`
+        )
+      }
+    }
+
+    // Legacy support: convert old format to new format
+    let requestData
+    if (body.pickup && body.destination) {
+      // Legacy format - convert to new format
+      requestData = {
+        from: {
+          name: sanitizeString(body.pickup),
+          lat: '0', // Will be geocoded
+          lng: '0',
+        },
+        to: {
+          name: sanitizeString(body.destination),
+          lat: '0', // Will be geocoded
+          lng: '0',
+        },
+        services: ['uber', 'lyft', 'taxi'], // Default all services
+      }
+    } else {
+      requestData = body
+    }
+
+    // Skip coordinate validation for legacy requests (will be geocoded)
+    const isLegacyRequest = body.pickup && body.destination
+
+    if (!isLegacyRequest) {
+      // 4. Input Validation for new format
+      const validation = validateInput(
+        RideComparisonRequestSchema,
+        requestData,
+        'ride comparison request'
+      )
+
       if (!validation.success) {
         return NextResponse.json(
-          { 
-            error: 'Invalid input', 
+          {
+            error: 'Invalid input',
             details: validation.errors.map(err => ({
               field: err.field,
-              message: err.message
-            }))
-          }, 
+              message: err.message,
+            })),
+          },
           { status: 400 }
         )
       }
-      
-             requestData = validation.data
 
-       // 5. Spam Detection
+      requestData = validation.data
+
+      // 5. Spam Detection
       const fromName = requestData.from.name
       const toName = requestData.to.name
-      
+
       if (detectSpamPatterns(fromName) || detectSpamPatterns(toName)) {
-        return NextResponse.json(
-          { error: 'Invalid location names detected' }, 
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Invalid location names detected' }, { status: 400 })
       }
-      
-      if (detectSuspiciousCoordinates(
-        { lat: requestData.from.lat, lng: requestData.from.lng },
-        { lat: requestData.to.lat, lng: requestData.to.lng }
-      )) {
+
+      if (
+        detectSuspiciousCoordinates(
+          { lat: requestData.from.lat, lng: requestData.from.lng },
+          { lat: requestData.to.lat, lng: requestData.to.lng }
+        )
+      ) {
         return NextResponse.json(
-          { error: 'Invalid route: pickup and destination are too close' }, 
+          { error: 'Invalid route: pickup and destination are too close' },
           { status: 400 }
         )
       }
     }
 
-         // 6. Process request (legacy path)
-     if (isLegacyRequest) {
-       const { pickup, destination } = body
+    // 6. Process request (legacy path)
+    if (isLegacyRequest) {
+      const { pickup, destination } = body
 
-       if (!pickup || !destination) {
-         return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
-       }
+      if (!pickup || !destination) {
+        return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
+      }
 
-       // Convert addresses to coordinates
-       const pickupCoords = await getCoordinatesFromAddress(pickup)
-       const destinationCoords = await getCoordinatesFromAddress(destination)
+      // Convert addresses to coordinates
+      const pickupCoords = await getCoordinatesFromAddress(pickup)
+      const destinationCoords = await getCoordinatesFromAddress(destination)
 
-       if (!pickupCoords || !destinationCoords) {
-         return NextResponse.json({ error: 'Could not geocode addresses' }, { status: 400 })
-       }
+      if (!pickupCoords || !destinationCoords) {
+        return NextResponse.json({ error: 'Could not geocode addresses' }, { status: 400 })
+      }
 
-       // Get comparisons
-       const comparisons = await compareRidesByAddresses(pickup, destination, ['uber', 'lyft', 'taxi'], new Date(), {
-        userId: null,
-        sessionId: request.headers.get('x-session-id') ?? undefined,
-        persist: true,
-      })
+      // Get comparisons
+      const comparisons = await compareRidesByAddresses(
+        pickup,
+        destination,
+        ['uber', 'lyft', 'taxi'],
+        new Date(),
+        {
+          userId: null,
+          sessionId: request.headers.get('x-session-id') ?? undefined,
+          persist: true,
+        }
+      )
 
       if (!comparisons) {
         return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
       }
 
-       return NextResponse.json({
-         comparisons: comparisons.results,
-         insights: comparisons.insights,
-         pickupCoords: comparisons.pickup,
-         destinationCoords: comparisons.destination,
-         surgeInfo: comparisons.surgeInfo,
-         timeRecommendations: comparisons.timeRecommendations,
-       }, {
-         headers: {
-           'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-           'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
-         }
-       })
-     }
+      return NextResponse.json(
+        {
+          comparisons: comparisons.results,
+          insights: comparisons.insights,
+          pickupCoords: comparisons.pickup,
+          destinationCoords: comparisons.destination,
+          surgeInfo: comparisons.surgeInfo,
+          timeRecommendations: comparisons.timeRecommendations,
+        },
+        {
+          headers: {
+            'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      )
+    }
 
-            // 7. Process new format request (future enhancement)
-     // For now, convert to legacy format and process
-     const pickup = requestData.from.name
-     const destination = requestData.to.name
+    // 7. Process new format request (future enhancement)
+    // For now, convert to legacy format and process
+    const pickup = requestData.from.name
+    const destination = requestData.to.name
 
-     const comparisons = await compareRidesByAddresses(pickup, destination, requestData.services, new Date(), {
-      userId: request.headers.get('x-user-id'),
-      sessionId: request.headers.get('x-session-id') ?? undefined,
-      persist: true,
-    })
+    const comparisons = await compareRidesByAddresses(
+      pickup,
+      destination,
+      requestData.services,
+      new Date(),
+      {
+        userId: request.headers.get('x-user-id'),
+        sessionId: request.headers.get('x-session-id') ?? undefined,
+        persist: true,
+      }
+    )
 
     if (!comparisons) {
       return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
     }
 
-            // 8. Add rate limit headers to successful responses
-     return NextResponse.json({
-       comparisons: comparisons.results,
-       insights: comparisons.insights,
-       pickupCoords: comparisons.pickup,
-       destinationCoords: comparisons.destination,
-       surgeInfo: comparisons.surgeInfo,
-       timeRecommendations: comparisons.timeRecommendations,
-     }, {
-       headers: {
-         'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-         'X-RateLimit-Reset': rateLimitResult.resetTime.toString()
-       }
-     })
+    // 8. Add rate limit headers to successful responses
+    return NextResponse.json(
+      {
+        comparisons: comparisons.results,
+        insights: comparisons.insights,
+        pickupCoords: comparisons.pickup,
+        destinationCoords: comparisons.destination,
+        surgeInfo: comparisons.surgeInfo,
+        timeRecommendations: comparisons.timeRecommendations,
+      },
+      {
+        headers: {
+          'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+        },
+      }
+    )
   } catch (error: any) {
     console.error('[CompareAPI POST] Error comparing rides:', error)
     console.error('[CompareAPI POST] Error stack:', error?.stack)
-    return NextResponse.json({ 
-      error: 'Failed to compare rides',
-      detail: error?.message || 'Unknown error'
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to compare rides',
+        detail: error?.message || 'Unknown error',
+      },
+      { status: 500 }
+    )
   } finally {
     // Periodic cleanup (run occasionally)
-    if (Math.random() < 0.01) { // 1% chance per request
+    if (Math.random() < 0.01) {
+      // 1% chance per request
       cleanupRateLimiters()
     }
   }
@@ -321,15 +364,13 @@ async function getDistanceAndDuration(
   return { distanceKm, durationMin }
 }
 
-
-
 const UBER = {
-  base: 1.25, 
-  perMile: 1.08, 
-  perMin: 0.28, 
-  booking: 0.85, 
+  base: 1.25,
+  perMile: 1.08,
+  perMin: 0.28,
+  booking: 0.85,
   airportSurcharge: 4.25,
-  minFare: 8.5, 
+  minFare: 8.5,
 }
 
 function kmToMiles(km: number) {
@@ -354,18 +395,17 @@ async function getRideComparisons(pickupCoords: [number, number], destCoords: [n
     `Distance: ${distanceKm.toFixed(2)} km, Duration: ${durationMin.toFixed(1)} min, Surge: ${multiplier}x (${surgeReason})`
   )
 
- 
   const LYFT = {
-    base: 1.15, 
-    perMile: 1.05, 
-    perMin: 0.26, 
-    booking: 0.75, 
+    base: 1.15,
+    perMile: 1.05,
+    perMin: 0.26,
+    booking: 0.75,
     airportSurcharge: 4.25,
-    minFare: 8.0, 
+    minFare: 8.0,
   }
   const TAXI = {
     base: 3.5,
-    perMile: 2.75, 
+    perMile: 2.75,
     perMin: 0.55,
     booking: 0.0,
     airportSurcharge: 0.0,

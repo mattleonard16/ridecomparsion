@@ -68,7 +68,7 @@ describe('RideComparisonResults', () => {
     expect(screen.getAllByText('5 min')).toHaveLength(2) // Summary and Uber card
     expect(screen.getByText('6 min')).toBeInTheDocument() // Lyft card
     expect(screen.getByText('8 min')).toBeInTheDocument() // Taxi card
-    
+
     // Check driver counts - use getAllByText since there are multiple instances
     expect(screen.getAllByText('4')).toHaveLength(1) // Driver count for Uber
     expect(screen.getAllByText('3')).toHaveLength(1) // Driver count for Lyft

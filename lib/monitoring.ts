@@ -95,7 +95,7 @@ async function sendToAxiom(logEntry: any) {
     await fetch(`https://api.axiom.co/v1/datasets/${axiomDataset}/ingest`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${axiomToken}`,
+        Authorization: `Bearer ${axiomToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify([logEntry]),
@@ -158,4 +158,3 @@ async function checkOSRM(): Promise<{ healthy: boolean; latency?: number }> {
     return { healthy: false }
   }
 }
-

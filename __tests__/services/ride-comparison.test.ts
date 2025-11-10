@@ -94,7 +94,7 @@ describe('ride-comparison service', () => {
     it('should return null if destination geocoding fails', async () => {
       const uniquePickup = `Valid Address ${Math.random()}`
       const uniqueDest = `Invalid Address ${Math.random()}`
-      
+
       mockFetch.mockImplementation((url: string) => {
         if (url.includes('nominatim')) {
           if (url.includes(encodeURIComponent(uniqueDest))) {
@@ -288,7 +288,7 @@ describe('ride-comparison service', () => {
     it('should cache geocoding results', async () => {
       const uniqueAddress1 = `Test Addr ${Math.random()}`
       const uniqueAddress2 = `Test Addr ${Math.random()}`
-      
+
       mockFetch.mockImplementation((url: string) => {
         if (url.includes('nominatim')) {
           return Promise.resolve({

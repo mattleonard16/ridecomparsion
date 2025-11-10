@@ -28,11 +28,14 @@ body {
 }
 
 @keyframes glow {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); 
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
   }
-  50% { 
-    box-shadow: 0 0 30px rgba(102, 126, 234, 0.6), 0 0 60px rgba(102, 126, 234, 0.3); 
+  50% {
+    box-shadow:
+      0 0 30px rgba(102, 126, 234, 0.6),
+      0 0 60px rgba(102, 126, 234, 0.3);
   }
 }
 
@@ -57,7 +60,8 @@ body {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -66,11 +70,12 @@ body {
 }
 
 @keyframes color-shift {
-  0%, 100% {
-    color: #9CA3AF; /* Gray-400 */
+  0%,
+  100% {
+    color: #9ca3af; /* Gray-400 */
   }
   50% {
-    color: #10B981; /* Green-500 */
+    color: #10b981; /* Green-500 */
   }
 }
 
@@ -78,16 +83,16 @@ body {
   .text-balance {
     text-wrap: balance;
   }
-  
+
   /* Scroll Snap Utilities */
   .scroll-snap-y {
     scroll-snap-type: y proximity;
   }
-  
+
   .snap-start {
     scroll-snap-align: start;
   }
-  
+
   /* Glassmorphism */
   .glass-card {
     background: rgba(20, 20, 20, 0.6);
@@ -95,62 +100,64 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  
+
   .glass-card-strong {
     background: rgba(20, 20, 20, 0.8);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
-  
+
   /* Gradient Effects */
   .gradient-border {
     position: relative;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 1px;
   }
-  
+
   .gradient-text {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   .gradient-text-blue {
     background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   /* Hover Effects */
   .hover-lift {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
   }
-  
+
   .hover-lift:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   }
-  
+
   .hover-glow {
     transition: box-shadow 0.3s ease;
   }
-  
+
   .hover-glow:hover {
     box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
   }
-  
+
   /* Animations */
   .animate-glow {
     animation: glow 2s ease-in-out infinite;
   }
-  
+
   .animate-slide-up-fade {
     animation: slide-up-fade 0.8s ease-out forwards;
   }
-  
+
   .animate-shimmer {
     animation: shimmer 2s linear infinite;
     background: linear-gradient(
@@ -161,18 +168,18 @@ body {
     );
     background-size: 1000px 100%;
   }
-  
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
-  
+
   .animate-color-shift {
     animation: color-shift 4s ease-in-out infinite;
   }
-  
+
   /* Background Grid */
   .bg-grid-pattern {
-    background-image: 
+    background-image:
       linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -182,30 +189,30 @@ body {
 @layer base {
   :root {
     /* Dark theme by default - modern black aesthetic */
-    --background: 0 0% 5%;           /* Deep black #0D0D0D */
-    --foreground: 0 0% 98%;          /* Off-white text */
-    --card: 0 0% 8%;                 /* Card background #141414 */
+    --background: 0 0% 5%; /* Deep black #0D0D0D */
+    --foreground: 0 0% 98%; /* Off-white text */
+    --card: 0 0% 8%; /* Card background #141414 */
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 8%;
     --popover-foreground: 0 0% 98%;
-    --primary: 220 100% 60%;         /* Bright blue accent #3B82F6 */
+    --primary: 220 100% 60%; /* Bright blue accent #3B82F6 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 280 100% 70%;       /* Purple accent #A855F7 */
+    --secondary: 280 100% 70%; /* Purple accent #A855F7 */
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 15%;               /* Subtle backgrounds */
+    --muted: 0 0% 15%; /* Subtle backgrounds */
     --muted-foreground: 0 0% 60%;
-    --accent: 160 100% 50%;          /* Teal/cyan accent #00D9FF */
+    --accent: 160 100% 50%; /* Teal/cyan accent #00D9FF */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;              /* Subtle borders */
+    --border: 0 0% 20%; /* Subtle borders */
     --input: 0 0% 15%;
     --ring: 220 100% 60%;
-    --chart-1: 220 100% 60%;         /* Blue */
-    --chart-2: 280 100% 70%;         /* Purple */
-    --chart-3: 160 100% 50%;         /* Cyan */
-    --chart-4: 340 100% 65%;         /* Pink */
-    --chart-5: 45 100% 60%;          /* Yellow */
+    --chart-1: 220 100% 60%; /* Blue */
+    --chart-2: 280 100% 70%; /* Purple */
+    --chart-3: 160 100% 50%; /* Cyan */
+    --chart-4: 340 100% 65%; /* Pink */
+    --chart-5: 45 100% 60%; /* Yellow */
     --radius: 0.75rem;
     --foreground-rgb: 250, 250, 250;
     --background-start-rgb: 13, 13, 13;
@@ -217,18 +224,18 @@ body {
   * {
     @apply border-border;
   }
-  
+
   html {
     scroll-behavior: smooth;
   }
-  
+
   /* Disable smooth scroll for users who prefer reduced motion */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
     }
   }
-  
+
   body {
     @apply bg-background text-foreground;
   }

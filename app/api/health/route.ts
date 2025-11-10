@@ -4,9 +4,8 @@ import { healthCheck } from '@/lib/monitoring'
 export async function GET() {
   try {
     const health = await healthCheck()
-    
-    const statusCode = health.status === 'healthy' ? 200 : 
-                       health.status === 'degraded' ? 200 : 503
+
+    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503
 
     return NextResponse.json(health, { status: statusCode })
   } catch (error) {
@@ -19,4 +18,3 @@ export async function GET() {
     )
   }
 }
-

@@ -3,6 +3,7 @@
 ## Current State (Day 0)
 
 ### Pricing System Architecture
+
 - **3 pricing files** with overlapping functionality (1,163 lines total)
 - **pricing-config.json** contains structured rate data
 - Using simulated prices with base calculations + randomness
@@ -10,6 +11,7 @@
 - No real-time external data integration
 
 ### Current Features
+
 ✅ Distance/time-based pricing
 ✅ Time-of-day surge patterns
 ✅ Airport/CBD surcharges
@@ -18,6 +20,7 @@
 ✅ Address autocomplete
 
 ### Missing Critical Features
+
 ❌ Real pricing data from Uber/Lyft APIs
 ❌ Historical price tracking
 ❌ User accounts/saved routes
@@ -29,6 +32,7 @@
 ## Target Scope
 
 ### Phase 1: Data Foundation (Week 1)
+
 **Goal**: Enable data persistence and user features
 
 1. **Database Setup (Supabase)**
@@ -49,6 +53,7 @@
    - Store in database for analysis
 
 ### Phase 2: Realistic Pricing (Week 2)
+
 **Goal**: Replace random prices with intelligent estimates
 
 1. **Consolidate Pricing Files**
@@ -69,6 +74,7 @@
    - Build training dataset
 
 ### Phase 3: User Features (Week 3)
+
 **Goal**: Add value through personalization
 
 1. **Core Features**
@@ -91,10 +97,12 @@
 ## Technical Decisions
 
 ### Platform Support
+
 - **Primary**: Web (current)
 - **Future**: iOS/Android (React Native or PWA)
 
 ### APIs Required
+
 - ✅ OpenStreetMap Nominatim (geocoding)
 - ✅ OSRM (routing)
 - ⏳ OpenWeather API (weather data)
@@ -102,6 +110,7 @@
 - ⏳ Google Traffic API or MapBox (traffic)
 
 ### Data Architecture
+
 ```
 Supabase PostgreSQL
 ├── routes (master data)
@@ -114,6 +123,7 @@ Supabase PostgreSQL
 ```
 
 ### Pricing Engine Consolidation Plan
+
 ```
 New: pricing-engine.ts
 ├── Base calculations (from pricing-config.json)
@@ -130,18 +140,21 @@ Remove:
 ## Success Metrics
 
 ### Week 1 Goals
+
 - [ ] Database operational
 - [ ] User auth working
 - [ ] Routes being saved
 - [ ] Weather data logging
 
 ### Week 2 Goals
+
 - [ ] Single pricing engine deployed
 - [ ] < 5% variance from real Uber/Lyft prices
 - [ ] External data affecting prices
 - [ ] Historical patterns visible
 
 ### Week 3 Goals
+
 - [ ] 100+ saved routes
 - [ ] 10+ active price alerts
 - [ ] Deep linking working
@@ -150,13 +163,17 @@ Remove:
 ## Risks & Mitigation
 
 ### Risk: API Rate Limits
+
 - **Mitigation**: Aggressive caching, batch requests
 
 ### Risk: Pricing Accuracy
+
 - **Mitigation**: A/B test with real prices, collect feedback
 
 ### Risk: Supabase Costs
+
 - **Mitigation**: Start with free tier, monitor usage
 
 ### Risk: Deep Link Rejection
+
 - **Mitigation**: Web fallback, show prices anyway

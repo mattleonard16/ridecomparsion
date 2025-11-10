@@ -35,13 +35,13 @@ const destinationIcon = new L.Icon({
 // Performance monitoring removed - check console logs instead
 
 // Enhanced map controller with smooth transitions
-function MapViewController({ 
-  pickup, 
-  destination, 
-  routeCoordinates, 
+function MapViewController({
+  pickup,
+  destination,
+  routeCoordinates,
   isRouteLoading,
-  onUpdateTiming
-}: { 
+  onUpdateTiming,
+}: {
   pickup: [number, number]
   destination: [number, number]
   routeCoordinates: [number, number][]
@@ -60,7 +60,7 @@ function MapViewController({
     // Immediate markers update - don't wait for route
     const markerBounds = L.latLngBounds([
       [pickup[1], pickup[0]],
-      [destination[1], destination[0]]
+      [destination[1], destination[0]],
     ])
 
     // Add padding to ensure markers are visible
@@ -68,9 +68,9 @@ function MapViewController({
 
     if (!hasInitialized.current) {
       // First load - instant fit
-      map.fitBounds(paddedBounds, { 
+      map.fitBounds(paddedBounds, {
         padding: [20, 20],
-        animate: false // No animation on first load for speed
+        animate: false, // No animation on first load for speed
       })
       hasInitialized.current = true
     } else {
@@ -78,7 +78,7 @@ function MapViewController({
       map.flyToBounds(paddedBounds, {
         padding: [20, 20],
         duration: 1.0, // 1 second smooth animation
-        easeLinearity: 0.25
+        easeLinearity: 0.25,
       })
     }
 
@@ -94,13 +94,13 @@ function MapViewController({
     // When route loads, optionally refine the bounds (subtle adjustment)
     const routeBounds = L.latLngBounds(routeCoordinates)
     const currentBounds = map.getBounds()
-    
+
     // Only adjust if route extends significantly beyond current view
     if (!currentBounds.contains(routeBounds)) {
       map.flyToBounds(routeBounds, {
         padding: [15, 15],
         duration: 0.8,
-        easeLinearity: 0.25
+        easeLinearity: 0.25,
       })
     }
   }, [map, routeCoordinates, isRouteLoading])
@@ -111,7 +111,7 @@ function MapViewController({
 // Loading indicator component
 function RouteLoadingIndicator({ isLoading }: { isLoading: boolean }) {
   if (!isLoading) return null
-  
+
   return (
     <div className="absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
       <div className="flex items-center space-x-2">
@@ -150,67 +150,66 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
   }, [])
 
   // Enhanced route fetching with HTTPS and better debugging
-  const fetchRoute = useCallback(async (
-    pickupCoords: [number, number], 
-    destCoords: [number, number],
-    signal: AbortSignal
-  ) => {
-    const routeStartTime = performance.now()
-    
-    try {
-      const [pickupLon, pickupLat] = pickupCoords
-      const [destLon, destLat] = destCoords
+  const fetchRoute = useCallback(
+    async (pickupCoords: [number, number], destCoords: [number, number], signal: AbortSignal) => {
+      const routeStartTime = performance.now()
 
-      // Use HTTPS endpoint to avoid mixed content issues
-      const url = `https://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${destLon},${destLat}?overview=full&geometries=geojson&alternatives=false`
+      try {
+        const [pickupLon, pickupLat] = pickupCoords
+        const [destLon, destLat] = destCoords
 
-      const response = await fetch(url, { 
-        signal,
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        mode: 'cors'
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
+        // Use HTTPS endpoint to avoid mixed content issues
+        const url = `https://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${destLon},${destLat}?overview=full&geometries=geojson&alternatives=false`
 
-      if (data.code === 'Ok' && data.routes?.length > 0) {
-        const route = data.routes[0]
-        
-        if (!route.geometry?.coordinates) {
-          throw new Error('Route geometry missing')
+        const response = await fetch(url, {
+          signal,
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+          mode: 'cors',
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
-        // Convert coordinates from [lon, lat] to [lat, lon] for Leaflet
-        const coordinates = route.geometry.coordinates.map((coord: [number, number]) => [
-          coord[1], // latitude
-          coord[0], // longitude
-        ])
+        const data = await response.json()
 
-        setRouteCoordinates(coordinates)
-        setRouteError(false)
+        if (data.code === 'Ok' && data.routes?.length > 0) {
+          const route = data.routes[0]
+
+          if (!route.geometry?.coordinates) {
+            throw new Error('Route geometry missing')
+          }
+
+          // Convert coordinates from [lon, lat] to [lat, lon] for Leaflet
+          const coordinates = route.geometry.coordinates.map((coord: [number, number]) => [
+            coord[1], // latitude
+            coord[0], // longitude
+          ])
+
+          setRouteCoordinates(coordinates)
+          setRouteError(false)
+          setRouteLoadTime(Math.round(performance.now() - routeStartTime))
+        } else {
+          throw new Error(`OSRM error: ${data.code} - ${data.message || 'No route found'}`)
+        }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.name : 'Unknown error'
+        if (errorMessage === 'AbortError') return // Ignore aborted requests
+
+        // Fallback to straight line on error
+        setRouteCoordinates([
+          [pickupCoords[1], pickupCoords[0]], // [lat, lon]
+          [destCoords[1], destCoords[0]], // [lat, lon]
+        ])
+        setRouteError(true)
         setRouteLoadTime(Math.round(performance.now() - routeStartTime))
-      } else {
-        throw new Error(`OSRM error: ${data.code} - ${data.message || 'No route found'}`)
       }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.name : 'Unknown error'
-      if (errorMessage === 'AbortError') return // Ignore aborted requests
-      
-      // Fallback to straight line on error
-      setRouteCoordinates([
-        [pickupCoords[1], pickupCoords[0]], // [lat, lon]
-        [destCoords[1], destCoords[0]],     // [lat, lon]
-      ])
-      setRouteError(true)
-      setRouteLoadTime(Math.round(performance.now() - routeStartTime))
-    }
-  }, [])
+    },
+    []
+  )
 
   // Effect with debouncing and cancellation
   useEffect(() => {
@@ -218,7 +217,7 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-    
+
     // Clear any pending debounce
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
@@ -233,7 +232,7 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
       abortControllerRef.current = abortController
 
       await fetchRoute(pickup, destination, abortController.signal)
-      
+
       // Only set loading false if this request wasn't aborted
       if (!abortController.signal.aborted) {
         setIsRouteLoading(false)
@@ -256,10 +255,10 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
 
   return (
     <div className="mt-4 relative">
-      <MapContainer 
+      <MapContainer
         key={mapKey}
-        center={center} 
-        zoom={10} 
+        center={center}
+        zoom={10}
         style={{ height: 300, width: '100%' }}
         className="rounded-lg overflow-hidden"
       >
@@ -276,17 +275,17 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
 
         {/* Route polyline with loading state */}
         {routeCoordinates.length > 0 && (
-          <Polyline 
-            positions={routeCoordinates} 
-            color={routeError ? "#ef4444" : "#2563eb"} 
-            weight={4} 
+          <Polyline
+            positions={routeCoordinates}
+            color={routeError ? '#ef4444' : '#2563eb'}
+            weight={4}
             opacity={isRouteLoading ? 0.4 : 0.8}
-            dashArray={routeError ? "10, 10" : undefined}
+            dashArray={routeError ? '10, 10' : undefined}
           />
         )}
 
         {/* Map view controller */}
-        <MapViewController 
+        <MapViewController
           pickup={pickup}
           destination={destination}
           routeCoordinates={routeCoordinates}
@@ -297,7 +296,7 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
 
       {/* Loading indicator overlay */}
       <RouteLoadingIndicator isLoading={isRouteLoading} />
-      
+
       {/* Error indicator */}
       {routeError && !isRouteLoading && (
         <div className="absolute bottom-2 left-2 z-[1000] bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
