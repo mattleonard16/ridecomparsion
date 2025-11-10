@@ -3,13 +3,7 @@
  * Generate fresh types with: npx supabase gen types typescript --project-id YOUR_PROJECT_ID
  */
 
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export interface Database {
   public: {

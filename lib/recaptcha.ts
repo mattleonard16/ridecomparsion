@@ -1,6 +1,6 @@
 /**
  * reCAPTCHA v3 Integration for Bot Protection
- * 
+ *
  * Setup Instructions:
  * 1. Go to https://www.google.com/recaptcha/admin/create
  * 2. Choose reCAPTCHA v3
@@ -29,7 +29,7 @@ export const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || TEST_SEC
 export function getRecaptchaSiteKey(): string {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname
-    
+
     // Always use test key for development and preview environments
     if (
       host === 'localhost' ||
@@ -42,14 +42,17 @@ export function getRecaptchaSiteKey(): string {
       console.log('Using reCAPTCHA test key for development/preview environment:', host)
       return TEST_SITE_KEY
     }
-    
+
     // For production domains, only use production key if it's configured
-    if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY !== TEST_SITE_KEY) {
+    if (
+      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY &&
+      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY !== TEST_SITE_KEY
+    ) {
       console.log('Using production reCAPTCHA key for:', host)
       return process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
     }
   }
-  
+
   // Default to test key if no production key is configured
   console.log('Falling back to reCAPTCHA test key')
   return TEST_SITE_KEY
@@ -137,11 +140,11 @@ export async function verifyRecaptchaToken(
   try {
     // Get secret key from environment - prefer runtime env over build-time
     const secretKey = process.env.RECAPTCHA_SECRET_KEY || TEST_SECRET_KEY
-    
+
     if (!secretKey) {
       return {
         success: false,
-        error: 'reCAPTCHA secret key not configured'
+        error: 'reCAPTCHA secret key not configured',
       }
     }
 
@@ -159,7 +162,7 @@ export async function verifyRecaptchaToken(
     if (!response.ok) {
       return {
         success: false,
-        error: `reCAPTCHA API request failed: ${response.status} ${response.statusText}`
+        error: `reCAPTCHA API request failed: ${response.status} ${response.statusText}`,
       }
     }
 
@@ -168,7 +171,7 @@ export async function verifyRecaptchaToken(
     if (!data.success) {
       return {
         success: false,
-        error: `reCAPTCHA verification failed: ${data['error-codes']?.join(', ') || 'Unknown error'}`
+        error: `reCAPTCHA verification failed: ${data['error-codes']?.join(', ') || 'Unknown error'}`,
       }
     }
 
@@ -176,7 +179,7 @@ export async function verifyRecaptchaToken(
     if (data.action !== expectedAction) {
       return {
         success: false,
-        error: `Action mismatch: expected '${expectedAction}', got '${data.action}'`
+        error: `Action mismatch: expected '${expectedAction}', got '${data.action}'`,
       }
     }
 
@@ -186,20 +189,19 @@ export async function verifyRecaptchaToken(
         success: false,
         score: data.score,
         action: data.action,
-        error: `Score too low: ${data.score} < ${minimumScore}`
+        error: `Score too low: ${data.score} < ${minimumScore}`,
       }
     }
 
     return {
       success: true,
       score: data.score,
-      action: data.action
+      action: data.action,
     }
-
   } catch (error) {
     return {
       success: false,
-      error: `reCAPTCHA verification error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `reCAPTCHA verification error: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
   }
 }
@@ -209,16 +211,16 @@ export async function verifyRecaptchaToken(
  */
 export const RECAPTCHA_CONFIG = {
   // Score thresholds (0.0 = bot, 1.0 = human)
-  STRICT_THRESHOLD: 0.7,    // High security
-  NORMAL_THRESHOLD: 0.5,    // Balanced
-  LENIENT_THRESHOLD: 0.3,   // Low friction
-  
+  STRICT_THRESHOLD: 0.7, // High security
+  NORMAL_THRESHOLD: 0.5, // Balanced
+  LENIENT_THRESHOLD: 0.3, // Low friction
+
   // Actions
   ACTIONS: {
     RIDE_COMPARISON: 'ride_comparison',
     FORM_SUBMIT: 'form_submit',
-    API_REQUEST: 'api_request'
-  }
+    API_REQUEST: 'api_request',
+  },
 } as const
 
 // Type declarations for window.grecaptcha
@@ -229,4 +231,4 @@ declare global {
       execute: (siteKey: string, options: { action: string }) => Promise<string>
     }
   }
-} 
+}

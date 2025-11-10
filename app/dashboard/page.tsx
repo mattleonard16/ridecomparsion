@@ -36,7 +36,7 @@ export default function DashboardPage() {
         // For demo, using a mock route ID
         // In production, this would come from user's saved routes
         const mockRouteId = 'route-1'
-        
+
         const [history, averages] = await Promise.all([
           getRoutePriceHistory(mockRouteId, 7),
           getHourlyPriceAverage(mockRouteId, selectedService),
@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
         {/* Service Selector */}
         <div className="mb-6 flex gap-2">
-          {(['uber', 'lyft', 'taxi'] as const).map((service) => (
+          {(['uber', 'lyft', 'taxi'] as const).map(service => (
             <button
               key={service}
               onClick={() => setSelectedService(service)}
@@ -103,7 +103,10 @@ export default function DashboardPage() {
               {priceData.length > 0 ? (
                 <div className="space-y-3">
                   {priceData.slice(0, 10).map((snapshot, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
                       <div>
                         <div className="font-medium text-gray-900">
                           ${snapshot.final_price.toFixed(2)}
@@ -143,11 +146,16 @@ export default function DashboardPage() {
               {hourlyAverages.length > 0 ? (
                 <div className="space-y-2">
                   {hourlyAverages.map((avg, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                    >
                       <div className="text-gray-700">
                         {avg.hour}:00 - {avg.hour + 1}:00
                       </div>
-                      <div className="font-medium text-gray-900">${avg.avg_price?.toFixed(2) || 'N/A'}</div>
+                      <div className="font-medium text-gray-900">
+                        ${avg.avg_price?.toFixed(2) || 'N/A'}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -220,4 +228,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

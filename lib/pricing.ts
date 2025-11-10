@@ -106,7 +106,11 @@ export class PricingEngine {
     const bookingFee = serviceConfig.booking
     const safetyFee = serviceConfig.safetyFee || 0
 
-    const airportFees = this.calculateAirportFees(input.pickupCoords, input.destCoords, serviceConfig)
+    const airportFees = this.calculateAirportFees(
+      input.pickupCoords,
+      input.destCoords,
+      serviceConfig
+    )
     const locationSurcharge = this.calculateLocationSurcharge(
       input.pickupCoords,
       input.destCoords,

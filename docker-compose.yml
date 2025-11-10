@@ -4,7 +4,7 @@ services:
     build:
       context: .
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://rideshare:r1d3share@db:5432/rideshareappnew?schema=public
@@ -22,15 +22,14 @@ services:
       - POSTGRES_PASSWORD=r1d3share
       - POSTGRES_DB=rideshareappnew
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "rideshare"]
+      test: ['CMD', 'pg_isready', '-U', 'rideshare']
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
   postgres_data:
-

@@ -9,7 +9,7 @@ const SAMPLE_ROUTES = [
   {
     pickup_address: 'Santa Clara University, Santa Clara, CA',
     pickup_lat: 37.3496,
-    pickup_lng: -121.9390,
+    pickup_lng: -121.939,
     destination_address: 'San Jose International Airport, San Jose, CA',
     destination_lat: 37.3639,
     destination_lng: -121.9289,
@@ -32,7 +32,7 @@ const SAMPLE_ROUTES = [
     pickup_lng: -122.1697,
     destination_address: 'San Francisco International Airport, San Francisco, CA',
     destination_lat: 37.6213,
-    destination_lng: -122.3790,
+    destination_lng: -122.379,
     distance_miles: 24.3,
     duration_minutes: 35,
   },
@@ -40,7 +40,7 @@ const SAMPLE_ROUTES = [
 
 async function seedRoutes() {
   console.log('🌱 Seeding routes...')
-  
+
   const routeIds: string[] = []
 
   for (const route of SAMPLE_ROUTES) {
@@ -81,9 +81,10 @@ async function seedPriceSnapshots(routeIds: string[]) {
         for (const service of services) {
           // Generate realistic prices
           const basePrice = service === 'uber' ? 15 : service === 'lyft' ? 14 : 18
-          const surgeMultiplier = hour >= 7 && hour <= 9 || hour >= 17 && hour <= 19 
-            ? 1.5 + Math.random() * 0.5 
-            : 1.0 + Math.random() * 0.3
+          const surgeMultiplier =
+            (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)
+              ? 1.5 + Math.random() * 0.5
+              : 1.0 + Math.random() * 0.3
 
           const finalPrice = basePrice * surgeMultiplier
 
@@ -99,16 +100,15 @@ async function seedPriceSnapshots(routeIds: string[]) {
             weather_condition: Math.random() > 0.8 ? 'Rain' : 'Clear',
             weather_temp_f: 55 + Math.floor(Math.random() * 20),
             is_raining: Math.random() > 0.8,
-            traffic_level: hour >= 7 && hour <= 9 || hour >= 17 && hour <= 19 
-              ? 'heavy' as const
-              : 'moderate' as const,
+            traffic_level:
+              (hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)
+                ? ('heavy' as const)
+                : ('moderate' as const),
             nearby_events: [],
             timestamp: timestamp.toISOString(),
           }
 
-          const { error } = await supabase
-            .from('price_snapshots')
-            .insert(snapshot as any)
+          const { error } = await supabase.from('price_snapshots').insert(snapshot as any)
 
           if (error) {
             console.error('Error seeding price snapshot:', error)
@@ -126,7 +126,7 @@ async function main() {
 
   try {
     const routeIds = await seedRoutes()
-    
+
     if (routeIds.length > 0) {
       await seedPriceSnapshots(routeIds)
     }
@@ -139,4 +139,3 @@ async function main() {
 }
 
 main()
-

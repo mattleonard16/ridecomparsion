@@ -47,7 +47,7 @@ async function fetchQuotesForRoute(provider: ProviderConfig, route: { from: stri
 
   const payload = (await response.json()) as QuoteResponse[]
 
-  return payload.map((quote) => ({
+  return payload.map(quote => ({
     provider: provider.name,
     service: quote.service,
     price: quote.price,
@@ -89,15 +89,18 @@ async function main() {
   const resolved = await Promise.allSettled(results)
 
   const successful = resolved
-    .filter((entry): entry is PromiseFulfilledResult<Awaited<ReturnType<typeof fetchQuotesForRoute>>> => entry.status === 'fulfilled')
-    .flatMap((entry) => entry.value)
+    .filter(
+      (entry): entry is PromiseFulfilledResult<Awaited<ReturnType<typeof fetchQuotesForRoute>>> =>
+        entry.status === 'fulfilled'
+    )
+    .flatMap(entry => entry.value)
 
-  const failed = resolved.filter((entry) => entry.status === 'rejected')
+  const failed = resolved.filter(entry => entry.status === 'rejected')
 
   console.log(JSON.stringify({ successful, failed: failed.length }, null, 2))
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error('Failed to fetch quotes:', error)
   process.exit(1)
 })

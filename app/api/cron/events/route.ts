@@ -1,7 +1,7 @@
 /**
  * Vercel Cron endpoint for events data collection
  * Runs every 6 hours via vercel.json configuration
- * 
+ *
  * TODO: Integrate with SeatGeek or Ticketmaster API
  */
 
@@ -13,17 +13,14 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization')
   if (process.env.NODE_ENV === 'production') {
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
   }
 
   try {
     // Placeholder for events integration
     // In production, this would fetch from SeatGeek/Ticketmaster
-    
+
     const mockEvents = [
       {
         name: 'Sample Event',
@@ -32,7 +29,7 @@ export async function GET(request: Request) {
         type: 'concert',
         startTime: new Date(),
         attendance: 5000,
-      }
+      },
     ]
 
     // Log events (only if real API is configured)
@@ -51,12 +48,11 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Events cron error:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
   }
 }
-

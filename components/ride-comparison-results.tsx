@@ -49,7 +49,11 @@ export default memo(function RideComparisonResults({
   // const [priceAlerts] = useState<Array<{ threshold: number; timestamp: Date }>>([])
 
   // Function to generate booking URLs with deep links
-  const getBookingUrl = (serviceName: string, pickupCoords?: [number, number], destCoords?: [number, number]) => {
+  const getBookingUrl = (
+    serviceName: string,
+    pickupCoords?: [number, number],
+    destCoords?: [number, number]
+  ) => {
     switch (serviceName.toLowerCase()) {
       case 'uber':
         if (pickupCoords && destCoords) {
@@ -157,7 +161,7 @@ export default memo(function RideComparisonResults({
     // In production, this would come from the API response
     const mockRouteId = `route-${Date.now()}`
     const nickname = `${pickup?.split(',')[0] || 'Pickup'} → ${destination?.split(',')[0] || 'Destination'}`
-    
+
     const success = await saveRouteForUser(user.id, mockRouteId, nickname)
     if (success) {
       setRouteSaved(true)
@@ -236,7 +240,9 @@ export default memo(function RideComparisonResults({
       {/* Clean Header Section */}
       <div className="text-center space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl sm:text-4xl font-black text-white">Your Ride <span className="gradient-text-blue">Options</span></h2>
+          <h2 className="text-3xl sm:text-4xl font-black text-white">
+            Your Ride <span className="gradient-text-blue">Options</span>
+          </h2>
           <div className="flex gap-2">
             <button
               onClick={handleSaveRoute}
@@ -273,11 +279,16 @@ export default memo(function RideComparisonResults({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div className="space-y-2">
               <div className="text-3xl font-black text-green-400">{bestPrice.data.price}</div>
-              <div className="text-sm text-gray-400">Best Price <span className="text-white font-semibold">({bestPrice.name})</span></div>
+              <div className="text-sm text-gray-400">
+                Best Price <span className="text-white font-semibold">({bestPrice.name})</span>
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-3xl font-black text-blue-400">{bestWaitTime.data.waitTime}</div>
-              <div className="text-sm text-gray-400">Fastest Pickup <span className="text-white font-semibold">({bestWaitTime.name})</span></div>
+              <div className="text-sm text-gray-400">
+                Fastest Pickup{' '}
+                <span className="text-white font-semibold">({bestWaitTime.name})</span>
+              </div>
             </div>
             <div className="space-y-2">
               <div className="text-3xl font-black text-purple-400">
@@ -412,13 +423,27 @@ export default memo(function RideComparisonResults({
           <div className="glass-card-strong border border-orange-500/30 rounded-2xl p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="w-5 h-5 text-orange-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               </div>
               <div className="text-orange-300">
-                <strong className="text-white">Surge Pricing Active:</strong> {surgeInfo.reason} (approx.{' '}
-                <span className="text-orange-400 font-bold">{surgeInfo.multiplier.toFixed(1)}×</span> increase)
+                <strong className="text-white">Surge Pricing Active:</strong> {surgeInfo.reason}{' '}
+                (approx.{' '}
+                <span className="text-orange-400 font-bold">
+                  {surgeInfo.multiplier.toFixed(1)}×
+                </span>{' '}
+                increase)
               </div>
             </div>
           </div>
@@ -430,8 +455,18 @@ export default memo(function RideComparisonResults({
             <div className="text-green-300">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <svg
+                    className="w-5 h-5 text-green-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
                   </svg>
                 </div>
                 <strong className="text-white text-lg">Best Time Tips:</strong>

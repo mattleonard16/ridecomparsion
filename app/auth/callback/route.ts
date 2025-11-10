@@ -17,4 +17,3 @@ export async function GET(request: NextRequest) {
   // Redirect to home page after sign in
   return NextResponse.redirect(requestUrl.origin)
 }
-

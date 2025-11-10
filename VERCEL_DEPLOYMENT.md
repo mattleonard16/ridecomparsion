@@ -62,6 +62,7 @@ UPSTASH_REDIS_REST_TOKEN="your-redis-token"
 In Vercel project settings → Environment Variables, add:
 
 **For Development/Preview:**
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://mock-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=mock-key
@@ -69,6 +70,7 @@ NODE_ENV=development
 ```
 
 **For Production:**
+
 - Add real Supabase credentials
 - Add OpenWeather API key
 - Add reCAPTCHA keys
@@ -91,6 +93,7 @@ Click "Deploy" - first deployment will take 2-3 minutes.
 **Cause:** Missing environment variables or build errors
 
 **Fix:**
+
 1. Check Vercel build logs for specific errors
 2. Ensure all required environment variables are set
 3. Verify Supabase credentials are correct
@@ -101,6 +104,7 @@ Click "Deploy" - first deployment will take 2-3 minutes.
 **Cause:** Missing dependencies
 
 **Fix:**
+
 ```bash
 # Locally, ensure all deps are installed
 npm install
@@ -118,6 +122,7 @@ git push
 
 **Fix:**
 The project has `ignoreBuildErrors: true` in `next.config.mjs`, but you can also:
+
 ```bash
 # Check locally
 npm run typecheck
@@ -130,6 +135,7 @@ npm run typecheck
 **Cause:** Missing CRON_SECRET or API keys
 
 **Fix:**
+
 1. Add `CRON_SECRET` environment variable
 2. Add `OPENWEATHER_API_KEY` for weather cron
 3. Cron jobs will run in mock mode if APIs aren't configured
@@ -139,12 +145,14 @@ npm run typecheck
 ### Mock Mode (No Environment Variables)
 
 ✅ **Works:**
+
 - Basic ride comparisons
 - Pricing calculations
 - Map and routing
 - UI components
 
 ❌ **Limited:**
+
 - No data persistence
 - No user authentication
 - No weather integration
@@ -153,6 +161,7 @@ npm run typecheck
 ### Production Mode (With Environment Variables)
 
 ✅ **Full Features:**
+
 - User authentication
 - Saved routes
 - Price history
@@ -167,17 +176,20 @@ npm run typecheck
 The cron endpoints are available but not scheduled by default:
 
 ### Weather Updates (Optional)
+
 - **Endpoint:** `/api/cron/weather`
 - **Manual trigger:** `curl https://your-app.vercel.app/api/cron/weather`
 - **Requires:** `OPENWEATHER_API_KEY`, `CRON_SECRET`
 
 ### Events Updates (Optional)
+
 - **Endpoint:** `/api/cron/events`
 - **Manual trigger:** `curl https://your-app.vercel.app/api/cron/events`
 - **Requires:** `SEATGEEK_CLIENT_ID`, `CRON_SECRET`
 
 **To enable cron scheduling (Pro plan only):**
 Add to `vercel.json`:
+
 ```json
 {
   "crons": [
@@ -204,6 +216,7 @@ Before deploying to production:
 ## 🚦 Deployment Status
 
 Check deployment status at:
+
 - **Production:** `https://your-app.vercel.app`
 - **Preview:** `https://your-app-git-branch.vercel.app`
 - **Dashboard:** `https://vercel.com/your-username/ridecomparsion`
@@ -238,6 +251,7 @@ After successful deployment:
    - View "Build Logs" and "Function Logs"
 
 2. **Local Testing:**
+
    ```bash
    npm run build
    npm start
@@ -266,4 +280,3 @@ git push origin docs/rate-limiter-comments
 ---
 
 **Current Status:** The app is designed to work in both mock mode (no env vars) and production mode (with full configuration). Start with mock mode to verify deployment, then add environment variables incrementally.
-

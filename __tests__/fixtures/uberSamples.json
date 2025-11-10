@@ -7,7 +7,7 @@
     "timestamp": "2024-06-27T18:15:00.000Z",
     "distanceKm": 28.5,
     "durationMin": 45,
-    "actualUberPrice": 68.50,
+    "actualUberPrice": 68.5,
     "notes": "Rush hour + airport dropoff + long ride"
   },
   {
@@ -40,7 +40,7 @@
     "timestamp": "2024-06-27T08:30:00.000Z",
     "distanceKm": 75.3,
     "durationMin": 85,
-    "actualUberPrice": 125.40,
+    "actualUberPrice": 125.4,
     "notes": "Long distance + rush hour + long ride fee"
   },
   {
@@ -58,11 +58,11 @@
     "id": "sf_suburbs_normal",
     "description": "SF to Palo Alto, normal hours",
     "pickup": [-122.4194, 37.7749],
-    "destination": [-122.1430, 37.4419],
+    "destination": [-122.143, 37.4419],
     "timestamp": "2024-06-27T11:00:00.000Z",
     "distanceKm": 52.1,
     "durationMin": 58,
-    "actualUberPrice": 78.90,
+    "actualUberPrice": 78.9,
     "notes": "Long distance, off-peak"
   },
   {
@@ -73,7 +73,7 @@
     "timestamp": "2024-06-27T16:20:00.000Z",
     "distanceKm": 18.7,
     "durationMin": 28,
-    "actualUberPrice": 35.60,
+    "actualUberPrice": 35.6,
     "notes": "Airport pickup fee"
   },
   {
@@ -84,7 +84,7 @@
     "timestamp": "2024-06-27T18:45:00.000Z",
     "distanceKm": 4.8,
     "durationMin": 18,
-    "actualUberPrice": 28.40,
+    "actualUberPrice": 28.4,
     "notes": "Rush hour surge in city"
   },
   {
@@ -128,7 +128,7 @@
     "timestamp": "2024-06-27T13:15:00.000Z",
     "distanceKm": 12.4,
     "durationMin": 22,
-    "actualUberPrice": 24.80,
+    "actualUberPrice": 24.8,
     "notes": "East Bay standard pricing"
   },
   {
@@ -157,7 +157,7 @@
     "id": "scu_to_sap_center",
     "description": "Santa Clara University to SAP Center",
     "pickup": [-121.9444, 37.3496],
-    "destination": [-121.9010, 37.3326],
+    "destination": [-121.901, 37.3326],
     "timestamp": "2025-07-01T16:08:00.000Z",
     "distanceKm": 6.0,
     "durationMin": 10.8,
@@ -205,7 +205,7 @@
     "timestamp": "2025-07-01T17:22:00.000Z",
     "distanceKm": 72.5,
     "durationMin": 130.5,
-    "actualUberPrice": 91.90,
+    "actualUberPrice": 91.9,
     "notes": "Long distance route to airport"
   },
   {
@@ -230,4 +230,4 @@
     "actualUberPrice": 39.94,
     "notes": "Medium distance to SJC airport"
   }
-] 
+]
