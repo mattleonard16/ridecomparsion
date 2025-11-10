@@ -1,3 +1,11 @@
+# Docker Compose Example Configuration
+# Copy this file to docker-compose.yml and set your environment variables
+# 
+# Usage:
+#   1. cp docker-compose.example.yml docker-compose.yml
+#   2. Create a .env file with your passwords
+#   3. docker-compose up
+
 services:
   web:
     container_name: rideshareappnew-web
@@ -33,3 +41,13 @@ services:
 
 volumes:
   postgres_data:
+
+# To use this file:
+# 1. Create a .env file in the project root:
+#    POSTGRES_USER=rideshare
+#    POSTGRES_PASSWORD=your_secure_password_here
+#    POSTGRES_DB=rideshareappnew
+#
+# 2. Make sure .env is in your .gitignore (it should be)
+# 3. Run: docker-compose up
+

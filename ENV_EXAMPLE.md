@@ -4,7 +4,7 @@ Create a `.env.local` file in the project root with the following variables:
 
 ```bash
 # Database
-DATABASE_URL="postgresql://rideshare:r1d3share@localhost:5432/rideshareappnew?schema=public"
+DATABASE_URL="postgresql://user:YOUR_PASSWORD@localhost:5432/rideshareappnew?schema=public"
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
