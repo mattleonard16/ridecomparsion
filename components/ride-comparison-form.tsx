@@ -127,8 +127,41 @@ const COMMON_PLACES = {
   },
 }
 
+// Constants
+const DEBOUNCE_DELAY_MS = 300
+const AUTO_SUBMIT_DELAY_MS = 200
+
 // Cache for API results
 const searchCache = new Map()
+
+// Type definitions
+type LocationSuggestion = {
+  display_name: string
+  lat: string
+  lon: string
+  name?: string
+  place_id?: string
+}
+
+type RideService = {
+  price: string
+  waitTime: string
+  driversNearby: number
+  service: string
+  surgeMultiplier?: string
+}
+
+type RideResults = {
+  uber: RideService
+  lyft: RideService
+  taxi: RideService
+}
+
+type SurgeInfo = {
+  isActive: boolean
+  reason: string
+  multiplier: number
+}
 
 interface RideComparisonFormProps {
   selectedRoute?: {
@@ -138,62 +171,44 @@ interface RideComparisonFormProps {
   onRouteProcessed?: () => void
 }
 
-export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: RideComparisonFormProps) {
-  const [pickup, setPickup] = useState('')
-  const [destination, setDestination] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  
+export default function RideComparisonForm({
+  selectedRoute,
+  onRouteProcessed,
+}: RideComparisonFormProps) {
   // reCAPTCHA integration
   const { executeRecaptcha, isLoaded: isRecaptchaLoaded, error: recaptchaError } = useRecaptcha()
-  const [results, setResults] = useState<{
-    uber: {
-      price: string
-      waitTime: string
-      driversNearby: number
-      service: string
-      surgeMultiplier?: string
-    }
-    lyft: {
-      price: string
-      waitTime: string
-      driversNearby: number
-      service: string
-      surgeMultiplier?: string
-    }
-    taxi: {
-      price: string
-      waitTime: string
-      driversNearby: number
-      service: string
-      surgeMultiplier?: string
-    }
-  } | null>(null)
-  const [insights, setInsights] = useState('')
-  const [error, setError] = useState('')
-  const [suggestions, setSuggestions] = useState<
-    Array<{ display_name: string; lat: string; lon: string; name?: string; place_id?: string }>
-  >([])
-  const [destinationSuggestions, setDestinationSuggestions] = useState<
-    Array<{ display_name: string; lat: string; lon: string; name?: string; place_id?: string }>
-  >([])
-  const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null)
-  const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null)
-  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false)
-  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false)
+  
+  // Form state
+  const [pickup, setPickup] = useState('')
+  const [destination, setDestination] = useState('')
+  const [showForm, setShowForm] = useState(true)
+  
+  // Loading states
+  const [isLoading, setIsLoading] = useState(false)
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [isLoadingDestSuggestions, setIsLoadingDestSuggestions] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [showForm, setShowForm] = useState(true)
-  const [surgeInfo, setSurgeInfo] = useState<{
-    isActive: boolean
-    reason: string
-    multiplier: number
-  } | null>(null)
+  
+  // Results state
+  const [results, setResults] = useState<RideResults | null>(null)
+  const [insights, setInsights] = useState('')
+  const [error, setError] = useState('')
+  const [surgeInfo, setSurgeInfo] = useState<SurgeInfo | null>(null)
   const [timeRecommendations, setTimeRecommendations] = useState<string[]>([])
+  
+  // Location state
+  const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null)
+  const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null)
+  
+  // Autocomplete suggestions
+  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
+  const [destinationSuggestions, setDestinationSuggestions] = useState<LocationSuggestion[]>([])
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false)
+  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false)
+  
+  // Airport selector state
   const [showAirportSelector, setShowAirportSelector] = useState(false)
   const [airportSelectorMode, setAirportSelectorMode] = useState<'pickup' | 'destination'>('pickup')
-  // const [showPriceAlert, setShowPriceAlert] = useState(false)
-  // const [priceAlertThreshold, setPriceAlertThreshold] = useState("")
 
   const pickupRef = useRef<HTMLDivElement>(null)
   const destinationRef = useRef<HTMLDivElement>(null)
@@ -207,16 +222,16 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       setPickup(selectedRoute.pickup)
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
-      
+
       // Execute reCAPTCHA immediately in background
       let recaptchaPromise: Promise<string> = Promise.resolve('')
       if (isRecaptchaLoaded) {
-        recaptchaPromise = executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON).catch((err) => {
+        recaptchaPromise = executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON).catch(err => {
           console.warn('reCAPTCHA failed, proceeding without token:', err)
           return ''
         })
       }
-      
+
       // Auto-submit the form after setting the values
       const submitForm = async () => {
         console.log('[AutoSubmit] Starting fetch...')
@@ -236,10 +251,10 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-              pickup: selectedRoute.pickup, 
+            body: JSON.stringify({
+              pickup: selectedRoute.pickup,
               destination: selectedRoute.destination,
-              recaptchaToken
+              recaptchaToken,
             }),
           })
 
@@ -268,8 +283,8 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       }
 
       // Small delay to allow UI to update
-      setTimeout(submitForm, 200)
-      
+      setTimeout(submitForm, AUTO_SUBMIT_DELAY_MS)
+
       // Call the callback to clear the selected route
       onRouteProcessed?.()
     }
@@ -293,11 +308,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
   }, [])
 
   // Enhanced search function that checks common places first
-  const searchPlaces = async (
-    query: string
-  ): Promise<
-    Array<{ display_name: string; lat: string; lon: string; name?: string; place_id?: string }>
-  > => {
+  const searchPlaces = async (query: string): Promise<LocationSuggestion[]> => {
     const normalizedQuery = query.toLowerCase().trim()
 
     // Check cache first
@@ -439,16 +450,10 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
     // Set new timeout for search
     debounceTimeoutRef.current = setTimeout(() => {
       debouncedFetchSuggestions(value)
-    }, 300) // 300ms delay
+    }, DEBOUNCE_DELAY_MS)
   }
 
-  const handleSuggestionClick = (suggestion: {
-    display_name: string
-    lat: string
-    lon: string
-    name?: string
-    place_id?: string
-  }) => {
+  const handleSuggestionClick = (suggestion: LocationSuggestion) => {
     setPickup(suggestion.display_name)
     setSuggestions([])
     setShowPickupSuggestions(false)
@@ -465,19 +470,13 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       clearTimeout(destDebounceTimeoutRef.current)
     }
 
-    // Set new timeout for  search
+    // Set new timeout for search
     destDebounceTimeoutRef.current = setTimeout(() => {
       debouncedFetchDestinationSuggestions(value)
-    }, 300) // 300ms delay
+    }, DEBOUNCE_DELAY_MS)
   }
 
-  const handleDestinationSuggestionClick = (suggestion: {
-    display_name: string
-    lat: string
-    lon: string
-    name?: string
-    place_id?: string
-  }) => {
+  const handleDestinationSuggestionClick = (suggestion: LocationSuggestion) => {
     setDestination(suggestion.display_name)
     setDestinationSuggestions([])
     setShowDestinationSuggestions(false)
@@ -488,13 +487,13 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
   // Airport selector handlers
   const handleAirportSelect = (airportCode: string, airportName: string) => {
     const airportString = `${airportName} (${airportCode})`
-    
+
     // Get airport coordinates from our database
     import('@/lib/airports').then(({ getAirportByCode }) => {
       const airport = getAirportByCode(airportCode)
       if (airport) {
         const coords: [number, number] = [airport.coordinates[0], airport.coordinates[1]]
-        
+
         if (airportSelectorMode === 'pickup') {
           setPickup(airportString)
           setPickupCoords(coords)
@@ -511,7 +510,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
         }
       }
     })
-    
+
     setShowAirportSelector(false)
   }
 
@@ -559,10 +558,10 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          pickup, 
+        body: JSON.stringify({
+          pickup,
           destination,
-          recaptchaToken // Include reCAPTCHA token if available
+          recaptchaToken, // Include reCAPTCHA token if available
         }),
       }).catch(error => {
         console.error('Fetch error:', error)
@@ -929,11 +928,11 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Finding rides...
                 </div>
-                  ) : (
+              ) : (
                 'Compare Prices'
               )}
             </button>
-            
+
             {/* reCAPTCHA Protection Indicator */}
             <div className="flex items-center justify-center text-xs text-gray-500 mt-2">
               <Shield className="h-3 w-3 mr-1" />
@@ -959,9 +958,12 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
                   <Plane className="h-6 w-6 text-blue-400" />
                   <div>
                     <div className="font-semibold text-white text-lg">
-                      Select Airport for {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'}
+                      Select Airport for{' '}
+                      {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'}
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">Choose from major U.S. airports</div>
+                    <div className="text-sm text-gray-400 mt-1">
+                      Choose from major U.S. airports
+                    </div>
                   </div>
                 </div>
                 <button
@@ -974,7 +976,7 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
             </div>
             <div className="p-3 max-h-80 overflow-y-auto">
               <div className="grid grid-cols-1 gap-2">
-                {getPopularAirports().map((airport) => (
+                {getPopularAirports().map(airport => (
                   <button
                     key={airport.code}
                     onClick={() => handleAirportSelect(airport.code, airport.name)}
@@ -1012,8 +1014,18 @@ export default function RideComparisonForm({ selectedRoute, onRouteProcessed }: 
       {error && (
         <div className="mt-6 p-5 bg-red-500/10 text-red-400 rounded-xl border border-red-500/30 backdrop-blur-sm">
           <div className="flex items-center">
-            <svg className="h-5 w-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-5 w-5 mr-3 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span>{error}</span>
           </div>

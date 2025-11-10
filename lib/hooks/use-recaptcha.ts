@@ -41,25 +41,28 @@ export function useRecaptcha(): UseRecaptchaReturn {
   }, [])
 
   // Execute reCAPTCHA with error handling
-  const execute = useCallback(async (action: string = RECAPTCHA_CONFIG.ACTIONS.FORM_SUBMIT): Promise<string> => {
-    try {
-      if (!isLoaded) {
-        throw new Error('reCAPTCHA not loaded yet')
-      }
+  const execute = useCallback(
+    async (action: string = RECAPTCHA_CONFIG.ACTIONS.FORM_SUBMIT): Promise<string> => {
+      try {
+        if (!isLoaded) {
+          throw new Error('reCAPTCHA not loaded yet')
+        }
 
-      const token = await executeRecaptcha(action)
-      setError(null)
-      return token
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'reCAPTCHA execution failed'
-      setError(errorMessage)
-      throw new Error(errorMessage)
-    }
-  }, [isLoaded])
+        const token = await executeRecaptcha(action)
+        setError(null)
+        return token
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'reCAPTCHA execution failed'
+        setError(errorMessage)
+        throw new Error(errorMessage)
+      }
+    },
+    [isLoaded]
+  )
 
   return {
     executeRecaptcha: execute,
     isLoaded,
-    error
+    error,
   }
-} 
+}

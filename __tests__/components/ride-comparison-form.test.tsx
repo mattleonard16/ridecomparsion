@@ -8,7 +8,7 @@ describe('RideComparisonForm', () => {
 
     expect(screen.getByLabelText(/pickup location/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/destination/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /compare rides/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /compare prices/i })).toBeInTheDocument()
   })
 
   it('shows loading state when form is submitted', async () => {
@@ -19,7 +19,7 @@ describe('RideComparisonForm', () => {
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
     const destinationInput = screen.getByLabelText(/destination/i)
-    const submitButton = screen.getByRole('button', { name: /compare rides/i })
+    const submitButton = screen.getByRole('button', { name: /compare prices/i })
 
     await userEvent.type(pickupInput, '123 Main St')
     await userEvent.type(destinationInput, '456 Market St')
@@ -36,14 +36,16 @@ describe('RideComparisonForm', () => {
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
     const destinationInput = screen.getByLabelText(/destination/i)
-    const submitButton = screen.getByRole('button', { name: /compare rides/i })
+    const submitButton = screen.getByRole('button', { name: /compare prices/i })
 
     await userEvent.type(pickupInput, '123 Main St')
     await userEvent.type(destinationInput, '456 Market St')
     fireEvent.submit(submitButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/note: using simulated data due to api connection issues/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/note: using simulated data due to api connection issues/i)
+      ).toBeInTheDocument()
     })
   })
 
@@ -52,15 +54,15 @@ describe('RideComparisonForm', () => {
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
     const destinationInput = screen.getByLabelText(/destination/i)
-    const submitButton = screen.getByRole('button', { name: /compare rides/i })
-    
+    const submitButton = screen.getByRole('button', { name: /compare prices/i })
+
     // Submit empty form
     fireEvent.submit(submitButton)
 
     // Check that the form prevents submission by checking if inputs are still empty
     expect(pickupInput).toHaveValue('')
     expect(destinationInput).toHaveValue('')
-    
+
     // Check that inputs have required attribute
     expect(pickupInput).toHaveAttribute('required')
     expect(destinationInput).toHaveAttribute('required')
@@ -79,7 +81,7 @@ describe('RideComparisonForm', () => {
     // Check that inputs have valid values
     expect(pickupInput).toHaveValue('123 Main St')
     expect(destinationInput).toHaveValue('456 Market St')
-    
+
     // Check that inputs are not empty (which would make them invalid)
     expect(pickupInput).not.toHaveValue('')
     expect(destinationInput).not.toHaveValue('')
@@ -93,7 +95,7 @@ describe('RideComparisonForm', () => {
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
     const destinationInput = screen.getByLabelText(/destination/i)
-    const submitButton = screen.getByRole('button', { name: /compare rides/i })
+    const submitButton = screen.getByRole('button', { name: /compare prices/i })
 
     await userEvent.type(pickupInput, '123 Main St')
     await userEvent.type(destinationInput, '456 Market St')
@@ -123,14 +125,16 @@ describe('RideComparisonForm', () => {
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
     const destinationInput = screen.getByLabelText(/destination/i)
-    const submitButton = screen.getByRole('button', { name: /compare rides/i })
+    const submitButton = screen.getByRole('button', { name: /compare prices/i })
 
     await userEvent.type(pickupInput, '123 Main St')
     await userEvent.type(destinationInput, '456 Market St')
     fireEvent.submit(submitButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/note: using simulated data due to api connection issues/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/note: using simulated data due to api connection issues/i)
+      ).toBeInTheDocument()
     })
   })
 })

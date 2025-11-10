@@ -36,16 +36,16 @@ export const AIRPORTS: Record<string, Airport> = {
     city: 'San Francisco',
     state: 'CA',
     displayName: 'San Francisco International Airport (SFO)',
-    coordinates: coords(-122.3790, 37.6213),
+    coordinates: coords(-122.379, 37.6213),
     timezone: 'America/Los_Angeles',
     popularDestination: true,
     terminals: [
       {
         name: 'Terminal 1',
-        coordinates: coords(-122.3875, 37.6200),
+        coordinates: coords(-122.3875, 37.62),
         ridesharePickup: {
           description: 'Terminal 1 Departure Level',
-          coordinates: coords(-122.3875, 37.6200),
+          coordinates: coords(-122.3875, 37.62),
         },
       },
       {
@@ -86,10 +86,10 @@ export const AIRPORTS: Record<string, Airport> = {
     terminals: [
       {
         name: 'Terminal A',
-        coordinates: coords(-121.9289, 37.3650),
+        coordinates: coords(-121.9289, 37.365),
         ridesharePickup: {
           description: 'Terminal A Departure Level',
-          coordinates: coords(-121.9289, 37.3650),
+          coordinates: coords(-121.9289, 37.365),
         },
       },
       {
@@ -546,17 +546,14 @@ export function searchAirports(query: string): Airport[] {
 
 export function isAirportLocation(coordinates: Coordinates, tolerance = 0.05): Airport | null {
   const [lon, lat] = coordinates
-  
+
   for (const airport of Object.values(AIRPORTS)) {
     const [airportLon, airportLat] = airport.coordinates
-    if (
-      Math.abs(lat - airportLat) < tolerance &&
-      Math.abs(lon - airportLon) < tolerance
-    ) {
+    if (Math.abs(lat - airportLat) < tolerance && Math.abs(lon - airportLon) < tolerance) {
       return airport
     }
   }
-  
+
   return null
 }
 

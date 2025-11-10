@@ -119,7 +119,7 @@ export async function compareRidesByCoordinates(
   const startTime = Date.now()
   const normalisedServices = services.length ? services : DEFAULT_SERVICES
   const uniqueServices = Array.from(
-    new Set<ServiceType>(normalisedServices.map((service) => service.toLowerCase() as ServiceType))
+    new Set<ServiceType>(normalisedServices.map(service => service.toLowerCase() as ServiceType))
   )
 
   const metricsStart = Date.now()
@@ -145,7 +145,7 @@ export async function compareRidesByCoordinates(
 
   // Calculate pricing for all services (synchronous, fast)
   const pricingStart = Date.now()
-  const resultsEntries = uniqueServices.map((service) => {
+  const resultsEntries = uniqueServices.map(service => {
     const serviceStart = Date.now()
     const computation = pricingEngine.calculateFare({
       service,
@@ -157,7 +157,9 @@ export async function compareRidesByCoordinates(
       osrmDurationSec: metrics.osrmDurationSec,
       expectedDurationSec: metrics.durationMin * 60,
     })
-    console.log(`[CompareAPI] ${service.charAt(0).toUpperCase() + service.slice(1)}: ${Date.now() - serviceStart}ms`)
+    console.log(
+      `[CompareAPI] ${service.charAt(0).toUpperCase() + service.slice(1)}: ${Date.now() - serviceStart}ms`
+    )
 
     return [service, buildRideResult(service, computation, metrics), computation] as const
   })
@@ -169,23 +171,29 @@ export async function compareRidesByCoordinates(
 
   // Wait for route ID and log snapshots in background (non-blocking for response)
   if (shouldPersist) {
-    routeIdPromise.then((routeId) => {
-      if (routeId) {
-        resultsEntries.forEach(([service, _, computation]) => {
-          logPriceSnapshot(
-            routeId,
-            service,
-            computation.breakdown.finalFare,
-            computation.breakdown.surgeMultiplier,
-            deriveWaitMinutes(service, computation.breakdown.surgeMultiplier, metrics.durationMin),
-            {
-              weather: computation.surgeReason,
-              trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
-            }
-          )
-        })
-      }
-    }).catch((err) => console.error('[CompareAPI] Route creation error:', err))
+    routeIdPromise
+      .then(routeId => {
+        if (routeId) {
+          resultsEntries.forEach(([service, _, computation]) => {
+            logPriceSnapshot(
+              routeId,
+              service,
+              computation.breakdown.finalFare,
+              computation.breakdown.surgeMultiplier,
+              deriveWaitMinutes(
+                service,
+                computation.breakdown.surgeMultiplier,
+                metrics.durationMin
+              ),
+              {
+                weather: computation.surgeReason,
+                trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
+              }
+            )
+          })
+        }
+      })
+      .catch(err => console.error('[CompareAPI] Route creation error:', err))
   }
 
   const { multiplier, surgeReason } = getTimeBasedMultiplier(
@@ -202,14 +210,16 @@ export async function compareRidesByCoordinates(
 
   // Log search in background (non-blocking for response)
   if (shouldPersist) {
-    routeIdPromise.then((routeId) => {
-      logSearch(
-        routeId,
-        options?.userId ?? null,
-        comparisonResults,
-        options?.sessionId ?? undefined
-      )
-    }).catch((err) => console.error('[CompareAPI] Search logging error:', err))
+    routeIdPromise
+      .then(routeId => {
+        logSearch(
+          routeId,
+          options?.userId ?? null,
+          comparisonResults,
+          options?.sessionId ?? undefined
+        )
+      })
+      .catch(err => console.error('[CompareAPI] Search logging error:', err))
   }
 
   const result = {
@@ -225,7 +235,9 @@ export async function compareRidesByCoordinates(
   return result
 }
 
-function classifyTraffic(multiplier: number): Database['public']['Enums']['traffic_level'] | undefined {
+function classifyTraffic(
+  multiplier: number
+): Database['public']['Enums']['traffic_level'] | undefined {
   if (multiplier <= 1.1) return 'light'
   if (multiplier <= 1.25) return 'moderate'
   if (multiplier <= 1.4) return 'heavy'
@@ -343,9 +355,7 @@ async function resilientFetch(url: string): Promise<Response> {
     }
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Request failed after retries')
+  throw lastError instanceof Error ? lastError : new Error('Request failed after retries')
 }
 
 function buildRideResult(
@@ -372,7 +382,8 @@ function deriveWaitMinutes(
   durationMin: number
 ): number {
   const base = service === 'taxi' ? 6 : 4
-  const demandPenalty = surgeMultiplier > 1.4 ? 3 : surgeMultiplier > 1.2 ? 2 : surgeMultiplier > 1.05 ? 1 : 0
+  const demandPenalty =
+    surgeMultiplier > 1.4 ? 3 : surgeMultiplier > 1.2 ? 2 : surgeMultiplier > 1.05 ? 1 : 0
   const tripComplexity = Math.min(4, Math.round(durationMin / 15))
 
   return Math.max(2, Math.min(18, base + demandPenalty + tripComplexity))
@@ -401,7 +412,7 @@ function generateRecommendation(results: ComparisonResults): string {
     wait: parseInt(result.waitTime.replace(' min', ''), 10),
   }))
 
-  const scores = parsed.map((entry) => ({
+  const scores = parsed.map(entry => ({
     service: entry.service,
     score: entry.price * 0.7 + entry.wait * 0.3,
     price: entry.price,

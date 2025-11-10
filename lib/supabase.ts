@@ -38,7 +38,11 @@ export async function findOrCreateRoute(
 ) {
   // In mock mode, return a fake route ID
   if (isMockMode) {
-    const mockRouteId = `mock-route-${pickupCoords[0]}-${pickupCoords[1]}-${destCoords[0]}-${destCoords[1]}`.replace(/\./g, '')
+    const mockRouteId =
+      `mock-route-${pickupCoords[0]}-${pickupCoords[1]}-${destCoords[0]}-${destCoords[1]}`.replace(
+        /\./g,
+        ''
+      )
     console.log('🔧 [MOCK] Created route:', mockRouteId)
     return mockRouteId
   }
@@ -101,7 +105,7 @@ export async function logPriceSnapshot(
   }
 ) {
   const now = new Date()
-  
+
   const snapshot: Database['public']['Tables']['price_snapshots']['Insert'] = {
     route_id: routeId,
     service_type: service,
@@ -125,14 +129,12 @@ export async function logPriceSnapshot(
       price: `$${price.toFixed(2)}`,
       surge: `${surge}x`,
       waitTime: `${waitTime} min`,
-      timestamp: now.toISOString()
+      timestamp: now.toISOString(),
     })
     return
   }
 
-  const { error } = await supabase
-    .from('price_snapshots')
-    .insert(snapshot as any)
+  const { error } = await supabase.from('price_snapshots').insert(snapshot as any)
 
   if (error) {
     console.error('Error logging price snapshot:', error)
@@ -155,7 +157,7 @@ export async function logSearch(
       userId,
       sessionId,
       resultsCount: Object.keys(results).length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
     return
   }
@@ -168,9 +170,7 @@ export async function logSearch(
     user_agent: typeof window !== 'undefined' ? window.navigator.userAgent : null,
   }
 
-  const { error } = await supabase
-    .from('search_logs')
-    .insert(searchLog as any)
+  const { error } = await supabase.from('search_logs').insert(searchLog as any)
 
   if (error) {
     console.error('Error logging search:', error)
@@ -180,15 +180,11 @@ export async function logSearch(
 /**
  * Get route price history
  */
-export async function getRoutePriceHistory(
-  routeId: string,
-  daysBack: number = 7
-) {
-  const { data, error } = await supabase
-    .rpc('get_route_price_history', {
-      p_route_id: routeId,
-      p_days_back: daysBack,
-    } as any)
+export async function getRoutePriceHistory(routeId: string, daysBack: number = 7) {
+  const { data, error } = await supabase.rpc('get_route_price_history', {
+    p_route_id: routeId,
+    p_days_back: daysBack,
+  } as any)
 
   if (error) {
     console.error('Error fetching price history:', error)
@@ -201,15 +197,11 @@ export async function getRoutePriceHistory(
 /**
  * Get average prices by hour for a route
  */
-export async function getHourlyPriceAverage(
-  routeId: string,
-  service: 'uber' | 'lyft' | 'taxi'
-) {
-  const { data, error } = await supabase
-    .rpc('get_hourly_price_average', {
-      p_route_id: routeId,
-      p_service: service,
-    } as any)
+export async function getHourlyPriceAverage(routeId: string, service: 'uber' | 'lyft' | 'taxi') {
+  const { data, error } = await supabase.rpc('get_hourly_price_average', {
+    p_route_id: routeId,
+    p_service: service,
+  } as any)
 
   if (error) {
     console.error('Error fetching hourly averages:', error)
@@ -222,20 +214,14 @@ export async function getHourlyPriceAverage(
 /**
  * Save a route for a user
  */
-export async function saveRouteForUser(
-  userId: string,
-  routeId: string,
-  nickname?: string
-) {
+export async function saveRouteForUser(userId: string, routeId: string, nickname?: string) {
   const savedRoute: Database['public']['Tables']['saved_routes']['Insert'] = {
     user_id: userId,
     route_id: routeId,
     nickname: nickname ?? null,
   }
 
-  const { error } = await supabase
-    .from('saved_routes')
-    .upsert(savedRoute as any)
+  const { error } = await supabase.from('saved_routes').upsert(savedRoute as any)
 
   if (error) {
     console.error('Error saving route:', error)
@@ -303,9 +289,7 @@ export async function logWeatherData(
     raw_data: weatherData.rawData,
   }
 
-  const { error } = await supabase
-    .from('weather_logs')
-    .insert(weatherLog as any)
+  const { error } = await supabase.from('weather_logs').insert(weatherLog as any)
 
   if (error) {
     console.error('Error logging weather:', error)
@@ -337,9 +321,7 @@ export async function logEventData(event: {
     raw_data: event.rawData,
   }
 
-  const { error } = await supabase
-    .from('event_logs')
-    .insert(eventLog as any)
+  const { error } = await supabase.from('event_logs').insert(eventLog as any)
 
   if (error) {
     console.error('Error logging event:', error)

@@ -10,12 +10,12 @@
       "safetyFee": 0.75,
       "minFare": 9.25,
       "maxSurge": 2.5,
-      "airportPickupFee": 6.50,
+      "airportPickupFee": 6.5,
       "airportDropoffFee": 3.25,
-      "cbdSurcharge": 3.50,
+      "cbdSurcharge": 3.5,
       "longRideFee": {
         "threshold": 25,
-        "fee": 5.50
+        "fee": 5.5
       }
     },
     "lyft": {
@@ -27,7 +27,7 @@
       "minFare": 8.95,
       "maxSurge": 2.3,
       "airportPickupFee": 6.25,
-      "airportDropoffFee": 3.00,
+      "airportDropoffFee": 3.0,
       "cbdSurcharge": 3.25,
       "longRideFee": {
         "threshold": 25,
@@ -42,12 +42,12 @@
       "safetyFee": 0.0,
       "minFare": 15.0,
       "maxSurge": 1.4,
-      "airportPickupFee": 6.50,
+      "airportPickupFee": 6.5,
       "airportDropoffFee": 0.0,
-      "cbdSurcharge": 3.00,
+      "cbdSurcharge": 3.0,
       "longRideFee": {
         "threshold": 30,
-        "fee": 5.00
+        "fee": 5.0
       }
     }
   },
@@ -115,4 +115,4 @@
     "thanksgiving": 1.4,
     "christmas": 1.5
   }
-} 
+}

@@ -53,4 +53,3 @@ NODE_ENV="development"
 - `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`: For persistent rate limiting
 
 See `SETUP_SUPABASE.md` for detailed setup instructions.
-

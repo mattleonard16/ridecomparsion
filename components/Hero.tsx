@@ -7,36 +7,38 @@ export default function Hero() {
     <section className="relative snap-start min-h-screen bg-black overflow-visible flex flex-col justify-center py-16 sm:py-24 md:py-32">
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20" />
-      
+
       {/* Animated background grid */}
       <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-      
+
       {/* Floating orbs */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-      
+      <div
+        className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float"
+        style={{ animationDelay: '2s' }}
+      />
+
       {/* User menu - glassmorphic */}
       <div className="absolute top-4 right-4 z-10">
         <UserMenu />
       </div>
-      
+
       <div className="relative z-10 container mx-auto px-4 max-w-5xl w-full">
         <div className="text-center">
           <div className="animate-fade-in-up">
             <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 leading-tight">
-              <span className="animate-color-shift">
-                Compare Rideshares
-              </span>
+              <span className="animate-color-shift">Compare Rideshares</span>
               <br />
               <span className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl text-white/90 font-bold">
                 Save Money, Save Time
               </span>
             </h1>
           </div>
-          
+
           <div className="animate-fade-in-up animation-delay-200">
             <p className="text-lg sm:text-xl md:text-2xl text-gray-400 mb-8 sm:mb-10 max-w-3xl mx-auto font-medium leading-relaxed">
-              Get real-time pricing across <span className="text-white font-semibold">Uber, Lyft & Taxi</span> services.
+              Get real-time pricing across{' '}
+              <span className="text-white font-semibold">Uber, Lyft & Taxi</span> services.
               <br className="hidden sm:block" />
               Smart recommendations powered by live surge data.
             </p>
@@ -85,4 +87,4 @@ export default function Hero() {
       </div>
     </section>
   )
-} 
+}
