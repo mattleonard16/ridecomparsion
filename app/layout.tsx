@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import { Providers } from './providers'
+import { PillBase } from '@/components/ui/3d-adaptive-navigation-bar'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -45,6 +46,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
+          {/* Fixed Navigation Bar */}
+          <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
+            <PillBase />
+          </div>
           {children}
           <Analytics />
         </Providers>

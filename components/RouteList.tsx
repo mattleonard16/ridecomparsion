@@ -63,7 +63,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
 
       // Scroll instantly to comparison section
       setTimeout(() => {
-        const compareSection = document.getElementById('compare-section')
+        const compareSection = document.getElementById('compare')
         if (compareSection) {
           console.log('[Scroll] to compare section')
           compareSection.scrollIntoView({
@@ -71,7 +71,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
             block: 'start',
           })
         } else {
-          console.error('[Scroll] compare-section not found!')
+          console.error('[Scroll] compare section not found!')
         }
       }, 50)
     },
@@ -79,7 +79,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
   )
 
   return (
-    <section className="relative snap-start min-h-screen bg-black overflow-visible flex flex-col justify-center py-16 sm:py-24 md:py-28">
+    <section id="routes" className="relative snap-start min-h-screen bg-black overflow-visible flex flex-col justify-center py-16 sm:py-24 md:py-28">
       {/* Subtle gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/5 to-black" />
 
