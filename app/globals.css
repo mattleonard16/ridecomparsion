@@ -27,18 +27,6 @@ body {
   opacity: 0;
 }
 
-@keyframes glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-  }
-  50% {
-    box-shadow:
-      0 0 30px rgba(102, 126, 234, 0.6),
-      0 0 60px rgba(102, 126, 234, 0.3);
-  }
-}
-
 @keyframes slide-up-fade {
   0% {
     opacity: 0;
@@ -50,32 +38,13 @@ body {
   }
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-@keyframes float {
+@keyframes pulse-subtle {
   0%,
   100% {
-    transform: translateY(0px);
+    opacity: 1;
   }
   50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes color-shift {
-  0%,
-  100% {
-    color: #9ca3af; /* Gray-400 */
-  }
-  50% {
-    color: #10b981; /* Green-500 */
+    opacity: 0.7;
   }
 }
 
@@ -93,130 +62,129 @@ body {
     scroll-snap-align: start;
   }
 
-  /* Glassmorphism */
-  .glass-card {
-    background: rgba(20, 20, 20, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  /* NEW: Solid dark cards - replacing glassmorphism */
+  .card-solid {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
   }
 
-  .glass-card-strong {
-    background: rgba(20, 20, 20, 0.8);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+  .card-elevated {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   }
 
-  /* Gradient Effects */
-  .gradient-border {
-    position: relative;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 1px;
+  .card-interactive {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .gradient-text {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  .card-interactive:hover {
+    border-color: hsl(var(--accent));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Accent text highlight */
+  .text-accent-gradient {
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-warm)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .gradient-text-blue {
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Hover Effects */
+  /* Hover Effects - cleaner, no glow */
   .hover-lift {
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  }
-
-  .hover-glow {
-    transition: box-shadow 0.3s ease;
-  }
-
-  .hover-glow:hover {
-    box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   }
 
   /* Animations */
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite;
-  }
-
   .animate-slide-up-fade {
     animation: slide-up-fade 0.8s ease-out forwards;
   }
 
-  .animate-shimmer {
-    animation: shimmer 2s linear infinite;
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0) 100%
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
+  }
+
+  /* NEW: Route line pattern background */
+  .bg-route-pattern {
+    background-image: 
+      linear-gradient(90deg, transparent 49.5%, hsl(var(--border)) 49.5%, hsl(var(--border)) 50.5%, transparent 50.5%),
+      linear-gradient(0deg, transparent 49.5%, hsl(var(--border)) 49.5%, hsl(var(--border)) 50.5%, transparent 50.5%);
+    background-size: 80px 80px;
+  }
+
+  /* Diagonal lines pattern - more distinctive */
+  .bg-diagonal-lines {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 20px,
+      hsl(var(--border) / 0.3) 20px,
+      hsl(var(--border) / 0.3) 21px
     );
-    background-size: 1000px 100%;
   }
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animate-color-shift {
-    animation: color-shift 4s ease-in-out infinite;
-  }
-
-  /* Background Grid */
-  .bg-grid-pattern {
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 50px 50px;
+  /* Noise texture overlay */
+  .noise-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.02;
+    pointer-events: none;
   }
 }
 
 @layer base {
   :root {
-    /* Dark theme by default - modern black aesthetic */
-    --background: 0 0% 5%; /* Deep black #0D0D0D */
-    --foreground: 0 0% 98%; /* Off-white text */
-    --card: 0 0% 8%; /* Card background #141414 */
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 220 100% 60%; /* Bright blue accent #3B82F6 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 280 100% 70%; /* Purple accent #A855F7 */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 15%; /* Subtle backgrounds */
-    --muted-foreground: 0 0% 60%;
-    --accent: 160 100% 50%; /* Teal/cyan accent #00D9FF */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%; /* Subtle borders */
-    --input: 0 0% 15%;
-    --ring: 220 100% 60%;
-    --chart-1: 220 100% 60%; /* Blue */
-    --chart-2: 280 100% 70%; /* Purple */
-    --chart-3: 160 100% 50%; /* Cyan */
-    --chart-4: 340 100% 65%; /* Pink */
-    --chart-5: 45 100% 60%; /* Yellow */
-    --radius: 0.75rem;
-    --foreground-rgb: 250, 250, 250;
-    --background-start-rgb: 13, 13, 13;
-    --background-end-rgb: 13, 13, 13;
+    /* NEW: Distinctive dark theme with warm accents */
+    --background: 220 15% 6%; /* Deep charcoal with slight blue #0E1117 */
+    --foreground: 40 20% 95%; /* Warm off-white */
+    --card: 220 15% 10%; /* Card background */
+    --card-foreground: 40 20% 95%;
+    --popover: 220 15% 10%;
+    --popover-foreground: 40 20% 95%;
+    
+    /* NEW: Warm amber/terracotta accent instead of purple */
+    --primary: 25 95% 55%; /* Warm amber #F59E0B */
+    --primary-foreground: 220 15% 6%;
+    
+    /* Secondary: Teal for contrast */
+    --secondary: 175 70% 45%; /* Teal #14B8A6 */
+    --secondary-foreground: 220 15% 6%;
+    
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 10% 55%;
+    
+    /* Accent: Coral/terracotta */
+    --accent: 15 85% 60%; /* Coral #F97316 */
+    --accent-warm: 35 95% 55%; /* Warm gold */
+    --accent-foreground: 220 15% 6%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 40 20% 95%;
+    --border: 220 15% 18%;
+    --input: 220 15% 15%;
+    --ring: 25 95% 55%;
+    
+    /* Chart colors - warm palette */
+    --chart-1: 25 95% 55%; /* Amber */
+    --chart-2: 175 70% 45%; /* Teal */
+    --chart-3: 15 85% 60%; /* Coral */
+    --chart-4: 45 95% 55%; /* Gold */
+    --chart-5: 195 80% 50%; /* Cyan */
+    
+    --radius: 0.5rem;
+    --foreground-rgb: 245, 240, 235;
+    --background-start-rgb: 14, 17, 23;
+    --background-end-rgb: 14, 17, 23;
   }
 }
 
@@ -229,7 +197,6 @@ body {
     scroll-behavior: smooth;
   }
 
-  /* Disable smooth scroll for users who prefer reduced motion */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
@@ -241,10 +208,15 @@ body {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+/* Service-specific colors - kept for branding */
+.uber-brand {
+  --service-color: 0 0% 0%;
+}
+
+.lyft-brand {
+  --service-color: 330 80% 55%;
+}
+
+.taxi-brand {
+  --service-color: 45 95% 55%;
 }

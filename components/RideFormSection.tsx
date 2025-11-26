@@ -11,33 +11,33 @@ export default function RideFormSection({ selectedRoute, onRouteProcessed }: Rid
   return (
     <section
       id="compare"
-      className="relative snap-start min-h-screen bg-black overflow-visible py-8 sm:py-12"
+      className="relative snap-start min-h-screen bg-background overflow-visible py-8 sm:py-12"
     >
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-purple-900/5 to-black" />
-
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+      {/* Subtle background */}
+      <div className="absolute inset-0 bg-route-pattern opacity-10" />
 
       <div className="relative z-10 container mx-auto px-4 max-w-4xl w-full">
         <div className="text-center mb-10 sm:mb-12">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4">
-            Compare Prices <span className="animate-color-shift">Now</span>
+          <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">
+            Get Started
+          </span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground mb-4">
+            Compare Prices
           </h2>
-          <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto">
-            Enter your pickup and destination to get{' '}
-            <span className="text-white font-semibold">real-time price comparisons</span>
+          <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto">
+            Enter your pickup and destination for{' '}
+            <span className="text-foreground font-semibold">real-time price comparisons</span>
           </p>
         </div>
 
-        <div className="glass-card-strong rounded-3xl p-6 sm:p-10 shadow-2xl border border-white/10 scroll-mt-20">
+        <div className="card-elevated rounded-2xl p-6 sm:p-10 scroll-mt-20">
           <RideComparisonForm selectedRoute={selectedRoute} onRouteProcessed={onRouteProcessed} />
         </div>
 
         <div className="mt-10 text-center">
-          <p className="text-sm text-gray-500 max-w-md mx-auto">
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
             We compare prices from multiple services to help you find the best deal.
-            <span className="text-gray-400 font-medium"> No booking fees or hidden charges.</span>
+            <span className="text-foreground/70 font-medium"> No booking fees or hidden charges.</span>
           </p>
         </div>
       </div>

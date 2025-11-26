@@ -1,29 +1,26 @@
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/supabase'
+import { prisma } from '@/lib/prisma'
+import { $Enums, type ServiceType, type TrafficLevel } from '@/lib/generated/prisma'
+import { createHash } from 'crypto'
 
-// Environment variables (add to .env.local)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mock-project.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key'
+const ServiceTypeEnum = $Enums.ServiceType
+const TrafficLevelEnum = $Enums.TrafficLevel
 
-// Check if we're in development with mock credentials
-const isMockMode = supabaseUrl.includes('mock-project') || supabaseAnonKey === 'mock-key'
-
-if (isMockMode) {
-  console.log('🚧 Supabase running in MOCK mode - data will not persist')
+// Check if database is available
+const isDatabaseAvailable = () => {
+  return !!process.env.DATABASE_URL
 }
 
-// Create a single supabase client for interacting with your database
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-})
-
-// Export mock mode flag for conditional logic
-export const isSupabaseMockMode = isMockMode
-
-// Helper functions for common operations
+// Generate route hash for uniqueness
+function generateRouteHash(
+  pickupLat: number,
+  pickupLng: number,
+  destLat: number,
+  destLng: number
+): string {
+  const hash = createHash('sha256')
+  hash.update(`${pickupLat},${pickupLng},${destLat},${destLng}`)
+  return hash.digest('hex').substring(0, 16)
+}
 
 /**
  * Find or create a route in the database
@@ -35,56 +32,55 @@ export async function findOrCreateRoute(
   destCoords: [number, number],
   distance?: number,
   duration?: number
-) {
-  // In mock mode, return a fake route ID
-  if (isMockMode) {
-    const mockRouteId =
-      `mock-route-${pickupCoords[0]}-${pickupCoords[1]}-${destCoords[0]}-${destCoords[1]}`.replace(
-        /\./g,
-        ''
-      )
+): Promise<string | null> {
+  if (!isDatabaseAvailable()) {
+    const mockRouteId = `mock-route-${pickupCoords[0]}-${pickupCoords[1]}-${destCoords[0]}-${destCoords[1]}`.replace(
+      /\./g,
+      ''
+    )
     console.log('🔧 [MOCK] Created route:', mockRouteId)
     return mockRouteId
   }
 
-  const routeData: Database['public']['Tables']['routes']['Insert'] = {
-    pickup_address: pickupAddress,
-    pickup_lat: pickupCoords[1],
-    pickup_lng: pickupCoords[0],
-    destination_address: destAddress,
-    destination_lat: destCoords[1],
-    destination_lng: destCoords[0],
-    distance_miles: distance,
-    duration_minutes: duration,
-  }
+  try {
+    const routeHash = generateRouteHash(
+      pickupCoords[1],
+      pickupCoords[0],
+      destCoords[1],
+      destCoords[0]
+    )
 
-  // Try to find existing route by coordinates
-  const { data: existingRoute } = await supabase
-    .from('routes')
-    .select('id')
-    .eq('pickup_lat', pickupCoords[1])
-    .eq('pickup_lng', pickupCoords[0])
-    .eq('destination_lat', destCoords[1])
-    .eq('destination_lng', destCoords[0])
-    .maybeSingle()
+    // Try to find existing route by hash
+    const existingRoute = await prisma.route.findUnique({
+      where: { route_hash: routeHash },
+      select: { id: true },
+    })
 
-  if (existingRoute) {
-    return (existingRoute as any).id
-  }
+    if (existingRoute) {
+      return existingRoute.id
+    }
 
-  // Create new route
-  const { data: newRoute, error } = await supabase
-    .from('routes')
-    .insert(routeData as any)
-    .select('id')
-    .maybeSingle()
+    // Create new route
+    const newRoute = await prisma.route.create({
+      data: {
+        pickup_address: pickupAddress,
+        pickup_lat: pickupCoords[1],
+        pickup_lng: pickupCoords[0],
+        destination_address: destAddress,
+        destination_lat: destCoords[1],
+        destination_lng: destCoords[0],
+        distance_miles: distance,
+        duration_minutes: duration,
+        route_hash: routeHash,
+      },
+      select: { id: true },
+    })
 
-  if (error) {
+    return newRoute.id
+  } catch (error) {
     console.error('Error creating route:', error)
     return null
   }
-
-  return (newRoute as any)?.id ?? null
 }
 
 /**
@@ -103,27 +99,9 @@ export async function logPriceSnapshot(
     trafficLevel?: 'light' | 'moderate' | 'heavy' | 'severe'
     nearbyEvents?: string[]
   }
-) {
-  const now = new Date()
-
-  const snapshot: Database['public']['Tables']['price_snapshots']['Insert'] = {
-    route_id: routeId,
-    service_type: service,
-    base_price: price / surge, // Calculate base price
-    surge_multiplier: surge,
-    final_price: price,
-    wait_time_minutes: waitTime,
-    day_of_week: now.getDay(),
-    hour_of_day: now.getHours(),
-    weather_condition: factors?.weather,
-    weather_temp_f: factors?.temperature,
-    is_raining: factors?.isRaining || false,
-    traffic_level: factors?.trafficLevel,
-    nearby_events: factors?.nearbyEvents || [],
-  }
-
-  // In mock mode, just log to console
-  if (isMockMode) {
+): Promise<void> {
+  if (!isDatabaseAvailable()) {
+    const now = new Date()
     console.log('🔧 [MOCK] Price snapshot:', {
       service,
       price: `$${price.toFixed(2)}`,
@@ -134,9 +112,50 @@ export async function logPriceSnapshot(
     return
   }
 
-  const { error } = await supabase.from('price_snapshots').insert(snapshot as any)
+  try {
+    const now = new Date()
 
-  if (error) {
+    // Map service string to ServiceType enum
+    const serviceType: ServiceType =
+      service === 'uber' ? ServiceTypeEnum.UBER : service === 'lyft' ? ServiceTypeEnum.LYFT : ServiceTypeEnum.TAXI
+
+    // Map traffic level string to TrafficLevel enum
+    let trafficLevel: TrafficLevel | null = null
+    if (factors?.trafficLevel) {
+      switch (factors.trafficLevel) {
+        case 'light':
+          trafficLevel = TrafficLevelEnum.LIGHT
+          break
+        case 'moderate':
+          trafficLevel = TrafficLevelEnum.MODERATE
+          break
+        case 'heavy':
+          trafficLevel = TrafficLevelEnum.HEAVY
+          break
+        case 'severe':
+          trafficLevel = TrafficLevelEnum.SEVERE
+          break
+      }
+    }
+
+    await prisma.priceSnapshot.create({
+      data: {
+        routeId,
+        service: serviceType,
+        base_price: price / surge,
+        surge_multiplier: surge,
+        final_price: price,
+        wait_time_minutes: waitTime,
+        day_of_week: now.getDay(),
+        hour_of_day: now.getHours(),
+        weather_condition: factors?.weather,
+        weather_temp_f: factors?.temperature,
+        is_raining: factors?.isRaining || false,
+        traffic_level: trafficLevel,
+        nearby_events: factors?.nearbyEvents || [],
+      },
+    })
+  } catch (error) {
     console.error('Error logging price snapshot:', error)
   }
 }
@@ -149,9 +168,8 @@ export async function logSearch(
   userId: string | null,
   results: any,
   sessionId?: string
-) {
-  // In mock mode, just log to console
-  if (isMockMode) {
+): Promise<void> {
+  if (!isDatabaseAvailable()) {
     console.log('🔧 [MOCK] Search logged:', {
       routeId,
       userId,
@@ -162,17 +180,17 @@ export async function logSearch(
     return
   }
 
-  const searchLog: Database['public']['Tables']['search_logs']['Insert'] = {
-    route_id: routeId,
-    user_id: userId,
-    session_id: sessionId,
-    results_shown: results,
-    user_agent: typeof window !== 'undefined' ? window.navigator.userAgent : null,
-  }
-
-  const { error } = await supabase.from('search_logs').insert(searchLog as any)
-
-  if (error) {
+  try {
+    await prisma.searchLog.create({
+      data: {
+        routeId: routeId || undefined,
+        userId: userId || undefined,
+        session_id: sessionId,
+        results_shown: results,
+        user_agent: typeof window !== 'undefined' ? window.navigator.userAgent : null,
+      },
+    })
+  } catch (error) {
     console.error('Error logging search:', error)
   }
 }
@@ -181,54 +199,150 @@ export async function logSearch(
  * Get route price history
  */
 export async function getRoutePriceHistory(routeId: string, daysBack: number = 7) {
-  const { data, error } = await supabase.rpc('get_route_price_history', {
-    p_route_id: routeId,
-    p_days_back: daysBack,
-  } as any)
-
-  if (error) {
-    console.error('Error fetching price history:', error)
+  if (!isDatabaseAvailable()) {
     return []
   }
 
-  return data || []
+  try {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - daysBack)
+
+    const snapshots = await prisma.priceSnapshot.findMany({
+      where: {
+        routeId,
+        createdAt: {
+          gte: cutoffDate,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      select: {
+        createdAt: true,
+        service: true,
+        final_price: true,
+        surge_multiplier: true,
+        weather_condition: true,
+      },
+    })
+
+    return snapshots.map((snapshot: { createdAt: Date; service: string; final_price: number; surge_multiplier: number; weather_condition: string | null }) => ({
+      timestamp: snapshot.createdAt.toISOString(),
+      service_type: snapshot.service.toLowerCase(),
+      final_price: snapshot.final_price,
+      surge_multiplier: snapshot.surge_multiplier,
+      weather_condition: snapshot.weather_condition,
+    }))
+  } catch (error) {
+    console.error('Error fetching price history:', error)
+    return []
+  }
 }
 
 /**
  * Get average prices by hour for a route
  */
 export async function getHourlyPriceAverage(routeId: string, service: 'uber' | 'lyft' | 'taxi') {
-  const { data, error } = await supabase.rpc('get_hourly_price_average', {
-    p_route_id: routeId,
-    p_service: service,
-  } as any)
-
-  if (error) {
-    console.error('Error fetching hourly averages:', error)
+  if (!isDatabaseAvailable()) {
     return []
   }
 
-  return data || []
+  try {
+    const serviceType: ServiceType =
+      service === 'uber' ? ServiceTypeEnum.UBER : service === 'lyft' ? ServiceTypeEnum.LYFT : ServiceTypeEnum.TAXI
+
+    // Get snapshots for this route and service
+    const snapshots = await prisma.priceSnapshot.findMany({
+      where: {
+        routeId,
+        service: serviceType,
+      },
+      select: {
+        hour_of_day: true,
+        final_price: true,
+      },
+    })
+
+    // Group by hour and calculate average
+    const hourlyData: Record<number, { sum: number; count: number }> = {}
+    snapshots.forEach((snapshot: { hour_of_day: number; final_price: number }) => {
+      if (!hourlyData[snapshot.hour_of_day]) {
+        hourlyData[snapshot.hour_of_day] = { sum: 0, count: 0 }
+      }
+      hourlyData[snapshot.hour_of_day].sum += snapshot.final_price
+      hourlyData[snapshot.hour_of_day].count += 1
+    })
+
+    // Convert to array format
+    return Object.entries(hourlyData)
+      .map(([hour, data]) => ({
+        hour: parseInt(hour, 10),
+        avg_price: data.sum / data.count,
+      }))
+      .sort((a, b) => a.hour - b.hour)
+  } catch (error) {
+    console.error('Error fetching hourly averages:', error)
+    return []
+  }
 }
 
 /**
  * Save a route for a user
  */
-export async function saveRouteForUser(userId: string, routeId: string, nickname?: string) {
-  const savedRoute: Database['public']['Tables']['saved_routes']['Insert'] = {
-    user_id: userId,
-    route_id: routeId,
-    nickname: nickname ?? null,
+export async function saveRouteForUser(userId: string, routeId: string, nickname?: string): Promise<boolean> {
+  if (!isDatabaseAvailable()) {
+    console.log('🔧 [MOCK] Saved route for user:', { userId, routeId, nickname })
+    return true
   }
 
-  const { error } = await supabase.from('saved_routes').upsert(savedRoute as any)
+  try {
+    // First, get the route to extract coordinates
+    const route = await prisma.route.findUnique({
+      where: { id: routeId },
+      select: {
+        pickup_address: true,
+        pickup_lat: true,
+        pickup_lng: true,
+        destination_address: true,
+        destination_lat: true,
+        destination_lng: true,
+      },
+    })
 
-  if (error) {
+    if (!route) {
+      console.error('Route not found:', routeId)
+      return false
+    }
+
+    // Check if user exists, create if not (for now, we'll need userId from auth later)
+    // For now, we'll assume the user exists
+    await prisma.savedRoute.upsert({
+      where: routeId ? { routeId } : { id: 'temp-id' }, // Use a temporary ID if routeId is null
+      update: {
+        fromName: route.pickup_address,
+        fromLat: route.pickup_lat,
+        fromLng: route.pickup_lng,
+        toName: route.destination_address,
+        toLat: route.destination_lat,
+        toLng: route.destination_lng,
+      },
+      create: {
+        userId,
+        routeId,
+        fromName: route.pickup_address,
+        fromLat: route.pickup_lat,
+        fromLng: route.pickup_lng,
+        toName: route.destination_address,
+        toLat: route.destination_lat,
+        toLng: route.destination_lng,
+      },
+    })
+
+    return true
+  } catch (error) {
     console.error('Error saving route:', error)
     return false
   }
-
-  return true
 }
 
 /**
@@ -241,26 +355,70 @@ export async function createPriceAlert(
   service: 'uber' | 'lyft' | 'taxi' | 'any' = 'any',
   alertType: 'below' | 'above' = 'below'
 ) {
-  const priceAlert: Database['public']['Tables']['price_alerts']['Insert'] = {
-    user_id: userId,
-    route_id: routeId,
-    service_type: service,
-    target_price: targetPrice,
-    alert_type: alertType,
-  }
-
-  const { data, error } = await supabase
-    .from('price_alerts')
-    .insert(priceAlert as any)
-    .select()
-    .maybeSingle()
-
-  if (error) {
-    console.error('Error creating price alert:', error)
+  if (!isDatabaseAvailable()) {
+    console.log('🔧 [MOCK] Created price alert:', { userId, routeId, targetPrice, service, alertType })
     return null
   }
 
-  return data
+  try {
+    // First, get or create a saved route
+    const route = await prisma.route.findUnique({
+      where: { id: routeId },
+    })
+
+    if (!route) {
+      console.error('Route not found:', routeId)
+      return null
+    }
+
+    // Find or create saved route
+    let savedRoute = routeId ? await prisma.savedRoute.findUnique({
+      where: { routeId },
+    }) : null
+
+    if (!savedRoute && routeId) {
+      savedRoute = await prisma.savedRoute.create({
+        data: {
+          userId,
+          routeId,
+          fromName: route.pickup_address,
+          fromLat: route.pickup_lat,
+          fromLng: route.pickup_lng,
+          toName: route.destination_address,
+          toLat: route.destination_lat,
+          toLng: route.destination_lng,
+        },
+      })
+    }
+
+    const serviceType: ServiceType =
+      service === 'uber'
+        ? ServiceTypeEnum.UBER
+        : service === 'lyft'
+          ? ServiceTypeEnum.LYFT
+          : service === 'taxi'
+            ? ServiceTypeEnum.TAXI
+            : ServiceTypeEnum.UBER // Default for 'any'
+
+    if (!savedRoute) {
+      console.error('Saved route not found or could not be created')
+      return null
+    }
+
+    const alert = await prisma.priceAlert.create({
+      data: {
+        userId,
+        savedRouteId: savedRoute.id,
+        service: serviceType,
+        targetPrice,
+      },
+    })
+
+    return alert
+  } catch (error) {
+    console.error('Error creating price alert:', error)
+    return null
+  }
 }
 
 /**
@@ -276,22 +434,29 @@ export async function logWeatherData(
     visibility?: number
     rawData?: any
   }
-) {
-  const weatherLog: Database['public']['Tables']['weather_logs']['Insert'] = {
-    lat: coords[1],
-    lng: coords[0],
-    temperature_f: weatherData.temperature,
-    condition: weatherData.condition,
-    precipitation_inch: weatherData.precipitation,
-    wind_speed_mph: weatherData.windSpeed,
-    visibility_miles: weatherData.visibility,
-    is_severe: weatherData.condition.includes('storm') || weatherData.condition.includes('severe'),
-    raw_data: weatherData.rawData,
+): Promise<void> {
+  if (!isDatabaseAvailable()) {
+    console.log('🔧 [MOCK] Weather logged:', { coords, weatherData })
+    return
   }
 
-  const { error } = await supabase.from('weather_logs').insert(weatherLog as any)
-
-  if (error) {
+  try {
+    await prisma.weatherLog.create({
+      data: {
+        coords_lat: coords[1],
+        coords_lng: coords[0],
+        temperature_f: weatherData.temperature,
+        condition: weatherData.condition,
+        precipitation_inch: weatherData.precipitation,
+        wind_speed_mph: weatherData.windSpeed,
+        visibility_miles: weatherData.visibility,
+        is_severe:
+          weatherData.condition.toLowerCase().includes('storm') ||
+          weatherData.condition.toLowerCase().includes('severe'),
+        raw_data: weatherData.rawData,
+      },
+    })
+  } catch (error) {
     console.error('Error logging weather:', error)
   }
 }
@@ -308,22 +473,30 @@ export async function logEventData(event: {
   endTime?: Date
   attendance?: number
   rawData?: any
-}) {
-  const eventLog: Database['public']['Tables']['event_logs']['Insert'] = {
-    event_name: event.name,
-    venue_name: event.venue,
-    venue_lat: event.coords[1],
-    venue_lng: event.coords[0],
-    event_type: event.type,
-    start_time: event.startTime.toISOString(),
-    end_time: event.endTime?.toISOString(),
-    expected_attendance: event.attendance,
-    raw_data: event.rawData,
+}): Promise<void> {
+  if (!isDatabaseAvailable()) {
+    console.log('🔧 [MOCK] Event logged:', event)
+    return
   }
 
-  const { error } = await supabase.from('event_logs').insert(eventLog as any)
-
-  if (error) {
+  try {
+    await prisma.eventLog.create({
+      data: {
+        event_name: event.name,
+        venue: event.venue,
+        coords_lat: event.coords[1],
+        coords_lng: event.coords[0],
+        event_type: event.type,
+        start_time: event.startTime,
+        end_time: event.endTime,
+        expected_attendance: event.attendance,
+        raw_data: event.rawData,
+      },
+    })
+  } catch (error) {
     console.error('Error logging event:', error)
   }
 }
+
+// Legacy exports for backward compatibility
+export const isSupabaseMockMode = !isDatabaseAvailable()

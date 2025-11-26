@@ -3,6 +3,7 @@ import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
 import { getAirportByCode, parseAirportCode } from '@/lib/airports'
 import { getBestTimeRecommendations, getTimeBasedMultiplier, pricingEngine } from '@/lib/pricing'
 import { sanitizeString } from '@/lib/validation'
+import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 import type {
   ComparisonResults,
   Coordinates,
@@ -70,10 +71,22 @@ export async function compareRidesByAddresses(
     return cached.value
   }
 
-  console.log(`[CompareAPI] Starting comparison for ${sanitizedPickup} → ${sanitizedDestination}`)
+  // Check for pre-computed route data first (fast path for popular routes)
+  const precomputedRoute = findPrecomputedRouteByAddresses(sanitizedPickup, sanitizedDestination)
+  
+  let pickupCoords: Coordinates | null
+  let destinationCoords: Coordinates | null
 
-  const pickupCoords = await geocodeWithCache(sanitizedPickup)
-  const destinationCoords = await geocodeWithCache(sanitizedDestination)
+  if (precomputedRoute) {
+    console.log(`[CompareAPI] Using pre-computed route data for ${sanitizedPickup} → ${sanitizedDestination}`)
+    pickupCoords = precomputedRoute.pickup.coordinates
+    destinationCoords = precomputedRoute.destination.coordinates
+  } else {
+    console.log(`[CompareAPI] Starting comparison for ${sanitizedPickup} → ${sanitizedDestination}`)
+    // Fall back to geocoding for non-popular routes
+    pickupCoords = await geocodeWithCache(sanitizedPickup)
+    destinationCoords = await geocodeWithCache(sanitizedDestination)
+  }
 
   if (!pickupCoords || !destinationCoords) {
     return null
@@ -90,13 +103,15 @@ export async function compareRidesByAddresses(
       persist: options?.persist ?? true,
       pickupAddress: sanitizedPickup,
       destinationAddress: sanitizedDestination,
+      precomputedMetrics: precomputedRoute?.metrics,
     }
   )
 
-  // Cache the result for 45 seconds
+  // Cache the result - longer TTL for popular routes (30 minutes vs 45 seconds)
+  const cacheTTL = precomputedRoute ? 1800000 : 45000 // 30 minutes for popular routes, 45 seconds for others
   COMPARISON_CACHE.set(cacheKey, {
     value: result,
-    expiresAt: now + 45000, // 45 seconds
+    expiresAt: now + cacheTTL,
   })
 
   console.log(`[CompareAPI] Total time: ${Date.now() - startTime}ms`)
@@ -114,6 +129,7 @@ export async function compareRidesByCoordinates(
     persist?: boolean
     pickupAddress?: string
     destinationAddress?: string
+    precomputedMetrics?: RouteMetrics
   }
 ): Promise<ComparisonComputation> {
   const startTime = Date.now()
@@ -122,9 +138,12 @@ export async function compareRidesByCoordinates(
     new Set<ServiceType>(normalisedServices.map(service => service.toLowerCase() as ServiceType))
   )
 
+  // Use pre-computed metrics if available, otherwise fetch from API
   const metricsStart = Date.now()
-  const metrics = await getRouteMetrics(pickup.coordinates, destination.coordinates)
-  console.log(`[CompareAPI] Route metrics fetched in ${Date.now() - metricsStart}ms`)
+  const metrics = options?.precomputedMetrics 
+    ? options.precomputedMetrics 
+    : await getRouteMetrics(pickup.coordinates, destination.coordinates)
+  console.log(`[CompareAPI] Route metrics fetched in ${Date.now() - metricsStart}ms${options?.precomputedMetrics ? ' (pre-computed)' : ''}`)
 
   const shouldPersist = options?.persist !== false
   const pickupAddress = options?.pickupAddress ?? pickup.name
@@ -175,6 +194,7 @@ export async function compareRidesByCoordinates(
       .then(routeId => {
         if (routeId) {
           resultsEntries.forEach(([service, _, computation]) => {
+            // Wrap in try-catch to ensure persistence failures don't break the app
             logPriceSnapshot(
               routeId,
               service,
@@ -189,11 +209,17 @@ export async function compareRidesByCoordinates(
                 weather: computation.surgeReason,
                 trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
               }
-            )
+            ).catch(err => {
+              // Silently handle persistence errors - app should work without database
+              console.warn('[CompareAPI] Price snapshot logging failed (non-critical):', err.message)
+            })
           })
         }
       })
-      .catch(err => console.error('[CompareAPI] Route creation error:', err))
+      .catch(err => {
+        // Silently handle route creation errors - app should work without database
+        console.warn('[CompareAPI] Route creation failed (non-critical):', err.message)
+      })
   }
 
   const { multiplier, surgeReason } = getTimeBasedMultiplier(
@@ -212,14 +238,21 @@ export async function compareRidesByCoordinates(
   if (shouldPersist) {
     routeIdPromise
       .then(routeId => {
+        // Wrap in promise catch to ensure persistence failures don't break the app
         logSearch(
           routeId,
           options?.userId ?? null,
           comparisonResults,
           options?.sessionId ?? undefined
-        )
+        ).catch(err => {
+          // Silently handle persistence errors - app should work without database
+          console.warn('[CompareAPI] Search logging failed (non-critical):', err.message)
+        })
       })
-      .catch(err => console.error('[CompareAPI] Search logging error:', err))
+      .catch(err => {
+        // Silently handle route creation errors - app should work without database
+        console.warn('[CompareAPI] Route creation failed (non-critical):', err.message)
+      })
   }
 
   const result = {

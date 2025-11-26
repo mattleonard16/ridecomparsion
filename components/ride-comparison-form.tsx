@@ -214,6 +214,10 @@ export default function RideComparisonForm({
   const destinationRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<NodeJS.Timeout>()
   const destDebounceTimeoutRef = useRef<NodeJS.Timeout>()
+  
+  // Request deduplication - track in-flight request to prevent duplicate submissions
+  const currentRequestRef = useRef<string | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Handle popular route selection
   useEffect(() => {
@@ -234,6 +238,24 @@ export default function RideComparisonForm({
 
       // Auto-submit the form after setting the values
       const submitForm = async () => {
+        // Request deduplication for auto-submit
+        const requestKey = `${selectedRoute.pickup}-${selectedRoute.destination}`
+        
+        // If this exact request is already in flight, ignore
+        if (currentRequestRef.current === requestKey && isLoading) {
+          console.log('[AutoSubmit] Duplicate request ignored:', requestKey)
+          return
+        }
+        
+        // Abort any previous request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+        }
+        
+        const abortController = new AbortController()
+        abortControllerRef.current = abortController
+        currentRequestRef.current = requestKey
+        
         console.log('[AutoSubmit] Starting fetch...')
         setIsLoading(true)
         setResults(null)
@@ -256,7 +278,17 @@ export default function RideComparisonForm({
               destination: selectedRoute.destination,
               recaptchaToken,
             }),
+            signal: abortController.signal,
+          }).catch(error => {
+            if (error.name === 'AbortError') {
+              console.log('[AutoSubmit] Request aborted:', requestKey)
+              return null
+            }
+            throw error
           })
+          
+          // If request was aborted, exit early
+          if (!response) return
 
           const data = await response.json()
 
@@ -279,6 +311,10 @@ export default function RideComparisonForm({
           setError('Failed to get pricing for this route. Please try again.')
         } finally {
           setIsLoading(false)
+          if (currentRequestRef.current === requestKey) {
+            currentRequestRef.current = null
+            abortControllerRef.current = null
+          }
         }
       }
 
@@ -533,6 +569,26 @@ export default function RideComparisonForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Request deduplication - create a unique key for this request
+    const requestKey = `${pickup}-${destination}`
+    
+    // If this exact request is already in flight, ignore the duplicate
+    if (currentRequestRef.current === requestKey && isLoading) {
+      console.log('[Submit] Duplicate request ignored:', requestKey)
+      return
+    }
+    
+    // Abort any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    // Create new abort controller for this request
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+    currentRequestRef.current = requestKey
+    
     setIsLoading(true)
     setResults(null)
     setInsights('')
@@ -563,10 +619,19 @@ export default function RideComparisonForm({
           destination,
           recaptchaToken, // Include reCAPTCHA token if available
         }),
+        signal: abortController.signal,
       }).catch(error => {
+        // Don't throw on abort
+        if (error.name === 'AbortError') {
+          console.log('[Submit] Request aborted:', requestKey)
+          return null
+        }
         console.error('Fetch error:', error)
         throw new Error('Network error')
       })
+      
+      // If request was aborted, exit early
+      if (!response) return
 
       const data = await response.json()
 
@@ -624,6 +689,11 @@ export default function RideComparisonForm({
       setShowForm(false)
     } finally {
       setIsLoading(false)
+      // Clear request tracking
+      if (currentRequestRef.current === requestKey) {
+        currentRequestRef.current = null
+        abortControllerRef.current = null
+      }
     }
   }
 
@@ -719,8 +789,8 @@ export default function RideComparisonForm({
             <div className="space-y-2 relative" ref={pickupRef}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <MapPin className="h-5 w-5 text-gray-400 mr-2" />
-                  <label htmlFor="pickup" className="font-semibold text-white">
+                  <MapPin className="h-5 w-5 text-muted-foreground mr-2" />
+                  <label htmlFor="pickup" className="font-semibold text-foreground">
                     Pickup Location
                   </label>
                 </div>
@@ -728,7 +798,7 @@ export default function RideComparisonForm({
                   type="button"
                   onClick={handleUseMyLocation}
                   disabled={isGettingLocation}
-                  className="flex items-center text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50 touch-none select-none transition-colors"
+                  className="flex items-center text-sm text-secondary hover:text-secondary/80 disabled:opacity-50 touch-none select-none transition-colors"
                   title="Use my current location"
                 >
                   {isGettingLocation ? (
@@ -756,7 +826,7 @@ export default function RideComparisonForm({
                       }
                     }
                   }}
-                  className="w-full px-4 py-4 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:bg-white/10 transition-all duration-300 outline-none text-base"
+                  className="w-full px-4 py-4 pr-12 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
                   required
                 />
                 {/* Mobile-friendly clear button */}
@@ -764,7 +834,7 @@ export default function RideComparisonForm({
                   <button
                     type="button"
                     onClick={() => setPickup('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors touch-manipulation"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
                   >
                     ✕
                   </button>
@@ -773,9 +843,9 @@ export default function RideComparisonForm({
 
               {/* Pickup Suggestions Dropdown */}
               {showPickupSuggestions && (
-                <div className="absolute z-10 w-full glass-card-strong rounded-xl shadow-2xl max-h-60 overflow-y-auto border border-white/20 mt-2">
+                <div className="absolute z-10 w-full card-elevated rounded-lg max-h-60 overflow-y-auto mt-2">
                   {isLoadingSuggestions ? (
-                    <div className="p-4 text-center text-gray-400">
+                    <div className="p-4 text-center text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                       Loading suggestions...
                     </div>
@@ -784,12 +854,12 @@ export default function RideComparisonForm({
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 transition-colors"
+                        className="p-4 hover:bg-muted cursor-pointer border-b border-border last:border-b-0 transition-colors"
                       >
-                        <div className="font-semibold text-sm text-white">
+                        <div className="font-semibold text-sm text-foreground">
                           {suggestion.name || suggestion.display_name.split(',')[0]}
                         </div>
-                        <div className="text-xs text-gray-400 truncate mt-1">
+                        <div className="text-xs text-muted-foreground truncate mt-1">
                           {suggestion.display_name}
                         </div>
                       </div>
@@ -804,7 +874,7 @@ export default function RideComparisonForm({
               <button
                 type="button"
                 onClick={() => openAirportSelector('pickup')}
-                className="flex items-center px-5 py-2.5 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40"
+                className="flex items-center px-5 py-2.5 text-sm text-secondary hover:text-secondary/80 hover:bg-secondary/10 rounded-lg transition-all duration-200 border border-secondary/20 hover:border-secondary/40"
               >
                 <Plane className="h-4 w-4 mr-2" />
                 Select Airport for Pickup
@@ -814,8 +884,8 @@ export default function RideComparisonForm({
             <div className="space-y-2 relative" ref={destinationRef}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Navigation2 className="h-5 w-5 text-gray-400 mr-2" />
-                  <label htmlFor="destination" className="font-semibold text-white">
+                  <Navigation2 className="h-5 w-5 text-muted-foreground mr-2" />
+                  <label htmlFor="destination" className="font-semibold text-foreground">
                     Destination
                   </label>
                 </div>
@@ -828,12 +898,11 @@ export default function RideComparisonForm({
                     setDestination(temp)
                     setPickupCoords(destinationCoords)
                     setDestinationCoords(tempCoords)
-                    // Add haptic feedback
                     if (navigator.vibrate) {
                       navigator.vibrate(30)
                     }
                   }}
-                  className="flex items-center text-sm text-blue-400 hover:text-blue-300 touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center text-sm text-secondary hover:text-secondary/80 touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Swap pickup and destination"
                   disabled={!pickup || !destination}
                 >
@@ -857,7 +926,7 @@ export default function RideComparisonForm({
                       }
                     }
                   }}
-                  className="w-full px-4 py-4 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:bg-white/10 transition-all duration-300 outline-none text-base"
+                  className="w-full px-4 py-4 pr-12 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
                   required
                 />
                 {/* Mobile-friendly clear button */}
@@ -865,7 +934,7 @@ export default function RideComparisonForm({
                   <button
                     type="button"
                     onClick={() => setDestination('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors touch-manipulation"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
                   >
                     ✕
                   </button>
@@ -874,9 +943,9 @@ export default function RideComparisonForm({
 
               {/* Destination Suggestions Dropdown */}
               {showDestinationSuggestions && (
-                <div className="absolute z-10 w-full glass-card-strong rounded-xl shadow-2xl max-h-60 overflow-y-auto border border-white/20 mt-2">
+                <div className="absolute z-10 w-full card-elevated rounded-lg max-h-60 overflow-y-auto mt-2">
                   {isLoadingDestSuggestions ? (
-                    <div className="p-4 text-center text-gray-400">
+                    <div className="p-4 text-center text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
                       Loading suggestions...
                     </div>
@@ -885,12 +954,12 @@ export default function RideComparisonForm({
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleDestinationSuggestionClick(suggestion)}
-                        className="p-4 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-b-0 transition-colors"
+                        className="p-4 hover:bg-muted cursor-pointer border-b border-border last:border-b-0 transition-colors"
                       >
-                        <div className="font-semibold text-sm text-white">
+                        <div className="font-semibold text-sm text-foreground">
                           {suggestion.name || suggestion.display_name.split(',')[0]}
                         </div>
-                        <div className="text-xs text-gray-400 truncate mt-1">
+                        <div className="text-xs text-muted-foreground truncate mt-1">
                           {suggestion.display_name}
                         </div>
                       </div>
@@ -905,7 +974,7 @@ export default function RideComparisonForm({
               <button
                 type="button"
                 onClick={() => openAirportSelector('destination')}
-                className="flex items-center px-5 py-2.5 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40"
+                className="flex items-center px-5 py-2.5 text-sm text-secondary hover:text-secondary/80 hover:bg-secondary/10 rounded-lg transition-all duration-200 border border-secondary/20 hover:border-secondary/40"
               >
                 <Plane className="h-4 w-4 mr-2" />
                 Select Airport for Destination
@@ -914,10 +983,9 @@ export default function RideComparisonForm({
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-5 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-semibold touch-manipulation shadow-lg hover:shadow-purple-500/50 hover-lift"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-5 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-bold touch-manipulation hover-lift"
               disabled={isLoading}
               onTouchStart={() => {
-                // Add haptic feedback on touch start
                 if (navigator.vibrate) {
                   navigator.vibrate(20)
                 }
@@ -934,14 +1002,14 @@ export default function RideComparisonForm({
             </button>
 
             {/* reCAPTCHA Protection Indicator */}
-            <div className="flex items-center justify-center text-xs text-gray-500 mt-2">
+            <div className="flex items-center justify-center text-xs text-muted-foreground mt-2">
               <Shield className="h-3 w-3 mr-1" />
               {isRecaptchaLoaded ? (
-                <span className="text-gray-400">Protected by reCAPTCHA</span>
+                <span className="text-muted-foreground">Protected by reCAPTCHA</span>
               ) : recaptchaError ? (
-                <span className="text-orange-400">Security protection loading...</span>
+                <span className="text-primary">Security protection loading...</span>
               ) : (
-                <span className="text-gray-500">Loading security protection...</span>
+                <span className="text-muted-foreground/60">Loading security protection...</span>
               )}
             </div>
           </form>
@@ -950,25 +1018,25 @@ export default function RideComparisonForm({
 
       {/* Airport Selector Modal */}
       {showAirportSelector && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card-strong rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden border border-white/20 shadow-2xl">
-            <div className="p-6 border-b border-white/10">
+        <div className="fixed inset-0 bg-background/90 flex items-center justify-center z-50 p-4">
+          <div className="card-elevated rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Plane className="h-6 w-6 text-blue-400" />
+                  <Plane className="h-6 w-6 text-secondary" />
                   <div>
-                    <div className="font-semibold text-white text-lg">
+                    <div className="font-bold text-foreground text-lg">
                       Select Airport for{' '}
                       {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'}
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       Choose from major U.S. airports
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAirportSelector(false)}
-                  className="text-gray-400 hover:text-white transition-colors text-xl"
+                  className="text-muted-foreground hover:text-foreground transition-colors text-xl"
                 >
                   ✕
                 </button>
@@ -980,30 +1048,30 @@ export default function RideComparisonForm({
                   <button
                     key={airport.code}
                     onClick={() => handleAirportSelect(airport.code, airport.name)}
-                    className="p-4 text-left hover:bg-white/10 rounded-xl transition-all duration-300 group border border-white/5 hover:border-blue-500/30"
+                    className="p-4 text-left hover:bg-muted rounded-lg transition-all duration-200 group border border-border hover:border-secondary/30"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">
+                        <div className="font-semibold text-foreground group-hover:text-secondary transition-colors">
                           {airport.code} - {airport.name}
                         </div>
-                        <div className="text-sm text-gray-400 mt-1">
+                        <div className="text-sm text-muted-foreground mt-1">
                           {airport.city}, {airport.state}
                         </div>
                         {airport.terminals.length > 1 && (
-                          <div className="text-xs text-blue-400 mt-1">
+                          <div className="text-xs text-secondary mt-1">
                             {airport.terminals.length} terminals available
                           </div>
                         )}
                       </div>
-                      <MapPin className="h-5 w-5 text-gray-500 group-hover:text-blue-400 ml-2 transition-colors" />
+                      <MapPin className="h-5 w-5 text-muted-foreground group-hover:text-secondary ml-2 transition-colors" />
                     </div>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="p-4 border-t border-white/10 bg-white/5">
-              <div className="text-xs text-gray-400 text-center">
+            <div className="p-4 border-t border-border bg-muted/50">
+              <div className="text-xs text-muted-foreground text-center">
                 Don&apos;t see your airport? Use the regular search above for other locations.
               </div>
             </div>
@@ -1012,7 +1080,7 @@ export default function RideComparisonForm({
       )}
 
       {error && (
-        <div className="mt-6 p-5 bg-red-500/10 text-red-400 rounded-xl border border-red-500/30 backdrop-blur-sm">
+        <div className="mt-6 p-5 bg-destructive/10 text-destructive rounded-lg border border-destructive/30">
           <div className="flex items-center">
             <svg
               className="h-5 w-5 mr-3 flex-shrink-0"

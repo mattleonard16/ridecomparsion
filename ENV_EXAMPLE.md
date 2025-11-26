@@ -6,6 +6,9 @@ Create a `.env.local` file in the project root with the following variables:
 # Database
 DATABASE_URL="postgresql://user:YOUR_PASSWORD@localhost:5432/rideshareappnew?schema=public"
 
+# NextAuth.js
+AUTH_SECRET="your-auth-secret-key-generate-with-openssl-rand-base64-32"
+
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
@@ -41,6 +44,7 @@ NODE_ENV="development"
 ## Required Variables
 
 - `DATABASE_URL`: PostgreSQL connection string
+- `AUTH_SECRET`: Secret key for NextAuth.js (generate with `openssl rand -base64 32`)
 - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
 

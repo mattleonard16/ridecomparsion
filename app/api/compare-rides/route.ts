@@ -8,15 +8,8 @@ import {
   sanitizeString,
 } from '@/lib/validation'
 import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
-import { isAirportLocation, getAirportByCode, parseAirportCode } from '@/lib/airports'
-import {
-  calculateEnhancedFare,
-  getTimeBasedMultiplier,
-  getBestTimeRecommendations,
-} from '@/lib/pricing'
 import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
-import type { Coordinates, Longitude, Latitude } from '@/types'
-import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
+import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 
 // GET handler for prefetch
 export async function GET(request: NextRequest) {
@@ -32,6 +25,9 @@ export async function GET(request: NextRequest) {
       console.error('[CompareAPI GET] Missing params')
       return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
     }
+
+    // Check if this is a pre-computed route for better caching
+    const isPrecomputedRoute = !!findPrecomputedRouteByAddresses(pickup, destination)
 
     // Get comparisons using the service
     console.log('[CompareAPI GET] Calling compareRidesByAddresses')
@@ -52,6 +48,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
     }
 
+    // Use longer cache for pre-computed routes (5 min cache, 30 min stale-while-revalidate)
+    // Shorter cache for dynamic routes (30 sec cache, 2 min stale-while-revalidate)
+    const cacheControl = isPrecomputedRoute
+      ? 'private, max-age=300, stale-while-revalidate=1800'
+      : 'private, max-age=30, stale-while-revalidate=120'
+
     console.log('[CompareAPI GET] Success, returning data')
     return NextResponse.json(
       {
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'private, max-age=30',
+          'Cache-Control': cacheControl,
         },
       }
     )
@@ -108,8 +110,12 @@ export async function POST(request: NextRequest) {
     // 2. Parse and validate request body
     const body = await request.json()
 
-    // 3. reCAPTCHA Verification (if token provided)
-    if (body.recaptchaToken) {
+    // Check if this is a pre-computed route (trusted, skip reCAPTCHA)
+    const isPrecomputedRoute = body.pickup && body.destination && 
+      !!findPrecomputedRouteByAddresses(body.pickup, body.destination)
+
+    // 3. reCAPTCHA Verification (skip for pre-computed routes)
+    if (body.recaptchaToken && !isPrecomputedRoute) {
       const recaptchaResult = await verifyRecaptchaToken(
         body.recaptchaToken,
         RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON,
@@ -117,10 +123,11 @@ export async function POST(request: NextRequest) {
       )
 
       if (!recaptchaResult.success) {
-        console.warn('reCAPTCHA verification failed:', recaptchaResult.error)
-
-        // For low scores, return a more user-friendly message
-        if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.3) {
+        // Check if this is just an action mismatch (common issue) - log and continue
+        if (recaptchaResult.error?.includes('Action mismatch')) {
+          console.warn('reCAPTCHA action mismatch, continuing:', recaptchaResult.error)
+        } else if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.3) {
+          // For genuinely low scores, return error
           return NextResponse.json(
             {
               error: 'Security verification failed. Please try again.',
@@ -128,15 +135,17 @@ export async function POST(request: NextRequest) {
             },
             { status: 403 }
           )
+        } else {
+          // For other failures, log but continue (graceful degradation)
+          console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
         }
-
-        // For other failures, log but continue (graceful degradation)
-        console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
       } else {
         console.log(
           `reCAPTCHA verified: score ${recaptchaResult.score}, action ${recaptchaResult.action}`
         )
       }
+    } else if (isPrecomputedRoute) {
+      console.log('[CompareAPI] Skipping reCAPTCHA for pre-computed route')
     }
 
     // Legacy support: convert old format to new format
@@ -208,6 +217,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Process request (legacy path)
+    // Use compareRidesByAddresses directly - it handles geocoding and pre-computed routes
     if (isLegacyRequest) {
       const { pickup, destination } = body
 
@@ -215,15 +225,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
       }
 
-      // Convert addresses to coordinates
-      const pickupCoords = await getCoordinatesFromAddress(pickup)
-      const destinationCoords = await getCoordinatesFromAddress(destination)
-
-      if (!pickupCoords || !destinationCoords) {
-        return NextResponse.json({ error: 'Could not geocode addresses' }, { status: 400 })
-      }
-
-      // Get comparisons
+      // Get comparisons - this handles geocoding internally (with pre-computed route support)
       const comparisons = await compareRidesByAddresses(
         pickup,
         destination,
@@ -315,228 +317,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Geocode using OpenStreetMap Nominatim, with airport code support
-async function getCoordinatesFromAddress(address: string): Promise<[number, number] | null> {
-  // First check if this is an airport code
-  const airportCode = parseAirportCode(address)
-  if (airportCode) {
-    const airport = getAirportByCode(airportCode)
-    if (airport) {
-      console.log(`Using airport coordinates for ${airportCode}:`, airport.coordinates)
-      return [airport.coordinates[0] as number, airport.coordinates[1] as number]
-    }
-  }
-
-  // Fall back to regular geocoding
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'RideCompareApp/1.0 (bjwmyjackwu@gmail.com)',
-    },
-  })
-  const data = await res.json()
-  console.log('Nominatim response for', address, ':', data)
-  if (!data || data.length === 0) return null
-  const { lon, lat } = data[0]
-  return [parseFloat(lon), parseFloat(lat)]
-}
-
-// Calculate distance and duration using OSRM API
-async function getDistanceAndDuration(
-  pickupCoords: [number, number],
-  destCoords: [number, number]
-): Promise<{ distanceKm: number; durationMin: number }> {
-  const [pickupLon, pickupLat] = pickupCoords
-  const [destLon, destLat] = destCoords
-
-  const url = `http://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${destLon},${destLat}?overview=false`
-
-  const res = await fetch(url)
-  const data = await res.json()
-
-  if (data.code !== 'Ok' || !data.routes?.length) {
-    throw new Error('Failed to fetch route from OSRM')
-  }
-
-  const durationMin = data.routes[0].duration / 60 // seconds to minutes
-  const distanceKm = data.routes[0].distance / 1000 // meters to kilometers
-
-  return { distanceKm, durationMin }
-}
-
-const UBER = {
-  base: 1.25,
-  perMile: 1.08,
-  perMin: 0.28,
-  booking: 0.85,
-  airportSurcharge: 4.25,
-  minFare: 8.5,
-}
-
-function kmToMiles(km: number) {
-  return km * 0.621371
-}
-
-const toCoordinates = (coords: [number, number]): Coordinates => [
-  coords[0] as Longitude,
-  coords[1] as Latitude,
-]
-
-// Generate simulated comparison data
-async function getRideComparisons(pickupCoords: [number, number], destCoords: [number, number]) {
-  const { distanceKm, durationMin } = await getDistanceAndDuration(pickupCoords, destCoords)
-  const { multiplier, surgeReason } = getTimeBasedMultiplier(
-    toCoordinates(pickupCoords),
-    toCoordinates(destCoords)
-  )
-  const distanceMiles = kmToMiles(distanceKm)
-
-  console.log(
-    `Distance: ${distanceKm.toFixed(2)} km, Duration: ${durationMin.toFixed(1)} min, Surge: ${multiplier}x (${surgeReason})`
-  )
-
-  const LYFT = {
-    base: 1.15,
-    perMile: 1.05,
-    perMin: 0.26,
-    booking: 0.75,
-    airportSurcharge: 4.25,
-    minFare: 8.0,
-  }
-  const TAXI = {
-    base: 3.5,
-    perMile: 2.75,
-    perMin: 0.55,
-    booking: 0.0,
-    airportSurcharge: 0.0,
-    minFare: 10.0,
-  }
-
-  // Airport fee logic
-  const isAirport = (pickup: [number, number], dest: [number, number]) =>
-    isAirportLocation(toCoordinates(pickup)) !== null ||
-    isAirportLocation(toCoordinates(dest)) !== null
-
-  // Calculate base prices first
-  let uberBasePriceRaw =
-    UBER.base + UBER.perMile * distanceMiles + UBER.perMin * durationMin + UBER.booking
-  if (isAirport(pickupCoords, destCoords)) uberBasePriceRaw += UBER.airportSurcharge
-  if (uberBasePriceRaw < UBER.minFare) uberBasePriceRaw = UBER.minFare
-
-  let lyftBasePriceRaw =
-    LYFT.base + LYFT.perMile * distanceMiles + LYFT.perMin * durationMin + LYFT.booking
-  if (isAirport(pickupCoords, destCoords)) lyftBasePriceRaw += LYFT.airportSurcharge
-  if (lyftBasePriceRaw < LYFT.minFare) lyftBasePriceRaw = LYFT.minFare
-
-  // Taxi
-  let taxiBasePriceRaw
-  if (isSantaClaraToSFO(pickupCoords, destCoords)) {
-    taxiBasePriceRaw = 89 + Math.random() * (99 - 89)
-  } else if (isAirport(pickupCoords, destCoords)) {
-    taxiBasePriceRaw = Math.max(
-      TAXI.base + TAXI.perMile * distanceMiles + TAXI.perMin * durationMin + TAXI.booking,
-      60
-    )
-  } else {
-    taxiBasePriceRaw =
-      TAXI.base + TAXI.perMile * distanceMiles + TAXI.perMin * durationMin + TAXI.booking
-    if (taxiBasePriceRaw < TAXI.minFare) taxiBasePriceRaw = TAXI.minFare
-  }
-
-  // Apply time-based surge pricing
-  const uberPriceRaw = uberBasePriceRaw * multiplier
-  const lyftPriceRaw = lyftBasePriceRaw * multiplier
-  const taxiPriceRaw = taxiBasePriceRaw * Math.min(multiplier, 1.2)
-  const baseWaitTime = 2 + Math.floor(Math.random() * 5)
-  const surgeWaitMultiplier = multiplier > 1.5 ? 1.5 : 1.0
-
-  return {
-    uber: {
-      price: `$${uberPriceRaw.toFixed(2)}`,
-      waitTime: `${Math.round(baseWaitTime * surgeWaitMultiplier)} min`,
-      driversNearby: Math.floor(3 + Math.random() * 5),
-      service: 'UberX',
-      surgeMultiplier: multiplier > 1.1 ? `${multiplier.toFixed(1)}x` : null,
-    },
-    lyft: {
-      price: `$${lyftPriceRaw.toFixed(2)}`,
-      waitTime: `${Math.round((baseWaitTime + 1) * surgeWaitMultiplier)} min`,
-      driversNearby: Math.floor(2 + Math.random() * 4),
-      service: 'Lyft Standard',
-      surgeMultiplier: multiplier * 0.95 > 1.1 ? `${(multiplier * 0.95).toFixed(1)}x` : null,
-    },
-    taxi: {
-      price: `$${taxiPriceRaw.toFixed(2)}`,
-      waitTime: `${Math.round((baseWaitTime + 3) * Math.min(surgeWaitMultiplier, 1.2))} min`,
-      driversNearby: Math.floor(1 + Math.random() * 3),
-      service: 'Yellow Cab',
-      surgeMultiplier: multiplier > 1.1 ? `${(multiplier * 0.95).toFixed(1)}x` : null, // Keep visual surge slightly different
-    },
-    surgeInfo: {
-      isActive: multiplier > 1.1,
-      reason: surgeReason,
-      multiplier: multiplier,
-    },
-    timeRecommendations: getBestTimeRecommendations(),
-  }
-}
-
-// Generate insights based on score
-function generateAlgorithmicRecommendation(comparisons: {
-  uber: { price: string; waitTime: string }
-  lyft: { price: string; waitTime: string }
-  taxi: { price: string; waitTime: string }
-}) {
-  const uberPrice = parseFloat(comparisons.uber.price.replace('$', ''))
-  const lyftPrice = parseFloat(comparisons.lyft.price.replace('$', ''))
-  const taxiPrice = parseFloat(comparisons.taxi.price.replace('$', ''))
-
-  const uberWait = parseInt(comparisons.uber.waitTime.replace(' min', ''))
-  const lyftWait = parseInt(comparisons.lyft.waitTime.replace(' min', ''))
-  const taxiWait = parseInt(comparisons.taxi.waitTime.replace(' min', ''))
-
-  const uberScore = uberPrice * 0.7 + uberWait * 0.3
-  const lyftScore = lyftPrice * 0.7 + lyftWait * 0.3
-  const taxiScore = taxiPrice * 0.7 + taxiWait * 0.3
-
-  const scores = [
-    { service: 'Uber', score: uberScore, price: uberPrice, wait: uberWait },
-    { service: 'Lyft', score: lyftScore, price: lyftPrice, wait: lyftWait },
-    { service: 'Taxi', score: taxiScore, price: taxiPrice, wait: taxiWait },
-  ]
-
-  const bestOption = scores.reduce((prev, curr) => (prev.score < curr.score ? prev : curr))
-  const cheapestOption = scores.reduce((prev, curr) => (prev.price < curr.price ? prev : curr))
-  const fastestOption = scores.reduce((prev, curr) => (prev.wait < curr.wait ? prev : curr))
-
-  let recommendation = `Based on a combination of price and wait time, ${bestOption.service} appears to be your best overall option for this trip.`
-
-  if (
-    bestOption.service !== cheapestOption.service &&
-    bestOption.service !== fastestOption.service
-  ) {
-    recommendation += ` If you're looking to save money, ${cheapestOption.service} is the cheapest option. For the shortest wait time, choose ${fastestOption.service}.`
-  } else if (bestOption.service !== cheapestOption.service) {
-    recommendation += ` However, if you're looking to save money, ${cheapestOption.service} is the cheapest option.`
-  } else if (bestOption.service !== fastestOption.service) {
-    recommendation += ` However, for the shortest wait time, choose ${fastestOption.service}.`
-  }
-
-  return recommendation
-}
-
-// Add this helper function
-function isSantaClaraToSFO(pickup: [number, number], dest: [number, number]) {
-  const santaClaraLat = 37.3541
-  const santaClaraLon = -121.9552
-  const sfoLat = 37.622452
-  const sfoLon = -122.3839894
-  const isSantaClara = (lat: number, lon: number) =>
-    Math.abs(lat - santaClaraLat) < 0.05 && Math.abs(lon - santaClaraLon) < 0.05
-  const isSFO = (lat: number, lon: number) =>
-    Math.abs(lat - sfoLat) < 0.05 && Math.abs(lon - sfoLon) < 0.05
-  return (
-    (isSantaClara(pickup[1], pickup[0]) && isSFO(dest[1], dest[0])) ||
-    (isSantaClara(dest[1], dest[0]) && isSFO(pickup[1], pickup[0]))
-  )
-}

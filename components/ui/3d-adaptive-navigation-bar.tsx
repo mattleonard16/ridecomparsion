@@ -558,77 +558,41 @@ export const PillBase: React.FC = () => {
       >
 
         {/* Collapsed state - show only active section with smooth text transitions */}
-
         {!expanded && (
-
           <div className="flex items-center relative">
-
             <AnimatePresence mode="wait">
-
               {activeItem && (
-
                 <motion.span
-
                   key={activeItem.id}
-
-                  initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
-
-                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-
-                  exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-
+                  initial={false}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
                   transition={{
-
-                    duration: 0.35,
-
+                    duration: 0.25,
                     ease: [0.4, 0.0, 0.2, 1]
-
                   }}
-
                   style={{
-
                     fontSize: '15.5px',
-
                     fontWeight: 680,
-
                     color: '#1a1a1a',
-
                     letterSpacing: '0.45px',
-
                     whiteSpace: 'nowrap',
-
                     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
-
                     WebkitFontSmoothing: 'antialiased',
-
                     MozOsxFontSmoothing: 'grayscale',
-
                     textShadow: `
-
                       0 1px 0 rgba(0, 0, 0, 0.35),
-
                       0 -1px 0 rgba(255, 255, 255, 0.8),
-
                       1px 1px 0 rgba(0, 0, 0, 0.18),
-
                       -1px 1px 0 rgba(0, 0, 0, 0.15)
-
                     `,
-
                   }}
-
                 >
-
                   {activeItem.label}
-
                 </motion.span>
-
               )}
-
             </AnimatePresence>
-
           </div>
-
         )}
 
         {/* Expanded state - show all sections with stagger */}
@@ -796,4 +760,3 @@ export const PillBase: React.FC = () => {
   )
 
 }
-
