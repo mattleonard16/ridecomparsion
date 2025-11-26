@@ -1,114 +1,132 @@
 'use client'
 
+import { Zap, Brain, MapPin, Clock, TrendingDown, Shield } from 'lucide-react'
+
 const FEATURES = [
   {
     id: 'real-time',
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M13 10V3L4 14h7v7l9-11h-7z"
-        />
-      </svg>
-    ),
-    title: 'Real-time Pricing',
-    description: 'Get current surge pricing and accurate fare estimates across all services',
-    bgColor: 'bg-blue-500/20',
-    iconColor: 'text-blue-400',
-    borderColor: 'border-blue-500/30',
+    icon: Zap,
+    title: 'Live Pricing',
+    description: 'Current surge rates and fare estimates updated every 30 seconds.',
+    stat: '30s',
+    statLabel: 'refresh rate',
   },
   {
     id: 'smart-recommendations',
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-        />
-      </svg>
-    ),
-    title: 'Smart Recommendations',
-    description: 'AI-powered suggestions for best value and fastest rides based on live data',
-    bgColor: 'bg-green-500/20',
-    iconColor: 'text-green-400',
-    borderColor: 'border-green-500/30',
+    icon: Brain,
+    title: 'Smart Picks',
+    description: 'We analyze price, wait time, and surge to recommend the best option.',
+    stat: '3',
+    statLabel: 'factors analyzed',
   },
   {
     id: 'bay-area',
-    icon: (
-      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-        />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-        />
-      </svg>
-    ),
-    title: 'Bay Area Optimized',
-    description:
-      'Specially tuned algorithms for San Francisco Bay Area routes and traffic patterns',
-    bgColor: 'bg-purple-500/20',
-    iconColor: 'text-purple-400',
-    borderColor: 'border-purple-500/30',
+    icon: MapPin,
+    title: 'Bay Area Focus',
+    description: 'Tuned for SF, Oakland, San Jose airports and tech campus routes.',
+    stat: '50+',
+    statLabel: 'popular routes',
+  },
+]
+
+const SECONDARY_FEATURES = [
+  {
+    icon: Clock,
+    title: 'Wait Time Estimates',
+    description: 'Know exactly how long until your ride arrives.',
+  },
+  {
+    icon: TrendingDown,
+    title: 'Price Alerts',
+    description: 'Get notified when prices drop on your frequent routes.',
+  },
+  {
+    icon: Shield,
+    title: 'No Account Needed',
+    description: 'Compare instantly. No sign-up required.',
   },
 ]
 
 export default function FeatureGrid() {
   return (
-    <section id="features" className="relative snap-start min-h-screen bg-black overflow-visible flex flex-col justify-center py-16 sm:py-24 md:py-28">
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-blue-900/5 to-black" />
-
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+    <section id="features" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28">
+      {/* Subtle background */}
+      <div className="absolute inset-0 bg-route-pattern opacity-20" />
 
       <div className="relative z-10 container mx-auto px-4 max-w-6xl w-full">
-        <div className="text-center mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4">
-            Why Choose <span className="animate-color-shift">Our Platform</span>
+        {/* Section header - editorial style */}
+        <div className="mb-16">
+          <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">
+            Why RideCompare
+          </span>
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-foreground leading-[0.95] max-w-3xl">
+            The fastest way to find your 
+            <span className="text-accent-gradient"> cheapest ride</span>
           </h2>
-          <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto">
-            Advanced features designed to{' '}
-            <span className="text-white font-semibold">save you time and money</span> on every ride
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-          {FEATURES.map((feature, index) => (
-            <div
-              key={feature.id}
-              className={`glass-card-strong rounded-2xl p-8 shadow-2xl border-2 ${feature.borderColor} hover-lift transition-all duration-300 group`}
-            >
-              <div
-                className={`w-16 h-16 ${feature.bgColor} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 border ${feature.borderColor}`}
-              >
-                <div className={feature.iconColor}>{feature.icon}</div>
+        {/* Main features - asymmetric grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16">
+          {/* Large featured card */}
+          <div className="lg:col-span-5 card-elevated rounded-2xl p-8 lg:p-10">
+            <div className="flex items-start justify-between mb-6">
+              <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center">
+                <Zap className="w-7 h-7 text-primary" />
               </div>
-
-              <h3 className="text-xl sm:text-2xl font-black text-white mb-4">{feature.title}</h3>
-
-              <p className="text-gray-300 text-base leading-relaxed">{feature.description}</p>
+              <div className="text-right">
+                <div className="text-4xl font-black text-foreground">{FEATURES[0].stat}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">{FEATURES[0].statLabel}</div>
+              </div>
             </div>
-          ))}
+            <h3 className="text-2xl font-black text-foreground mb-3">{FEATURES[0].title}</h3>
+            <p className="text-muted-foreground leading-relaxed">{FEATURES[0].description}</p>
+          </div>
+
+          {/* Two stacked cards */}
+          <div className="lg:col-span-7 flex flex-col gap-6">
+            {FEATURES.slice(1).map((feature) => {
+              const Icon = feature.icon
+              return (
+                <div 
+                  key={feature.id}
+                  className="card-interactive rounded-2xl p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center gap-6"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="w-12 h-12 bg-secondary/10 border border-secondary/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-6 h-6 text-secondary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground mb-1">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground">{feature.description}</p>
+                    </div>
+                  </div>
+                  <div className="text-left sm:text-right pl-16 sm:pl-0">
+                    <div className="text-3xl font-black text-foreground">{feature.stat}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">{feature.statLabel}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
 
-        <div className="mt-12 sm:mt-16 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 glass-card rounded-full border border-green-500/30 text-sm text-gray-300">
-            <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-500/50"></span>
-            <span>
-              Live data updated every <span className="text-white font-semibold">30 seconds</span>
-            </span>
+        {/* Secondary features - simple row */}
+        <div className="border-t border-border pt-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {SECONDARY_FEATURES.map((feature, index) => {
+              const Icon = feature.icon
+              return (
+                <div key={index} className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-foreground mb-1">{feature.title}</h4>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

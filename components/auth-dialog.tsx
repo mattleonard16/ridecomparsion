@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Mail, Check } from 'lucide-react'
 
 interface AuthDialogProps {
   onClose?: () => void
@@ -14,8 +12,9 @@ interface AuthDialogProps {
 export function AuthDialog({ onClose, onSuccess }: AuthDialogProps) {
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,52 +22,39 @@ export function AuthDialog({ onClose, onSuccess }: AuthDialogProps) {
     setLoading(true)
     setError(null)
 
-    const { error } = await signIn(email)
+    const { error } = await signIn(email, password)
 
     if (error) {
-      setError(error.message)
+      setError(error.message || 'Invalid email or password')
       setLoading(false)
     } else {
-      setSent(true)
+      setSuccess(true)
       setLoading(false)
       setTimeout(() => {
         onSuccess?.()
         onClose?.()
-      }, 3000)
+      }, 1000)
     }
   }
 
-  if (sent) {
+  if (success) {
     return (
-      <div className="glass-card-strong rounded-2xl p-8 shadow-2xl border-2 border-green-500/30">
+      <div className="card-elevated rounded-xl p-8 border border-secondary/30">
         <div className="space-y-6">
           <div className="space-y-3 text-center">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+            <div className="w-16 h-16 bg-secondary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-secondary" />
             </div>
-            <h3 className="text-2xl font-bold text-white">Check your email</h3>
-            <p className="text-gray-300">
-              We sent a magic link to <strong className="text-white">{email}</strong>. Click the
-              link to sign in.
+            <h3 className="text-2xl font-bold text-foreground">Signed in successfully!</h3>
+            <p className="text-muted-foreground">
+              Welcome back, <strong className="text-foreground">{email}</strong>
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all duration-300 border border-white/20"
+            className="w-full px-4 py-3 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all duration-200"
           >
-            Close
+            Continue
           </button>
         </div>
       </div>
@@ -76,15 +62,18 @@ export function AuthDialog({ onClose, onSuccess }: AuthDialogProps) {
   }
 
   return (
-    <div className="glass-card-strong rounded-2xl p-8 shadow-2xl">
+    <div className="card-elevated rounded-xl p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-3 text-center">
-          <h3 className="text-2xl font-bold text-white">Sign in to save routes</h3>
-          <p className="text-gray-400">Enter your email to receive a magic link</p>
+          <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-2">
+            <Mail className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="text-2xl font-bold text-foreground">Sign in to save routes</h3>
+          <p className="text-muted-foreground">Enter your email and password to continue</p>
         </div>
 
-        <div className="space-y-3">
-          <label htmlFor="email" className="text-sm font-medium text-gray-300">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium text-foreground">
             Email
           </label>
           <input
@@ -95,12 +84,28 @@ export function AuthDialog({ onClose, onSuccess }: AuthDialogProps) {
             onChange={e => setEmail(e.target.value)}
             required
             disabled={loading}
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:bg-white/10 transition-all duration-300 outline-none"
+            className="w-full px-4 py-3 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium text-foreground">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            disabled={loading}
+            className="w-full px-4 py-3 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none"
           />
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-sm text-red-400">
+          <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-4 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -109,15 +114,15 @@ export function AuthDialog({ onClose, onSuccess }: AuthDialogProps) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/50"
+            className="flex-1 px-4 py-3 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Sending...' : 'Send magic link'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all duration-300 border border-white/20"
+              className="px-6 py-3 rounded-lg card-interactive text-muted-foreground hover:text-foreground font-medium transition-all duration-200"
             >
               Cancel
             </button>

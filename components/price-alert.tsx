@@ -22,7 +22,6 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
     try {
       onSetAlert(threshold)
 
-      // Request notification permission if not already granted
       if ('Notification' in window && Notification.permission === 'default') {
         await Notification.requestPermission()
       }
@@ -38,34 +37,36 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <Bell className="h-5 w-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-semibold">Set Price Alert</h3>
+    <div className="fixed inset-0 bg-background/90 flex items-center justify-center z-50 p-4">
+      <div className="card-elevated rounded-xl p-6 max-w-md w-full">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Bell className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground">Set Price Alert</h3>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="mb-4">
-          <p className="text-gray-600 mb-2">
-            Current best price: <strong>${currentBestPrice.toFixed(2)}</strong>
+        <div className="mb-6">
+          <p className="text-muted-foreground mb-2">
+            Current best price: <strong className="text-foreground">${currentBestPrice.toFixed(2)}</strong>
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             We&apos;ll notify you when any ride option drops below your threshold.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="threshold" className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-6">
+            <label htmlFor="threshold" className="block text-sm font-medium text-foreground mb-2">
               Alert me when prices drop below:
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                 $
               </span>
               <input
@@ -73,7 +74,7 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
                 id="threshold"
                 value={threshold}
                 onChange={e => setThreshold(Number(e.target.value))}
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-8 pr-4 py-3 bg-muted border border-border rounded-lg text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                 min="1"
                 max={currentBestPrice - 0.01}
                 step="0.01"
@@ -82,18 +83,18 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
             </div>
           </div>
 
-          <div className="flex space-x-3">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-3 px-4 card-interactive rounded-lg text-muted-foreground hover:text-foreground transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="flex-1 py-3 px-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-all font-semibold"
             >
               {isSubmitting ? 'Setting...' : 'Set Alert'}
             </button>

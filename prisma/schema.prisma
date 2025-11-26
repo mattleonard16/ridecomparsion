@@ -33,8 +33,7 @@ model Route {
   route_hash     String         @unique
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  savedRoutes    SavedRoute[]
-  priceAlerts    PriceAlert[]
+  savedRoutes    SavedRoute[]   @relation("RouteToSavedRoute")
   rideHistories  RideHistory[]
   searchLogs     SearchLog[]
   priceSnapshots PriceSnapshot[]
@@ -134,13 +133,14 @@ model SavedRoute {
   id          String     @id @default(cuid())
   user        User       @relation(fields: [userId], references: [id])
   userId      String
+  route       Route?     @relation("RouteToSavedRoute", fields: [routeId], references: [id])
+  routeId     String?    @unique
   fromName    String
   fromLat     Float
   fromLng     Float
   toName      String
   toLat       Float
   toLng       Float
-  routeId     String?   @unique
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   priceAlerts PriceAlert[]
@@ -182,12 +182,21 @@ model RideHistory {
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
+  emailVerified DateTime?
   name          String?
-  avatarUrl     String?
+  image         String?       // NextAuth uses 'image' instead of 'avatarUrl'
+  avatarUrl     String?       // Keep for backward compatibility
+  password      String?       // For credentials provider
   preferredService ServiceType?
   notificationEnabled Boolean @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  
+  // NextAuth relations
+  accounts      Account[]
+  sessions      Session[]
+  
+  // App-specific relations
   savedRoutes   SavedRoute[]
   priceAlerts   PriceAlert[]
   rideHistories RideHistory[]
@@ -197,4 +206,43 @@ model User {
 enum AlertType {
   BELOW
   ABOVE
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
