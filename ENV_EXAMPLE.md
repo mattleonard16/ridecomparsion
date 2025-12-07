@@ -37,6 +37,9 @@ CRON_SECRET="your-cron-secret"
 UPSTASH_REDIS_REST_URL="your-upstash-redis-url"
 UPSTASH_REDIS_REST_TOKEN="your-upstash-redis-token"
 
+# App URL (for CORS in production)
+NEXT_PUBLIC_APP_URL="https://rideshare.yourdomain.com"
+
 # Node Environment
 NODE_ENV="development"
 ```

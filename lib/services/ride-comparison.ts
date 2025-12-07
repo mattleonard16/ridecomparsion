@@ -61,7 +61,6 @@ export async function compareRidesByAddresses(
   const sanitizedPickup = sanitizeString(pickupAddress)
   const sanitizedDestination = sanitizeString(destinationAddress)
 
-  // Check comparison cache
   const cacheKey = `${sanitizedPickup.toLowerCase()}-${sanitizedDestination.toLowerCase()}`
   const cached = COMPARISON_CACHE.get(cacheKey)
   const now = Date.now()
@@ -71,7 +70,6 @@ export async function compareRidesByAddresses(
     return cached.value
   }
 
-  // Check for pre-computed route data first (fast path for popular routes)
   const precomputedRoute = findPrecomputedRouteByAddresses(sanitizedPickup, sanitizedDestination)
   
   let pickupCoords: Coordinates | null
@@ -83,7 +81,6 @@ export async function compareRidesByAddresses(
     destinationCoords = precomputedRoute.destination.coordinates
   } else {
     console.log(`[CompareAPI] Starting comparison for ${sanitizedPickup} → ${sanitizedDestination}`)
-    // Fall back to geocoding for non-popular routes
     pickupCoords = await geocodeWithCache(sanitizedPickup)
     destinationCoords = await geocodeWithCache(sanitizedDestination)
   }
@@ -107,8 +104,7 @@ export async function compareRidesByAddresses(
     }
   )
 
-  // Cache the result - longer TTL for popular routes (30 minutes vs 45 seconds)
-  const cacheTTL = precomputedRoute ? 1800000 : 45000 // 30 minutes for popular routes, 45 seconds for others
+  const cacheTTL = precomputedRoute ? 1800000 : 45000
   COMPARISON_CACHE.set(cacheKey, {
     value: result,
     expiresAt: now + cacheTTL,
@@ -138,7 +134,6 @@ export async function compareRidesByCoordinates(
     new Set<ServiceType>(normalisedServices.map(service => service.toLowerCase() as ServiceType))
   )
 
-  // Use pre-computed metrics if available, otherwise fetch from API
   const metricsStart = Date.now()
   const metrics = options?.precomputedMetrics 
     ? options.precomputedMetrics 
@@ -149,7 +144,6 @@ export async function compareRidesByCoordinates(
   const pickupAddress = options?.pickupAddress ?? pickup.name
   const destinationAddress = options?.destinationAddress ?? destination.name
 
-  // Start route creation in background (non-blocking)
   let routeIdPromise: Promise<string | null> = Promise.resolve(null)
   if (shouldPersist) {
     routeIdPromise = findOrCreateRoute(
@@ -162,7 +156,6 @@ export async function compareRidesByCoordinates(
     )
   }
 
-  // Calculate pricing for all services (synchronous, fast)
   const pricingStart = Date.now()
   const resultsEntries = uniqueServices.map(service => {
     const serviceStart = Date.now()
@@ -188,13 +181,11 @@ export async function compareRidesByCoordinates(
     resultsEntries.map(([service, result]) => [service, result])
   ) as ComparisonResults
 
-  // Wait for route ID and log snapshots in background (non-blocking for response)
   if (shouldPersist) {
     routeIdPromise
       .then(routeId => {
         if (routeId) {
           resultsEntries.forEach(([service, _, computation]) => {
-            // Wrap in try-catch to ensure persistence failures don't break the app
             logPriceSnapshot(
               routeId,
               service,
@@ -210,14 +201,12 @@ export async function compareRidesByCoordinates(
                 trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
               }
             ).catch(err => {
-              // Silently handle persistence errors - app should work without database
               console.warn('[CompareAPI] Price snapshot logging failed (non-critical):', err.message)
             })
           })
         }
       })
       .catch(err => {
-        // Silently handle route creation errors - app should work without database
         console.warn('[CompareAPI] Route creation failed (non-critical):', err.message)
       })
   }
@@ -234,23 +223,19 @@ export async function compareRidesByCoordinates(
     isActive: multiplier > 1.05,
   }
 
-  // Log search in background (non-blocking for response)
   if (shouldPersist) {
     routeIdPromise
       .then(routeId => {
-        // Wrap in promise catch to ensure persistence failures don't break the app
         logSearch(
           routeId,
           options?.userId ?? null,
           comparisonResults,
           options?.sessionId ?? undefined
         ).catch(err => {
-          // Silently handle persistence errors - app should work without database
           console.warn('[CompareAPI] Search logging failed (non-critical):', err.message)
         })
       })
       .catch(err => {
-        // Silently handle route creation errors - app should work without database
         console.warn('[CompareAPI] Route creation failed (non-critical):', err.message)
       })
   }

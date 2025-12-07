@@ -5,15 +5,17 @@ node_modules
 
 # testing
 coverage
+__tests__
+jest.config.js
+jest.setup.ts
 
-# production
+# production build artifacts (will be created fresh)
 .next
 out
 
 # misc
 .DS_Store
 *.log
-*.lock
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -21,6 +23,7 @@ pnpm-debug.log*
 
 # local env files
 .env*
+!.env.example
 
 # build info
 tsconfig.tsbuildinfo
@@ -29,4 +32,25 @@ tsconfig.tsbuildinfo
 .idea
 .vscode
 *.swp
+*.swo
+
+# documentation (not needed in container)
+*.md
+!README.md
+AGENTS.md
+CLAUDE.md
+
+# docker files (avoid recursive copy)
+Dockerfile*
+docker-compose*.yml
+
+# git
+.git
+.gitignore
+
+# scripts not needed at runtime
+scripts/
+
+# assets directory if large
+assets/
 

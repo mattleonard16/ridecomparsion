@@ -26,21 +26,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [status])
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const result = await nextAuthSignIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
+    const result = await nextAuthSignIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    })
 
-      if (result?.error) {
-        return { error: new Error(result.error) }
-      }
-
-      return { error: null }
-    } catch (error) {
-      return { error: error as Error }
+    if (result?.error) {
+      return { error: new Error(result.error) }
     }
+
+    return { error: null }
   }
 
   const signOut = async () => {
