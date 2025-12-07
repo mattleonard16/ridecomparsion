@@ -202,17 +202,17 @@ function checkRateLimitInMemory(
     inMemoryHourTracking.set(clientId, { count: 1, resetTime: now + 3600000 })
   }
 
-  const minuteRemaining = minuteData
-    ? RATE_LIMIT_CONFIG.REQUESTS_PER_MINUTE - minuteData.count
-    : RATE_LIMIT_CONFIG.REQUESTS_PER_MINUTE - 1
-  const hourRemaining = hourData
-    ? RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR - hourData.count
-    : RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR - 1
+  // Get fresh data from Maps (may have been reset above)
+  const currentMinuteData = inMemoryMinuteTracking.get(clientId)!
+  const currentHourData = inMemoryHourTracking.get(clientId)!
+
+  const minuteRemaining = RATE_LIMIT_CONFIG.REQUESTS_PER_MINUTE - currentMinuteData.count
+  const hourRemaining = RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR - currentHourData.count
 
   return {
     allowed: true,
     remainingRequests: Math.min(minuteRemaining, hourRemaining),
-    resetTime: now + 60000,
+    resetTime: currentMinuteData.resetTime,
   }
 }
 
