@@ -5,7 +5,6 @@ import { createHash } from 'crypto'
 const ServiceTypeEnum = $Enums.ServiceType
 const TrafficLevelEnum = $Enums.TrafficLevel
 
-// Check if database is available
 const isDatabaseAvailable = () => {
   return !!process.env.DATABASE_URL
 }
@@ -50,7 +49,6 @@ export async function findOrCreateRoute(
       destCoords[0]
     )
 
-    // Try to find existing route by hash
     const existingRoute = await prisma.route.findUnique({
       where: { route_hash: routeHash },
       select: { id: true },
@@ -60,7 +58,6 @@ export async function findOrCreateRoute(
       return existingRoute.id
     }
 
-    // Create new route
     const newRoute = await prisma.route.create({
       data: {
         pickup_address: pickupAddress,
@@ -314,8 +311,6 @@ export async function saveRouteForUser(userId: string, routeId: string, nickname
       return false
     }
 
-    // Check if user exists, create if not (for now, we'll need userId from auth later)
-    // For now, we'll assume the user exists
     await prisma.savedRoute.upsert({
       where: routeId ? { routeId } : { id: 'temp-id' }, // Use a temporary ID if routeId is null
       update: {

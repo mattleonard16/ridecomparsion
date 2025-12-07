@@ -3,6 +3,7 @@ services:
     container_name: rideshareappnew-web
     build:
       context: .
+      target: runner
     ports:
       - '3000:3000'
     environment:

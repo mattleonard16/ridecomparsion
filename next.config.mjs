@@ -1,14 +1,9 @@
 const isDev = process.env.NODE_ENV === 'development'
 
 const nextConfig = {
-  typescript: {
-    // Temporarily ignore build errors for API routes while focusing on development
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    // Ignore ESLint during builds for now
-    ignoreDuringBuilds: true,
-  },
+  output: 'standalone',
+  // TypeScript and ESLint checks are now enforced at build time
+  // This ensures type errors and linting issues don't hide security vulnerabilities
 }
 
 // Only load PWA in production to avoid babel compatibility issues

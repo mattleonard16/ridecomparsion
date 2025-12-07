@@ -30,47 +30,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
       },
       async authorize(credentials) {
-        try {
-          const parsed = credentialsSchema.safeParse(credentials)
-          if (!parsed.success) {
-            return null
-          }
-
-          const { email, password } = parsed.data
-
-          // Find user by email
-          const user = await prisma.user.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              image: true,
-              avatarUrl: true,
-              password: true,
-            },
-          })
-
-          if (!user || !user.password) {
-            return null
-          }
-
-          // Verify password
-          const isValid = await bcrypt.compare(password, user.password)
-          if (!isValid) {
-            return null
-          }
-
-          // Return user object (password excluded)
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image || user.avatarUrl || undefined,
-          }
-        } catch (error) {
-          console.error('Auth error:', error)
+        const parsed = credentialsSchema.safeParse(credentials)
+        if (!parsed.success) {
           return null
+        }
+
+        const { email, password } = parsed.data
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            avatarUrl: true,
+            password: true,
+          },
+        })
+
+        if (!user || !user.password) {
+          return null
+        }
+
+        const isValid = await bcrypt.compare(password, user.password)
+        if (!isValid) {
+          return null
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image || user.avatarUrl || undefined,
         }
       },
     }),

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { withCors } from '@/lib/cors'
 import { checkRateLimit, cleanupRateLimiters } from '@/lib/rate-limiter'
 import {
   validateInput,
@@ -11,9 +12,28 @@ import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 
-// GET handler for prefetch
-export async function GET(request: NextRequest) {
+async function handleGet(request: NextRequest) {
   try {
+    // Apply rate limiting to GET requests
+    const rateLimitResult = await checkRateLimit(request)
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          details: rateLimitResult.reason,
+          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
+            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          },
+        }
+      )
+    }
+
     console.log('[CompareAPI GET] Request received')
     const { searchParams } = new URL(request.url)
     const pickup = searchParams.get('pickup')
@@ -26,10 +46,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
     }
 
-    // Check if this is a pre-computed route for better caching
     const isPrecomputedRoute = !!findPrecomputedRouteByAddresses(pickup, destination)
 
-    // Get comparisons using the service
     console.log('[CompareAPI GET] Calling compareRidesByAddresses')
     const comparisons = await compareRidesByAddresses(
       pickup,
@@ -48,8 +66,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
     }
 
-    // Use longer cache for pre-computed routes (5 min cache, 30 min stale-while-revalidate)
-    // Shorter cache for dynamic routes (30 sec cache, 2 min stale-while-revalidate)
     const cacheControl = isPrecomputedRoute
       ? 'private, max-age=300, stale-while-revalidate=1800'
       : 'private, max-age=30, stale-while-revalidate=120'
@@ -67,6 +83,8 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           'Cache-Control': cacheControl,
+          'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
         },
       }
     )
@@ -83,10 +101,8 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST handler
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
-    // 1. Rate Limiting Check
     const rateLimitResult = await checkRateLimit(request)
 
     if (!rateLimitResult.allowed) {
@@ -107,14 +123,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Parse and validate request body
     const body = await request.json()
 
-    // Check if this is a pre-computed route (trusted, skip reCAPTCHA)
-    const isPrecomputedRoute = body.pickup && body.destination && 
+    const isPrecomputedRoute = body.pickup && body.destination &&
       !!findPrecomputedRouteByAddresses(body.pickup, body.destination)
 
-    // 3. reCAPTCHA Verification (skip for pre-computed routes)
     if (body.recaptchaToken && !isPrecomputedRoute) {
       const recaptchaResult = await verifyRecaptchaToken(
         body.recaptchaToken,
@@ -123,11 +136,9 @@ export async function POST(request: NextRequest) {
       )
 
       if (!recaptchaResult.success) {
-        // Check if this is just an action mismatch (common issue) - log and continue
         if (recaptchaResult.error?.includes('Action mismatch')) {
           console.warn('reCAPTCHA action mismatch, continuing:', recaptchaResult.error)
         } else if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.3) {
-          // For genuinely low scores, return error
           return NextResponse.json(
             {
               error: 'Security verification failed. Please try again.',
@@ -136,7 +147,6 @@ export async function POST(request: NextRequest) {
             { status: 403 }
           )
         } else {
-          // For other failures, log but continue (graceful degradation)
           console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
         }
       } else {
@@ -148,10 +158,8 @@ export async function POST(request: NextRequest) {
       console.log('[CompareAPI] Skipping reCAPTCHA for pre-computed route')
     }
 
-    // Legacy support: convert old format to new format
     let requestData
     if (body.pickup && body.destination) {
-      // Legacy format - convert to new format
       requestData = {
         from: {
           name: sanitizeString(body.pickup),
@@ -169,11 +177,9 @@ export async function POST(request: NextRequest) {
       requestData = body
     }
 
-    // Skip coordinate validation for legacy requests (will be geocoded)
     const isLegacyRequest = body.pickup && body.destination
 
     if (!isLegacyRequest) {
-      // 4. Input Validation for new format
       const validation = validateInput(
         RideComparisonRequestSchema,
         requestData,
@@ -195,7 +201,6 @@ export async function POST(request: NextRequest) {
 
       requestData = validation.data
 
-      // 5. Spam Detection
       const fromName = requestData.from.name
       const toName = requestData.to.name
 
@@ -216,8 +221,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Process request (legacy path)
-    // Use compareRidesByAddresses directly - it handles geocoding and pre-computed routes
     if (isLegacyRequest) {
       const { pickup, destination } = body
 
@@ -225,7 +228,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
       }
 
-      // Get comparisons - this handles geocoding internally (with pre-computed route support)
       const comparisons = await compareRidesByAddresses(
         pickup,
         destination,
@@ -260,8 +262,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. Process new format request (future enhancement)
-    // For now, convert to legacy format and process
     const pickup = requestData.from.name
     const destination = requestData.to.name
 
@@ -317,3 +317,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Export CORS-wrapped handlers
+export const GET = withCors(handleGet)
+export const POST = withCors(handlePost)
+export const OPTIONS = withCors(handleGet)

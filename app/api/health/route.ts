@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { withCors } from '@/lib/cors'
 import { healthCheck } from '@/lib/monitoring'
 
-export async function GET() {
+async function handleGet(_request: NextRequest) {
   try {
     const health = await healthCheck()
 
@@ -18,3 +19,6 @@ export async function GET() {
     )
   }
 }
+
+export const GET = withCors(handleGet)
+export const OPTIONS = withCors(handleGet)
