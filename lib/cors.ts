@@ -47,7 +47,7 @@ export function withCors(handler: Handler): Handler {
                 preflight.headers.set('Access-Control-Allow-Origin', origin)
             }
             preflight.headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-            preflight.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            preflight.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id, x-user-id')
             preflight.headers.set('Access-Control-Max-Age', '86400') // Cache preflight for 24h
             preflight.headers.set('Vary', 'Origin')
             return preflight
@@ -61,7 +61,7 @@ export function withCors(handler: Handler): Handler {
             res.headers.set('Access-Control-Allow-Origin', origin)
         }
         res.headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-session-id, x-user-id')
         res.headers.set('Vary', 'Origin')
 
         return res
