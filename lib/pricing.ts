@@ -1,7 +1,11 @@
 import type { Coordinates, ServiceType } from '@/types'
 import pricingConfig from './pricing-config.json'
-import { kmToMiles } from './location'
 import { isAirportLocation } from './airports'
+
+// Utility function (moved from deleted location.ts)
+function kmToMiles(km: number): number {
+  return km * 0.621371
+}
 
 // Types for pricing configuration
 interface PricingConfig {
