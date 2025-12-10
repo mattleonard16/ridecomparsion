@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withCors } from '@/lib/cors'
-import { withRateLimit, cleanupRateLimiters } from '@/lib/rate-limiter'
+import { withRateLimit } from '@/lib/rate-limiter'
 import {
   validateInput,
   RideComparisonRequestSchema,
@@ -251,12 +251,6 @@ async function handlePost(request: NextRequest) {
       },
       { status: 500 }
     )
-  } finally {
-    // Periodic cleanup (run occasionally)
-    if (Math.random() < 0.01) {
-      // 1% chance per request
-      cleanupRateLimiters()
-    }
   }
 }
 

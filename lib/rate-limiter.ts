@@ -6,23 +6,40 @@
  * 2. Per-Hour Limits: Sustained abuse prevention (configurable via RATE_LIMIT_PER_HOUR)
  *
  * Uses Upstash Redis for persistent rate limiting across serverless instances.
- * Falls back to in-memory storage when Redis is not configured.
+ * Falls back to in-memory storage when Redis is not configured or fails.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { redis, isRedisAvailable } from './redis'
 
-// Rate limiter configuration (env-driven with sensible defaults)
+/**
+ * Parse environment variable as integer with validation
+ * Returns default if value is missing, non-numeric, or <= 0
+ */
+function parseEnvInt(value: string | undefined, defaultValue: number): number {
+  if (!value) return defaultValue
+  const parsed = parseInt(value, 10)
+  if (isNaN(parsed) || parsed <= 0) {
+    console.warn(`[RateLimit] Invalid env config: "${value}", using default ${defaultValue}`)
+    return defaultValue
+  }
+  return parsed
+}
+
+// Rate limiter configuration (env-driven with validated defaults)
 const RATE_LIMIT_CONFIG = {
-  REQUESTS_PER_HOUR: parseInt(process.env.RATE_LIMIT_PER_HOUR || '50', 10),
-  BURST_REQUESTS: parseInt(process.env.RATE_LIMIT_BURST || '3', 10),
-  BURST_WINDOW_SECONDS: parseInt(process.env.RATE_LIMIT_BURST_WINDOW || '10', 10),
+  REQUESTS_PER_HOUR: parseEnvInt(process.env.RATE_LIMIT_PER_HOUR, 50),
+  BURST_REQUESTS: parseEnvInt(process.env.RATE_LIMIT_BURST, 3),
+  BURST_WINDOW_SECONDS: parseEnvInt(process.env.RATE_LIMIT_BURST_WINDOW, 10),
 } as const
 
-// In-memory fallback storage (used when Redis is not configured)
+// In-memory fallback storage (used when Redis is not configured or fails)
 const inMemoryBurstTracking = new Map<string, { count: number; resetTime: number }>()
 const inMemoryHourTracking = new Map<string, { count: number; resetTime: number }>()
+
+// Track if we're currently using in-memory fallback (runtime state)
+let usingInMemoryFallback = !isRedisAvailable
 
 // Redis-backed rate limiters (only created if Redis is available)
 const redisRateLimiters = redis
@@ -101,10 +118,11 @@ async function checkRateLimitRedis(
     }
   }
 
+  // Return the most restrictive values so headers reflect the active constraint
   return {
     allowed: true,
-    remainingRequests: hourResult.remaining,
-    resetTime: hourResult.reset,
+    remainingRequests: Math.min(burstResult.remaining, hourResult.remaining),
+    resetTime: Math.min(burstResult.reset, hourResult.reset),
   }
 }
 
@@ -162,14 +180,18 @@ function checkRateLimitInMemory(
     inMemoryHourTracking.set(clientId, { count: 1, resetTime: now + 3600000 })
   }
 
-  // Get fresh data from Map (may have been reset above)
+  // Get fresh data from Maps (may have been reset above)
+  const currentBurstData = inMemoryBurstTracking.get(clientId)!
   const currentHourData = inMemoryHourTracking.get(clientId)!
+
+  const burstRemaining = RATE_LIMIT_CONFIG.BURST_REQUESTS - currentBurstData.count
   const hourRemaining = RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR - currentHourData.count
 
+  // Return the most restrictive values so headers reflect the active constraint
   return {
     allowed: true,
-    remainingRequests: hourRemaining,
-    resetTime: currentHourData.resetTime,
+    remainingRequests: Math.min(burstRemaining, hourRemaining),
+    resetTime: Math.min(currentBurstData.resetTime, currentHourData.resetTime),
   }
 }
 
@@ -187,9 +209,12 @@ export async function checkRateLimit(request: Request): Promise<{
 
   if (isRedisAvailable && redisRateLimiters) {
     try {
-      return await checkRateLimitRedis(clientId)
+      const result = await checkRateLimitRedis(clientId)
+      usingInMemoryFallback = false // Redis is working
+      return result
     } catch (error) {
       console.error('Redis rate limit check failed, falling back to in-memory:', error)
+      usingInMemoryFallback = true // Mark that we fell back
       // Fall through to in-memory
     }
   }
@@ -199,11 +224,12 @@ export async function checkRateLimit(request: Request): Promise<{
 
 /**
  * Clean up old in-memory rate limiters (call periodically)
- * Only needed for in-memory fallback, Redis handles its own cleanup
+ * Only runs when in-memory storage is actually being used
  */
 export function cleanupRateLimiters(): void {
-  if (isRedisAvailable) {
-    // Redis handles TTL-based cleanup automatically
+  // Only cleanup if we're actually using in-memory storage
+  // (either Redis not configured, or Redis failed and we fell back)
+  if (!usingInMemoryFallback) {
     return
   }
 
@@ -242,6 +268,11 @@ type Handler = (req: NextRequest) => Promise<NextResponse> | NextResponse
  */
 export function withRateLimit(handler: Handler): Handler {
   return async (req: NextRequest) => {
+    // Periodic cleanup (1% chance per request, runs for ALL traffic including 429s)
+    if (Math.random() < 0.01) {
+      cleanupRateLimiters()
+    }
+
     const result = await checkRateLimit(req)
 
     if (!result.allowed) {
