@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withCors } from '@/lib/cors'
-import { checkRateLimit, cleanupRateLimiters } from '@/lib/rate-limiter'
+import { withRateLimit } from '@/lib/rate-limiter'
 import {
   validateInput,
   RideComparisonRequestSchema,
@@ -14,26 +14,6 @@ import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 
 async function handleGet(request: NextRequest) {
   try {
-    // Apply rate limiting to GET requests
-    const rateLimitResult = await checkRateLimit(request)
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          details: rateLimitResult.reason,
-          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
-            'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
-          },
-        }
-      )
-    }
-
     console.log('[CompareAPI GET] Request received')
     const { searchParams } = new URL(request.url)
     const pickup = searchParams.get('pickup')
@@ -83,18 +63,17 @@ async function handleGet(request: NextRequest) {
       {
         headers: {
           'Cache-Control': cacheControl,
-          'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
         },
       }
     )
-  } catch (error: any) {
-    console.error('[CompareAPI GET] Error:', error)
-    console.error('[CompareAPI GET] Error stack:', error?.stack)
+  } catch (error: unknown) {
+    const err = error as Error
+    console.error('[CompareAPI GET] Error:', err)
+    console.error('[CompareAPI GET] Error stack:', err?.stack)
     return NextResponse.json(
       {
         error: 'Failed to prefetch ride comparisons',
-        detail: error?.message || 'Unknown error',
+        detail: err?.message || 'Unknown error',
       },
       { status: 500 }
     )
@@ -103,26 +82,6 @@ async function handleGet(request: NextRequest) {
 
 async function handlePost(request: NextRequest) {
   try {
-    const rateLimitResult = await checkRateLimit(request)
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          details: rateLimitResult.reason,
-          retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
-            'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
-          },
-        }
-      )
-    }
-
     const body = await request.json()
 
     const isPrecomputedRoute = body.pickup && body.destination &&
@@ -244,22 +203,14 @@ async function handlePost(request: NextRequest) {
         return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
       }
 
-      return NextResponse.json(
-        {
-          comparisons: comparisons.results,
-          insights: comparisons.insights,
-          pickupCoords: comparisons.pickup,
-          destinationCoords: comparisons.destination,
-          surgeInfo: comparisons.surgeInfo,
-          timeRecommendations: comparisons.timeRecommendations,
-        },
-        {
-          headers: {
-            'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-            'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
-          },
-        }
-      )
+      return NextResponse.json({
+        comparisons: comparisons.results,
+        insights: comparisons.insights,
+        pickupCoords: comparisons.pickup,
+        destinationCoords: comparisons.destination,
+        surgeInfo: comparisons.surgeInfo,
+        timeRecommendations: comparisons.timeRecommendations,
+      })
     }
 
     const pickup = requestData.from.name
@@ -281,43 +232,29 @@ async function handlePost(request: NextRequest) {
       return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
     }
 
-    // 8. Add rate limit headers to successful responses
-    return NextResponse.json(
-      {
-        comparisons: comparisons.results,
-        insights: comparisons.insights,
-        pickupCoords: comparisons.pickup,
-        destinationCoords: comparisons.destination,
-        surgeInfo: comparisons.surgeInfo,
-        timeRecommendations: comparisons.timeRecommendations,
-      },
-      {
-        headers: {
-          'X-RateLimit-Remaining': rateLimitResult.remainingRequests.toString(),
-          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
-        },
-      }
-    )
-  } catch (error: any) {
-    console.error('[CompareAPI POST] Error comparing rides:', error)
-    console.error('[CompareAPI POST] Error stack:', error?.stack)
+    return NextResponse.json({
+      comparisons: comparisons.results,
+      insights: comparisons.insights,
+      pickupCoords: comparisons.pickup,
+      destinationCoords: comparisons.destination,
+      surgeInfo: comparisons.surgeInfo,
+      timeRecommendations: comparisons.timeRecommendations,
+    })
+  } catch (error: unknown) {
+    const err = error as Error
+    console.error('[CompareAPI POST] Error comparing rides:', err)
+    console.error('[CompareAPI POST] Error stack:', err?.stack)
     return NextResponse.json(
       {
         error: 'Failed to compare rides',
-        detail: error?.message || 'Unknown error',
+        detail: err?.message || 'Unknown error',
       },
       { status: 500 }
     )
-  } finally {
-    // Periodic cleanup (run occasionally)
-    if (Math.random() < 0.01) {
-      // 1% chance per request
-      cleanupRateLimiters()
-    }
   }
 }
 
-// Export CORS-wrapped handlers
-export const GET = withCors(handleGet)
-export const POST = withCors(handlePost)
-export const OPTIONS = withCors(handleGet)
+// Export CORS-wrapped and rate-limited handlers
+export const GET = withCors(withRateLimit(handleGet))
+export const POST = withCors(withRateLimit(handlePost))
+export const OPTIONS = withCors(handleGet) // No rate limit on preflight

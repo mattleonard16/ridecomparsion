@@ -456,42 +456,5 @@ export async function logWeatherData(
   }
 }
 
-/**
- * Log event data
- */
-export async function logEventData(event: {
-  name: string
-  venue: string
-  coords: [number, number]
-  type: string
-  startTime: Date
-  endTime?: Date
-  attendance?: number
-  rawData?: any
-}): Promise<void> {
-  if (!isDatabaseAvailable()) {
-    console.log('🔧 [MOCK] Event logged:', event)
-    return
-  }
-
-  try {
-    await prisma.eventLog.create({
-      data: {
-        event_name: event.name,
-        venue: event.venue,
-        coords_lat: event.coords[1],
-        coords_lng: event.coords[0],
-        event_type: event.type,
-        start_time: event.startTime,
-        end_time: event.endTime,
-        expected_attendance: event.attendance,
-        raw_data: event.rawData,
-      },
-    })
-  } catch (error) {
-    console.error('Error logging event:', error)
-  }
-}
-
 // Legacy exports for backward compatibility
 export const isSupabaseMockMode = !isDatabaseAvailable()
