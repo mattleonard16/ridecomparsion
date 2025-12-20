@@ -4,9 +4,10 @@
 
 body {
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-ibm), sans-serif;
 }
 
+/* Animations */
 @keyframes fade-in-up {
   0% {
     opacity: 0;
@@ -19,41 +20,81 @@ body {
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.8s ease-out forwards;
+  animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animation-delay-200 {
-  animation-delay: 0.2s;
-  opacity: 0;
-}
-
-@keyframes slide-up-fade {
+@keyframes slide-in-right {
   0% {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateX(20px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
-@keyframes pulse-subtle {
-  0%,
-  100% {
+.animate-slide-in-right {
+  animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.5;
+    transform: scale(0.8);
   }
 }
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes ticker-slide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker-slide 20s linear infinite;
+}
+
+@keyframes flip-in {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-flip-char {
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: flip-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Staggered delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 
-  /* Scroll Snap Utilities */
   .scroll-snap-y {
     scroll-snap-type: y proximity;
   }
@@ -62,129 +103,122 @@ body {
     scroll-snap-align: start;
   }
 
-  /* NEW: Solid dark cards - replacing glassmorphism */
-  .card-solid {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+  /* Transit-inspired Utilities */
+  
+  /* Dot Grid Background - Engineering Paper Style */
+  .bg-dot-grid {
+    background-image: radial-gradient(hsl(var(--muted-foreground)/0.2) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
-
-  .card-elevated {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .card-interactive {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .card-interactive:hover {
-    border-color: hsl(var(--accent));
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Accent text highlight */
-  .text-accent-gradient {
-    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-warm)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  /* Hover Effects - cleaner, no glow */
-  .hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Animations */
-  .animate-slide-up-fade {
-    animation: slide-up-fade 0.8s ease-out forwards;
-  }
-
-  .animate-pulse-subtle {
-    animation: pulse-subtle 2s ease-in-out infinite;
-  }
-
-  /* NEW: Route line pattern background */
-  .bg-route-pattern {
-    background-image: 
-      linear-gradient(90deg, transparent 49.5%, hsl(var(--border)) 49.5%, hsl(var(--border)) 50.5%, transparent 50.5%),
-      linear-gradient(0deg, transparent 49.5%, hsl(var(--border)) 49.5%, hsl(var(--border)) 50.5%, transparent 50.5%);
-    background-size: 80px 80px;
-  }
-
-  /* Diagonal lines pattern - more distinctive */
-  .bg-diagonal-lines {
+  
+  /* Platform Edge Stripe - Warning Pattern */
+  .bg-platform-stripe {
     background-image: repeating-linear-gradient(
       -45deg,
-      transparent,
-      transparent 20px,
-      hsl(var(--border) / 0.3) 20px,
-      hsl(var(--border) / 0.3) 21px
+      hsl(var(--accent)),
+      hsl(var(--accent)) 10px,
+      hsl(var(--background)) 10px,
+      hsl(var(--background)) 20px
     );
   }
-
-  /* Noise texture overlay */
-  .noise-overlay::before {
-    content: '';
+  
+  /* Scanline Effect for Departure Boards */
+  .scanline-overlay {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .scanline-overlay::after {
+    content: " ";
+    display: block;
     position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.02;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0),
+      rgba(255, 255, 255, 0) 50%,
+      rgba(0, 0, 0, 0.02) 50%,
+      rgba(0, 0, 0, 0.02)
+    );
+    background-size: 100% 4px;
     pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Fare Display Card */
+  .card-transit {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 2px 0 hsl(var(--border));
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .card-transit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 0 hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+
+  /* Mechanical Hover */
+  .hover-mechanical {
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .hover-mechanical:active {
+    transform: translateY(1px);
+    box-shadow: none;
   }
 }
 
 @layer base {
   :root {
-    /* NEW: Distinctive dark theme with warm accents */
-    --background: 220 15% 6%; /* Deep charcoal with slight blue #0E1117 */
-    --foreground: 40 20% 95%; /* Warm off-white */
-    --card: 220 15% 10%; /* Card background */
-    --card-foreground: 40 20% 95%;
-    --popover: 220 15% 10%;
-    --popover-foreground: 40 20% 95%;
+    /* Japanese Transit Palette */
+    --background: 210 20% 98%;        /* Clean off-white (like station walls) */
+    --foreground: 220 25% 10%;        /* Near-black text */
+    --card: 0 0% 100%;                /* Pure white cards */
+    --card-foreground: 220 25% 10%;
     
-    /* NEW: Warm amber/terracotta accent instead of purple */
-    --primary: 25 95% 55%; /* Warm amber #F59E0B */
-    --primary-foreground: 220 15% 6%;
+    --primary: 210 100% 45%;          /* JR Blue - iconic transit blue */
+    --primary-foreground: 0 0% 100%;
     
-    /* Secondary: Teal for contrast */
-    --secondary: 175 70% 45%; /* Teal #14B8A6 */
-    --secondary-foreground: 220 15% 6%;
+    --secondary: 358 70% 50%;         /* Maroon Red - like Marunouchi line */
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 220 15% 15%;
-    --muted-foreground: 220 10% 55%;
+    --accent: 45 95% 55%;             /* Warning Yellow - platform edge */
+    --accent-foreground: 220 25% 10%;
     
-    /* Accent: Coral/terracotta */
-    --accent: 15 85% 60%; /* Coral #F97316 */
-    --accent-warm: 35 95% 55%; /* Warm gold */
-    --accent-foreground: 220 15% 6%;
+    --muted: 210 15% 92%;             /* Soft gray panels */
+    --muted-foreground: 215 10% 45%;
     
     --destructive: 0 84% 60%;
-    --destructive-foreground: 40 20% 95%;
-    --border: 220 15% 18%;
-    --input: 220 15% 15%;
-    --ring: 25 95% 55%;
+    --destructive-foreground: 0 0% 100%;
     
-    /* Chart colors - warm palette */
-    --chart-1: 25 95% 55%; /* Amber */
-    --chart-2: 175 70% 45%; /* Teal */
-    --chart-3: 15 85% 60%; /* Coral */
-    --chart-4: 45 95% 55%; /* Gold */
-    --chart-5: 195 80% 50%; /* Cyan */
+    --border: 215 15% 85%;
+    --input: 215 15% 95%;
+    --ring: 210 100% 45%;
     
-    --radius: 0.5rem;
-    --foreground-rgb: 245, 240, 235;
-    --background-start-rgb: 14, 17, 23;
-    --background-end-rgb: 14, 17, 23;
+    --radius: 0px; /* Sharp corners for transit aesthetic */
+  }
+  
+  /* Dark mode - Night transit */
+  .dark {
+    --background: 220 25% 10%;
+    --foreground: 210 20% 98%;
+    --card: 220 20% 13%;
+    --card-foreground: 210 20% 98%;
+    
+    --primary: 210 100% 60%;
+    --secondary: 358 70% 60%;
+    --accent: 45 95% 55%;
+    
+    --muted: 220 20% 16%;
+    --muted-foreground: 215 10% 65%;
+    
+    --border: 220 20% 20%;
+    --input: 220 20% 16%;
   }
 }
 
@@ -192,31 +226,7 @@ body {
   * {
     @apply border-border;
   }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
-  }
-
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Service-specific colors - kept for branding */
-.uber-brand {
-  --service-color: 0 0% 0%;
-}
-
-.lyft-brand {
-  --service-color: 330 80% 55%;
-}
-
-.taxi-brand {
-  --service-color: 45 95% 55%;
 }
