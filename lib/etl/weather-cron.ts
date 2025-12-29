@@ -4,7 +4,7 @@
  * Run via Vercel Cron or similar service
  */
 
-import { logWeatherData } from '@/lib/supabase'
+import { logWeatherData } from '@/lib/database'
 
 const BAY_AREA_LOCATIONS = [
   { name: 'San Francisco', coords: [-122.4194, 37.7749] as [number, number] },

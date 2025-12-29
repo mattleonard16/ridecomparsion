@@ -2,7 +2,7 @@ import { AlertCircle, Share2, Bell, Bookmark, Zap, Clock } from 'lucide-react'
 import { useState, memo } from 'react'
 import PriceAlert from './price-alert'
 import { useAuth } from '@/lib/auth-context'
-import { saveRouteForUser } from '@/lib/supabase'
+import { saveRouteForUser } from '@/lib/database'
 import { AuthDialog } from './auth-dialog'
 import ModalPortal from './ModalPortal'
 

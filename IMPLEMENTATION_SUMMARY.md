@@ -85,14 +85,14 @@ Successfully implemented all features from the `/elev.plan.md` roadmap, taking t
 - **Seed Script**: `scripts/seed.ts` populates sample routes and price data
 - **Environment Documentation**: `ENV_EXAMPLE.md` with all required variables
 - **Test Coverage**: Updated tests with auth context mocking
-- **Developer Docs**: Enhanced `SETUP_SUPABASE.md` and `README.md`
+- **Developer Docs**: Enhanced `ENV_EXAMPLE.md` and `README.md`
 - **Database Tooling**: `npm run seed` command added
 
 **Files Created:**
 
 - `scripts/seed.ts` - Database seeding for local dev
 - `ENV_EXAMPLE.md` - Environment variable documentation
-- `SETUP_SUPABASE.md` - Supabase setup guide
+
 
 ## 📊 Metrics
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { getRoutePriceHistory, getHourlyPriceAverage } from '@/lib/supabase'
+import { getRoutePriceHistory, getHourlyPriceAverage } from '@/lib/database'
 import { TrendingDown, Clock, Zap, ArrowLeft, BarChart3 } from 'lucide-react'
 
 interface PriceSnapshot {
@@ -86,8 +86,8 @@ export default function DashboardPage() {
               key={service}
               onClick={() => setSelectedService(service)}
               className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${selectedService === service
-                  ? 'bg-primary text-primary-foreground'
-                  : 'card-interactive text-muted-foreground hover:text-foreground'
+                ? 'bg-primary text-primary-foreground'
+                : 'card-interactive text-muted-foreground hover:text-foreground'
                 }`}
             >
               {service.charAt(0).toUpperCase() + service.slice(1)}
