@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2, Train, Clock } from 'lucide-react'
 
 const POPULAR_ROUTES = [
   {
@@ -13,6 +13,8 @@ const POPULAR_ROUTES = [
     endName: 'Downtown',
     estimatedPrice: '$45-65',
     estimatedTime: '35-50 min',
+    lineColor: 'bg-primary',
+    code: 'RL-01'
   },
   {
     id: 'stanford-apple',
@@ -23,6 +25,8 @@ const POPULAR_ROUTES = [
     endName: 'Apple',
     estimatedPrice: '$15-25',
     estimatedTime: '15-20 min',
+    lineColor: 'bg-secondary',
+    code: 'RL-02'
   },
   {
     id: 'sjc-santa-clara',
@@ -33,6 +37,8 @@ const POPULAR_ROUTES = [
     endName: 'Santa Clara',
     estimatedPrice: '$20-30',
     estimatedTime: '20-25 min',
+    lineColor: 'bg-accent',
+    code: 'RL-03'
   },
   {
     id: 'palo-alto-google',
@@ -43,6 +49,8 @@ const POPULAR_ROUTES = [
     endName: 'Google',
     estimatedPrice: '$12-18',
     estimatedTime: '10-15 min',
+    lineColor: 'bg-primary',
+    code: 'RL-04'
   },
 ]
 
@@ -54,7 +62,6 @@ interface RouteListProps {
 export default function RouteList({ onRouteSelect, processingRouteId }: RouteListProps) {
   const handleRouteClick = useCallback(
     (route: (typeof POPULAR_ROUTES)[0]) => {
-      console.log('[RouteClick]', route.pickup, '→', route.destination)
       onRouteSelect({
         pickup: route.pickup,
         destination: route.destination,
@@ -74,68 +81,110 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
   )
 
   return (
-    <section id="routes" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28">
+    <section id="routes" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28 scanline-overlay">
       {/* Subtle background */}
-      <div className="absolute inset-0 bg-diagonal-lines opacity-10" />
+      <div className="absolute inset-0 bg-dot-grid opacity-30" />
 
       <div className="relative z-10 container mx-auto px-4 max-w-5xl w-full">
-        {/* Header */}
-        <div className="mb-12">
-          <span className="text-secondary font-mono text-sm tracking-widest uppercase mb-4 block">
-            Quick Start
-          </span>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-foreground leading-[0.95]">
-            Popular Routes
-          </h2>
-          <p className="text-muted-foreground text-lg mt-4 max-w-xl">
-            Click any route to get instant price comparisons across all services.
-          </p>
+        {/* Departure Board Header */}
+        <div className="mb-12 border-b-4 border-foreground pb-4 flex items-end justify-between">
+          <div>
+            <span className="text-primary font-mono text-xs tracking-widest uppercase mb-2 block animate-pulse-dot">
+              ● LIVE STATUS
+            </span>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-normal text-foreground leading-none tracking-tight">
+              DEPARTURES
+            </h2>
+          </div>
+          <div className="hidden sm:block text-right">
+            <div className="font-mono text-sm text-muted-foreground">SYSTEM TIME</div>
+            <div className="font-mono text-xl text-foreground font-bold">
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
         </div>
 
-        {/* Routes grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {POPULAR_ROUTES.map(route => {
+        {/* Departure Board Grid */}
+        <div className="grid grid-cols-1 gap-3">
+          {/* Header Row */}
+          <div className="hidden sm:grid grid-cols-12 gap-4 px-6 py-2 text-xs font-mono text-muted-foreground uppercase tracking-wider border-b border-border/50">
+            <div className="col-span-2">Line / Code</div>
+            <div className="col-span-5">Destination</div>
+            <div className="col-span-3">Est. Time</div>
+            <div className="col-span-2 text-right">Status</div>
+          </div>
+
+          {POPULAR_ROUTES.map((route, index) => {
             const isProcessing = processingRouteId === route.id
             return (
               <button
                 key={route.id}
                 onClick={() => handleRouteClick(route)}
                 disabled={isProcessing}
-                className={`group text-left rounded-xl p-6 transition-all duration-200 ${
-                  isProcessing
-                    ? 'card-elevated border-primary/50'
-                    : 'card-interactive hover-lift'
-                }`}
+                className={`group relative overflow-hidden transition-all duration-200 w-full text-left
+                  ${isProcessing ? 'opacity-80' : 'hover:-translate-y-1'}
+                `}
+                style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Route path visualization */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-3 h-3 rounded-full bg-secondary flex-shrink-0" />
-                    <span className="font-bold text-foreground truncate">{route.shortName}</span>
-                  </div>
-                  <div className="flex-shrink-0 text-muted-foreground">
+                <div className="card-transit p-0 sm:grid sm:grid-cols-12 sm:gap-4 flex flex-col">
+                  {/* Mobile Layout */}
+                  <div className="sm:hidden p-4 border-b border-border/50 flex justify-between items-center bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-sm ${route.lineColor}`}></div>
+                      <span className="font-mono text-sm font-bold">{route.code}</span>
+                    </div>
                     {isProcessing ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-accent font-mono text-xs animate-pulse">PROCESSING</span>
                     ) : (
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <span className="text-primary font-mono text-xs">ON TIME</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-                    <span className="font-bold text-foreground truncate">{route.endName}</span>
-                    <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0" />
-                  </div>
-                </div>
 
-                {/* Price and time */}
-                <div className="flex items-center justify-between">
-                  {isProcessing ? (
-                    <span className="text-primary font-medium text-sm">Getting live prices...</span>
-                  ) : (
-                    <>
-                      <span className="text-xl font-black text-foreground">{route.estimatedPrice}</span>
-                      <span className="text-sm text-muted-foreground">{route.estimatedTime}</span>
-                    </>
-                  )}
+                  {/* Desktop Columns */}
+                  
+                  {/* Line Info */}
+                  <div className="col-span-2 p-4 sm:border-r border-border/50 flex items-center gap-3 bg-muted/10 group-hover:bg-muted/30 transition-colors">
+                    <div className={`w-1.5 h-8 rounded-sm ${route.lineColor}`}></div>
+                    <span className="font-mono text-lg text-foreground tracking-tight">{route.code}</span>
+                  </div>
+
+                  {/* Route Info */}
+                  <div className="col-span-5 p-4 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs font-mono mb-1">
+                      <span>{route.shortName}</span>
+                      <ArrowRight className="w-3 h-3" />
+                      <span>{route.endName}</span>
+                    </div>
+                    <div className="font-display text-2xl text-foreground group-hover:text-primary transition-colors">
+                      {route.displayName}
+                    </div>
+                  </div>
+
+                  {/* Time & Price */}
+                  <div className="col-span-3 p-4 flex flex-col justify-center sm:border-l border-border/50 bg-muted/5">
+                    <div className="flex items-center gap-2 text-foreground font-bold font-mono text-lg">
+                      {isProcessing ? (
+                        <span className="animate-pulse">---</span>
+                      ) : (
+                        route.estimatedPrice
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {route.estimatedTime}
+                    </div>
+                  </div>
+
+                  {/* Status Button */}
+                  <div className="col-span-2 p-4 flex items-center justify-end sm:border-l border-border/50 bg-muted/10 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
+                    {isProcessing ? (
+                      <Loader2 className="w-5 h-5 animate-spin text-accent" />
+                    ) : (
+                      <span className="font-mono text-sm font-bold tracking-wider group-hover:tracking-widest transition-all">
+                        SELECT
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             )
@@ -143,10 +192,9 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
         </div>
 
         {/* Footer note */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            Estimates based on current traffic • Actual prices may vary
-          </p>
+        <div className="mt-8 flex items-center justify-center gap-2 text-xs font-mono text-muted-foreground opacity-60">
+          <Train className="w-3 h-3" />
+          <span>CLICK ANY ROUTE FOR LIVE PRICING</span>
         </div>
       </div>
     </section>

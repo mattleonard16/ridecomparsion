@@ -11,9 +11,26 @@
   - If something isn't fully wired yet, keep the UX surface intact and stub/annotate it instead of deleting it.
 
 ## Project Structure & Module Organization
-- `app/`: Next.js App Router entry point (`layout.tsx`, `page.tsx`), feature routes under `auth/`, `dashboard/`, `demo/`, and API handlers in `api/*/route.ts` (including optional cron endpoints in `api/cron/*/route.ts`).
+- `app/`: Next.js App Router entry point (`layout.tsx`, `page.tsx`), feature routes under `dashboard/` and `demo/`.
+  - **API Routes** (`app/api/`):
+    - `compare-rides/route.ts` – Main ride comparison endpoint (GET/POST with rate limiting, CORS, reCAPTCHA).
+    - `auth/[...nextauth]/route.ts` – NextAuth.js authentication handler.
+    - `health/route.ts` – Health check endpoint for monitoring.
+    - `cron/weather/route.ts` – Optional weather data cron job (requires `OPENWEATHER_API_KEY`).
+- `auth.ts`: Root-level NextAuth configuration (providers, callbacks, session handling).
 - `components/`: Shared UI, forms, and map widgets; prefer reusing primitives in `components/ui/`.
-- `lib/` and `types/`: Utility helpers, API clients, and shared TypeScript contracts. ETL jobs live in `lib/etl/` (e.g., `weather-cron.ts` for the weather cron endpoint).
+- `lib/`: Utility helpers, API clients, and service layer:
+  - `services/ride-comparison.ts` – Core comparison logic, geocoding, route metrics via OSRM/Nominatim.
+  - `pricing.ts` – `PricingEngine` class for fare calculation with surge, traffic, and location modifiers.
+  - `rate-limiter.ts` – Redis-backed rate limiting with `withRateLimit()` middleware wrapper.
+  - `cors.ts` – CORS middleware with `withCors()` wrapper for API routes.
+  - `recaptcha.ts` – Google reCAPTCHA v3 verification.
+  - `validation.ts` – Zod schemas and input sanitization utilities.
+  - `supabase.ts` – Database operations (routes, price snapshots, search logging).
+  - `popular-routes-data.ts` – Pre-computed route cache for popular origins/destinations.
+  - `airports.ts` – Airport coordinates lookup and detection.
+  - `etl/weather-cron.ts` – Weather data fetching for the cron endpoint.
+- `types/`: Shared TypeScript contracts (`index.ts`, `supabase.ts`).
 - `prisma/`: `schema.prisma` and migration history; generates the Prisma Client consumed via `@/auth` and data services.
 - `scripts/`: Operational tasks such as `fetch-quotes.ts`, `seed.ts`, and `create-test-user.ts`; run with `tsx scripts/<script-name>.ts`.
 - `__tests__/`: Jest + React Testing Library specs with fixtures in `__tests__/fixtures/`; assets live in `public/`.
@@ -49,7 +66,6 @@
 - Copy env keys from `ENV_EXAMPLE.md` into `.env.local` (local) or `.env` (Docker); never commit secrets.
 - Use `SETUP_SUPABASE.md` and `SECURITY.md` for data-handling expectations; rotate credentials after sharing and prefer Supabase/NextAuth secrets via env.
 - Clear sensitive console output/logs before committing and avoid embedding API tokens in test fixtures.
-- **Cron jobs (optional)**: Cron endpoints exist but are opt-in and require manual setup:
-  - Weather job: `app/api/cron/weather/route.ts` uses `lib/etl/weather-cron.ts`; ready for Vercel Cron but requires `OPENWEATHER_API_KEY` and `CRON_SECRET` env vars.
-  - Events endpoint: `app/api/cron/events/route.ts` is a mock placeholder until a real events API is integrated.
-  - No schedules are committed (`vercel.json` is empty); to enable in production, add Vercel Cron configuration and required env vars.
+- **Cron jobs (optional)**: The weather cron endpoint is opt-in and requires manual setup:
+  - `app/api/cron/weather/route.ts` uses `lib/etl/weather-cron.ts`; ready for Vercel Cron but requires `OPENWEATHER_API_KEY` and `CRON_SECRET` env vars.
+  - `vercel.json` is intentionally empty; to enable cron in production, add a `crons` array with the desired schedule (e.g., `{ "path": "/api/cron/weather", "schedule": "0 * * * *" }`) and deploy with the required env vars.

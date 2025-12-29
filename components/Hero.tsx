@@ -1,17 +1,17 @@
 'use client'
 
 import { UserMenu } from '@/components/user-menu'
-import { MapPin, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 export default function Hero() {
   return (
-    <section id="home" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-32">
-      {/* Subtle diagonal lines background - more distinctive than orbs */}
-      <div className="absolute inset-0 bg-diagonal-lines opacity-30" />
-      
-      {/* Route-inspired accent line */}
-      <div className="absolute left-0 top-1/4 w-1 h-32 bg-gradient-to-b from-transparent via-primary to-transparent" />
-      <div className="absolute right-0 bottom-1/4 w-1 h-32 bg-gradient-to-b from-transparent via-secondary to-transparent" />
+    <section id="home" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-32 scanline-overlay">
+      {/* Dot Grid Background */}
+      <div className="absolute inset-0 bg-dot-grid opacity-40" />
+
+      {/* Platform Stripes Top/Bottom */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-platform-stripe opacity-50" />
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-platform-stripe opacity-50" />
 
       {/* User menu */}
       <div className="absolute top-4 right-4 z-10">
@@ -21,94 +21,85 @@ export default function Hero() {
       <div className="relative z-10 container mx-auto px-4 max-w-5xl w-full">
         <div className="text-center">
           <div className="animate-fade-in-up">
-            {/* Small eyebrow text */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card mb-8">
-              <span className="w-2 h-2 bg-secondary rounded-full animate-pulse-subtle"></span>
-              <span className="text-sm text-muted-foreground font-medium">Bay Area Rideshare Comparison</span>
+            {/* Transit Status Indicator */}
+            <div className="inline-flex items-center gap-3 px-3 py-1 mb-8 border border-border bg-card shadow-sm">
+              <span className="w-2 h-2 bg-accent rounded-full animate-pulse-dot"></span>
+              <span className="font-mono text-xs tracking-wider text-muted-foreground uppercase">System Operational</span>
+              <div className="w-px h-3 bg-border"></div>
+              <span className="font-mono text-xs tracking-wider text-primary">SF • OAK • SJC</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 leading-[0.9] tracking-tight">
-              <span className="text-foreground">Stop</span>
-              <br />
-              <span className="text-accent-gradient">Overpaying</span>
-              <br />
-              <span className="text-foreground">for Rides</span>
+            <h1 className="text-6xl sm:text-7xl md:text-9xl font-display font-normal mb-6 leading-[0.85] tracking-tight uppercase text-foreground">
+              <span className="block animate-slide-in-right delay-100">Ride</span>
+              <span className="block text-primary animate-slide-in-right delay-200">Compare</span>
+              <span className="block text-4xl sm:text-5xl md:text-6xl mt-2 font-sans font-light tracking-wide text-muted-foreground animate-slide-in-right delay-300 normal-case">
+                Better rides. Better prices.
+              </span>
             </h1>
           </div>
 
-          <div className="animate-fade-in-up animation-delay-200">
-            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto font-normal leading-relaxed">
-              Real-time price comparison across{' '}
-              <span className="text-foreground font-semibold">Uber, Lyft & Taxi</span>.
-              <br className="hidden sm:block" />
-              Find the best deal in seconds.
+          <div className="animate-fade-in-up delay-200">
+            <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-xl mx-auto font-mono leading-relaxed">
+              [SYSTEM_MSG]: Comparing real-time fares across<br />
+              Uber, Lyft & Taxi networks.
             </p>
           </div>
 
-          {/* CTA Button */}
-          <div className="animate-fade-in-up animation-delay-200 mb-16">
-            <a 
+          {/* Departure Board CTA */}
+          <div className="animate-fade-in-up delay-300 mb-20">
+            <a
               href="#compare"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-lg font-bold text-lg hover-lift transition-all"
+              className="group relative inline-flex items-center justify-between gap-6 pl-6 pr-4 py-4 bg-foreground text-background font-mono text-lg hover-mechanical overflow-hidden"
             >
-              Compare Prices Now
-              <ArrowRight className="w-5 h-5" />
+              <div className="absolute inset-0 w-1 bg-accent"></div>
+              <span className="font-bold tracking-tight">Compare Rides</span>
+              <div className="w-8 h-8 bg-background text-foreground flex items-center justify-center rounded-sm group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </a>
           </div>
 
-          {/* Service Cards - cleaner, no glassmorphism */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6">
-            {/* Uber */}
-            <div className="card-interactive rounded-xl p-4 flex items-center gap-4 min-w-[160px] hover-lift">
-              <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center">
-                <span className="text-white font-black text-xl">U</span>
-              </div>
-              <div className="text-left">
-                <span className="text-foreground font-bold block">Uber</span>
-                <span className="text-muted-foreground text-sm">UberX, XL, Black</span>
+          {/* Route Line Indicators */}
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+            {/* Uber Line */}
+            <div className="card-transit p-0 flex items-center min-w-[180px] group cursor-default">
+              <div className="w-2 h-full min-h-[60px] bg-black group-hover:bg-primary transition-colors"></div>
+              <div className="p-4 flex-1 text-left">
+                <div className="font-display text-2xl leading-none mb-1">UBER</div>
+                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Line Active</div>
               </div>
             </div>
 
-            {/* Lyft */}
-            <div className="card-interactive rounded-xl p-4 flex items-center gap-4 min-w-[160px] hover-lift">
-              <div className="w-12 h-12 bg-pink-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-black text-xl">L</span>
-              </div>
-              <div className="text-left">
-                <span className="text-foreground font-bold block">Lyft</span>
-                <span className="text-muted-foreground text-sm">Standard, XL, Lux</span>
+            {/* Lyft Line */}
+            <div className="card-transit p-0 flex items-center min-w-[180px] group cursor-default">
+              <div className="w-2 h-full min-h-[60px] bg-pink-600 group-hover:bg-primary transition-colors"></div>
+              <div className="p-4 flex-1 text-left">
+                <div className="font-display text-2xl leading-none mb-1">LYFT</div>
+                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Line Active</div>
               </div>
             </div>
 
-            {/* Taxi */}
-            <div className="card-interactive rounded-xl p-4 flex items-center gap-4 min-w-[160px] hover-lift">
-              <div className="w-12 h-12 bg-amber-500 rounded-lg flex items-center justify-center">
-                <span className="text-black font-black text-xl">T</span>
-              </div>
-              <div className="text-left">
-                <span className="text-foreground font-bold block">Taxi</span>
-                <span className="text-muted-foreground text-sm">Yellow Cab</span>
+            {/* Taxi Line */}
+            <div className="card-transit p-0 flex items-center min-w-[180px] group cursor-default">
+              <div className="w-2 h-full min-h-[60px] bg-amber-500 group-hover:bg-primary transition-colors"></div>
+              <div className="p-4 flex-1 text-left">
+                <div className="font-display text-2xl leading-none mb-1">TAXI</div>
+                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Line Active</div>
               </div>
             </div>
           </div>
 
-          {/* Stats row */}
-          <div className="mt-16 pt-8 border-t border-border">
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-8 sm:gap-16 text-center">
-              <div>
-                <div className="text-3xl font-black text-foreground">40%</div>
-                <div className="text-sm text-muted-foreground">Average Savings</div>
-              </div>
-              <div className="hidden sm:block w-px h-12 bg-border"></div>
-              <div>
-                <div className="text-3xl font-black text-foreground">3</div>
-                <div className="text-sm text-muted-foreground">Services Compared</div>
-              </div>
-              <div className="hidden sm:block w-px h-12 bg-border"></div>
-              <div>
-                <div className="text-3xl font-black text-foreground">&lt;2s</div>
-                <div className="text-sm text-muted-foreground">Response Time</div>
-              </div>
+          {/* Ticker Stats */}
+          <div className="mt-20 border-y border-border bg-card overflow-hidden py-3">
+            <div className="flex animate-ticker whitespace-nowrap">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center gap-12 mx-6">
+                  <span className="font-mono text-sm text-muted-foreground">AVG_SAVINGS: <span className="text-foreground font-bold">40%</span></span>
+                  <span className="font-mono text-sm text-muted-foreground">NETWORKS: <span className="text-foreground font-bold">3</span></span>
+                  <span className="font-mono text-sm text-muted-foreground">LATENCY: <span className="text-foreground font-bold">&lt;200ms</span></span>
+                  <span className="text-accent">●</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

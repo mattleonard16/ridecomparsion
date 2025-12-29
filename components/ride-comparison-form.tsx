@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MapPin, Navigation2, Loader2, Locate, Shield, Plane } from 'lucide-react'
+import { MapPin, Loader2, Locate, Shield, Plane, ArrowRight } from 'lucide-react'
 import RideComparisonResults from './ride-comparison-results'
 import RouteMap from './RouteMap'
 import RouteHeader from './route-header'
@@ -177,35 +177,35 @@ export default function RideComparisonForm({
 }: RideComparisonFormProps) {
   // reCAPTCHA integration
   const { executeRecaptcha, isLoaded: isRecaptchaLoaded, error: recaptchaError } = useRecaptcha()
-  
+
   // Form state
   const [pickup, setPickup] = useState('')
   const [destination, setDestination] = useState('')
   const [showForm, setShowForm] = useState(true)
-  
+
   // Loading states
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [isLoadingDestSuggestions, setIsLoadingDestSuggestions] = useState(false)
   const [isGettingLocation, setIsGettingLocation] = useState(false)
-  
+
   // Results state
   const [results, setResults] = useState<RideResults | null>(null)
   const [insights, setInsights] = useState('')
   const [error, setError] = useState('')
   const [surgeInfo, setSurgeInfo] = useState<SurgeInfo | null>(null)
   const [timeRecommendations, setTimeRecommendations] = useState<string[]>([])
-  
+
   // Location state
   const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null)
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null)
-  
+
   // Autocomplete suggestions
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
   const [destinationSuggestions, setDestinationSuggestions] = useState<LocationSuggestion[]>([])
   const [showPickupSuggestions, setShowPickupSuggestions] = useState(false)
   const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false)
-  
+
   // Airport selector state
   const [showAirportSelector, setShowAirportSelector] = useState(false)
   const [airportSelectorMode, setAirportSelectorMode] = useState<'pickup' | 'destination'>('pickup')
@@ -214,7 +214,7 @@ export default function RideComparisonForm({
   const destinationRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<NodeJS.Timeout>()
   const destDebounceTimeoutRef = useRef<NodeJS.Timeout>()
-  
+
   // Request deduplication - track in-flight request to prevent duplicate submissions
   const currentRequestRef = useRef<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -222,7 +222,6 @@ export default function RideComparisonForm({
   // Handle popular route selection
   useEffect(() => {
     if (selectedRoute) {
-      console.log('[AutoSubmit] detected', selectedRoute)
       setPickup(selectedRoute.pickup)
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
@@ -240,23 +239,21 @@ export default function RideComparisonForm({
       const submitForm = async () => {
         // Request deduplication for auto-submit
         const requestKey = `${selectedRoute.pickup}-${selectedRoute.destination}`
-        
+
         // If this exact request is already in flight, ignore
-        if (currentRequestRef.current === requestKey && isLoading) {
-          console.log('[AutoSubmit] Duplicate request ignored:', requestKey)
+        if (currentRequestRef.current === requestKey) {
           return
         }
-        
+
         // Abort any previous request
         if (abortControllerRef.current) {
           abortControllerRef.current.abort()
         }
-        
+
         const abortController = new AbortController()
         abortControllerRef.current = abortController
         currentRequestRef.current = requestKey
-        
-        console.log('[AutoSubmit] Starting fetch...')
+
         setIsLoading(true)
         setResults(null)
         setInsights('')
@@ -281,12 +278,11 @@ export default function RideComparisonForm({
             signal: abortController.signal,
           }).catch(error => {
             if (error.name === 'AbortError') {
-              console.log('[AutoSubmit] Request aborted:', requestKey)
               return null
             }
             throw error
           })
-          
+
           // If request was aborted, exit early
           if (!response) return
 
@@ -298,7 +294,6 @@ export default function RideComparisonForm({
             return
           }
 
-          console.log('[AutoSubmit] Success, displaying results')
           setResults(data.comparisons)
           setInsights(data.insights)
           setPickupCoords(data.pickupCoords)
@@ -569,26 +564,25 @@ export default function RideComparisonForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Request deduplication - create a unique key for this request
     const requestKey = `${pickup}-${destination}`
-    
+
     // If this exact request is already in flight, ignore the duplicate
     if (currentRequestRef.current === requestKey && isLoading) {
-      console.log('[Submit] Duplicate request ignored:', requestKey)
       return
     }
-    
+
     // Abort any previous in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-    
+
     // Create new abort controller for this request
     const abortController = new AbortController()
     abortControllerRef.current = abortController
     currentRequestRef.current = requestKey
-    
+
     setIsLoading(true)
     setResults(null)
     setInsights('')
@@ -623,13 +617,12 @@ export default function RideComparisonForm({
       }).catch(error => {
         // Don't throw on abort
         if (error.name === 'AbortError') {
-          console.log('[Submit] Request aborted:', requestKey)
           return null
         }
         console.error('Fetch error:', error)
         throw new Error('Network error')
       })
-      
+
       // If request was aborted, exit early
       if (!response) return
 
@@ -785,35 +778,36 @@ export default function RideComparisonForm({
 
       {showForm && (
         <div className="transition-all duration-300">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-2 relative" ref={pickupRef}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <MapPin className="h-5 w-5 text-muted-foreground mr-2" />
-                  <label htmlFor="pickup" className="font-semibold text-foreground">
-                    Pickup Location
+                  <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 animate-pulse-dot"></span>
+                  <label htmlFor="pickup" className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Origin Station
                   </label>
                 </div>
                 <button
                   type="button"
                   onClick={handleUseMyLocation}
                   disabled={isGettingLocation}
-                  className="flex items-center text-sm text-secondary hover:text-secondary/80 disabled:opacity-50 touch-none select-none transition-colors"
+                  className="flex items-center text-xs font-mono text-primary hover:text-primary/80 disabled:opacity-50 touch-none select-none transition-colors uppercase tracking-wide"
                   title="Use my current location"
                 >
                   {isGettingLocation ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
                   ) : (
-                    <Locate className="h-4 w-4 mr-1" />
+                    <Locate className="h-3 w-3 mr-1" />
                   )}
-                  <span className="hidden sm:inline">Use Location</span>
+                  <span className="hidden sm:inline">Locate Me</span>
                   <span className="sm:hidden">📍</span>
                 </button>
               </div>
-              <div className="relative">
+              <div className="relative group">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary transform scale-y-0 group-focus-within:scale-y-100 transition-transform duration-200"></div>
                 <input
                   id="pickup"
-                  placeholder="Enter pickup location (e.g., Santa Clara University, Cupertino)"
+                  placeholder="ENTER PICKUP LOCATION"
                   value={pickup}
                   onChange={handlePickupChange}
                   onFocus={() => {
@@ -826,7 +820,7 @@ export default function RideComparisonForm({
                       }
                     }
                   }}
-                  className="w-full px-4 py-4 pr-12 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
+                  className="w-full px-4 py-5 pl-6 bg-muted/30 border-b-2 border-border text-foreground placeholder-muted-foreground/50 focus:border-primary focus:bg-muted/50 transition-all duration-200 outline-none text-lg font-mono tracking-tight rounded-t-sm"
                   required
                 />
                 {/* Mobile-friendly clear button */}
@@ -834,33 +828,37 @@ export default function RideComparisonForm({
                   <button
                     type="button"
                     onClick={() => setPickup('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation font-mono text-xs"
                   >
-                    ✕
+                    [CLR]
                   </button>
                 )}
               </div>
 
               {/* Pickup Suggestions Dropdown */}
               {showPickupSuggestions && (
-                <div className="absolute z-10 w-full card-elevated rounded-lg max-h-60 overflow-y-auto mt-2">
+                <div className="absolute z-10 w-full card-transit mt-1 max-h-60 overflow-y-auto">
                   {isLoadingSuggestions ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                      Loading suggestions...
+                    <div className="p-4 text-center text-muted-foreground font-mono text-xs">
+                      <span className="animate-pulse">SEARCHING_DATABASE...</span>
                     </div>
                   ) : (
                     suggestions.map((suggestion, index) => (
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="p-4 hover:bg-muted cursor-pointer border-b border-border last:border-b-0 transition-colors"
+                        className="p-3 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0 transition-colors group"
                       >
-                        <div className="font-semibold text-sm text-foreground">
-                          {suggestion.name || suggestion.display_name.split(',')[0]}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate mt-1">
-                          {suggestion.display_name}
+                        <div className="flex items-center gap-2">
+                          <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">▶</span>
+                          <div>
+                            <div className="font-bold text-sm text-foreground font-mono uppercase tracking-tight">
+                              {suggestion.name || suggestion.display_name.split(',')[0]}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate font-mono mt-0.5 uppercase">
+                              {suggestion.display_name}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -870,23 +868,23 @@ export default function RideComparisonForm({
             </div>
 
             {/* Airport Quick Select for Pickup */}
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-start border-l-2 border-border pl-4 ml-1">
               <button
                 type="button"
                 onClick={() => openAirportSelector('pickup')}
-                className="flex items-center px-5 py-2.5 text-sm text-secondary hover:text-secondary/80 hover:bg-secondary/10 rounded-lg transition-all duration-200 border border-secondary/20 hover:border-secondary/40"
+                className="flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors group"
               >
-                <Plane className="h-4 w-4 mr-2" />
-                Select Airport for Pickup
+                <Plane className="h-3 w-3 mr-2 group-hover:-translate-y-0.5 transition-transform" />
+                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-primary">QUICK_SELECT_AIRPORT</span>
               </button>
             </div>
 
             <div className="space-y-2 relative" ref={destinationRef}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Navigation2 className="h-5 w-5 text-muted-foreground mr-2" />
-                  <label htmlFor="destination" className="font-semibold text-foreground">
-                    Destination
+                  <span className="w-1.5 h-1.5 bg-secondary rounded-full mr-2 animate-pulse-dot"></span>
+                  <label htmlFor="destination" className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    Destination Station
                   </label>
                 </div>
                 <button
@@ -902,18 +900,19 @@ export default function RideComparisonForm({
                       navigator.vibrate(30)
                     }
                   }}
-                  className="flex items-center text-sm text-secondary hover:text-secondary/80 touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center text-xs font-mono text-muted-foreground hover:text-foreground touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
                   title="Swap pickup and destination"
                   disabled={!pickup || !destination}
                 >
-                  <span className="text-lg">↕</span>
-                  <span className="hidden sm:inline ml-1">Swap</span>
+                  <span className="text-sm mr-1">⇅</span>
+                  <span className="hidden sm:inline">Reverse Route</span>
                 </button>
               </div>
-              <div className="relative">
+              <div className="relative group">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary transform scale-y-0 group-focus-within:scale-y-100 transition-transform duration-200"></div>
                 <input
                   id="destination"
-                  placeholder="Enter destination (e.g., San Jose Airport, SFO)"
+                  placeholder="ENTER DESTINATION"
                   value={destination}
                   onChange={handleDestinationChange}
                   onFocus={() => {
@@ -926,7 +925,7 @@ export default function RideComparisonForm({
                       }
                     }
                   }}
-                  className="w-full px-4 py-4 pr-12 bg-muted border border-border rounded-lg text-foreground placeholder-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
+                  className="w-full px-4 py-5 pl-6 bg-muted/30 border-b-2 border-border text-foreground placeholder-muted-foreground/50 focus:border-secondary focus:bg-muted/50 transition-all duration-200 outline-none text-lg font-mono tracking-tight rounded-t-sm"
                   required
                 />
                 {/* Mobile-friendly clear button */}
@@ -934,33 +933,37 @@ export default function RideComparisonForm({
                   <button
                     type="button"
                     onClick={() => setDestination('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation font-mono text-xs"
                   >
-                    ✕
+                    [CLR]
                   </button>
                 )}
               </div>
 
               {/* Destination Suggestions Dropdown */}
               {showDestinationSuggestions && (
-                <div className="absolute z-10 w-full card-elevated rounded-lg max-h-60 overflow-y-auto mt-2">
+                <div className="absolute z-10 w-full card-transit mt-1 max-h-60 overflow-y-auto">
                   {isLoadingDestSuggestions ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
-                      Loading suggestions...
+                    <div className="p-4 text-center text-muted-foreground font-mono text-xs">
+                      <span className="animate-pulse">SEARCHING_DATABASE...</span>
                     </div>
                   ) : (
                     destinationSuggestions.map((suggestion, index) => (
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleDestinationSuggestionClick(suggestion)}
-                        className="p-4 hover:bg-muted cursor-pointer border-b border-border last:border-b-0 transition-colors"
+                        className="p-3 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0 transition-colors group"
                       >
-                        <div className="font-semibold text-sm text-foreground">
-                          {suggestion.name || suggestion.display_name.split(',')[0]}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate mt-1">
-                          {suggestion.display_name}
+                        <div className="flex items-center gap-2">
+                          <span className="text-secondary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">▶</span>
+                          <div>
+                            <div className="font-bold text-sm text-foreground font-mono uppercase tracking-tight">
+                              {suggestion.name || suggestion.display_name.split(',')[0]}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate font-mono mt-0.5 uppercase">
+                              {suggestion.display_name}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -970,20 +973,20 @@ export default function RideComparisonForm({
             </div>
 
             {/* Airport Quick Select for Destination */}
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-start border-l-2 border-border pl-4 ml-1">
               <button
                 type="button"
                 onClick={() => openAirportSelector('destination')}
-                className="flex items-center px-5 py-2.5 text-sm text-secondary hover:text-secondary/80 hover:bg-secondary/10 rounded-lg transition-all duration-200 border border-secondary/20 hover:border-secondary/40"
+                className="flex items-center text-xs font-mono text-muted-foreground hover:text-secondary transition-colors group"
               >
-                <Plane className="h-4 w-4 mr-2" />
-                Select Airport for Destination
+                <Plane className="h-3 w-3 mr-2 group-hover:-translate-y-0.5 transition-transform" />
+                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-secondary">QUICK_SELECT_AIRPORT</span>
               </button>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-5 px-6 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-lg font-bold touch-manipulation hover-lift"
+              className="group relative w-full bg-foreground text-background py-5 px-6 overflow-hidden transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover-mechanical"
               disabled={isLoading}
               onTouchStart={() => {
                 if (navigator.vibrate) {
@@ -991,13 +994,18 @@ export default function RideComparisonForm({
                 }
               }}
             >
+              <div className="absolute top-0 left-0 w-full h-1 bg-accent"></div>
+              <div className="absolute bottom-0 right-0 w-4 h-4 bg-accent opacity-0 group-hover:opacity-100 transition-opacity clip-path-triangle"></div>
+
               {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Finding rides...
+                <div className="flex items-center justify-center font-mono font-bold tracking-widest text-sm">
+                  <span className="animate-pulse">CALCULATING_FARES...</span>
                 </div>
               ) : (
-                'Compare Prices'
+                <div className="flex items-center justify-between font-mono font-bold tracking-widest text-lg">
+                  <span>Compare Rides</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </div>
               )}
             </button>
 
@@ -1117,6 +1125,8 @@ export default function RideComparisonForm({
             timeRecommendations={timeRecommendations}
             pickup={pickup}
             destination={destination}
+            pickupCoords={pickupCoords}
+            destinationCoords={destinationCoords}
           />
         )}
       </section>
