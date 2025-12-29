@@ -31,6 +31,8 @@ type RideComparisonResultsProps = {
   timeRecommendations?: string[]
   pickup?: string
   destination?: string
+  pickupCoords?: [number, number] | null
+  destinationCoords?: [number, number] | null
 }
 
 export default memo(function RideComparisonResults({
@@ -40,26 +42,33 @@ export default memo(function RideComparisonResults({
   timeRecommendations = [],
   pickup = '',
   destination = '',
+  pickupCoords = null,
+  destinationCoords = null,
 }: RideComparisonResultsProps) {
   const { user } = useAuth()
   const [showPriceAlert, setShowPriceAlert] = useState(false)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [routeSaved, setRouteSaved] = useState(false)
 
-  const getBookingUrl = (
-    serviceName: string,
-    pickupCoords?: [number, number],
-    destCoords?: [number, number]
-  ) => {
+  const getBookingUrl = (serviceName: string) => {
+    // Coordinates are [longitude, latitude] format from geocoding
+    const pickupLat = pickupCoords ? pickupCoords[1] : null
+    const pickupLng = pickupCoords ? pickupCoords[0] : null
+    const destLat = destinationCoords ? destinationCoords[1] : null
+    const destLng = destinationCoords ? destinationCoords[0] : null
+
+    const pickupName = pickup ? encodeURIComponent(pickup.split(',')[0]) : ''
+    const destName = destination ? encodeURIComponent(destination.split(',')[0]) : ''
+
     switch (serviceName.toLowerCase()) {
       case 'uber':
-        if (pickupCoords && destCoords) {
-          return `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${pickupCoords[1]}&pickup[longitude]=${pickupCoords[0]}&dropoff[latitude]=${destCoords[1]}&dropoff[longitude]=${destCoords[0]}`
+        if (pickupLat && pickupLng && destLat && destLng) {
+          return `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${pickupLat}&pickup[longitude]=${pickupLng}&pickup[nickname]=${pickupName}&dropoff[latitude]=${destLat}&dropoff[longitude]=${destLng}&dropoff[nickname]=${destName}`
         }
         return 'https://m.uber.com/looking'
       case 'lyft':
-        if (pickupCoords && destCoords) {
-          return `https://lyft.com/ride?origin=${pickupCoords[1]},${pickupCoords[0]}&destination=${destCoords[1]},${destCoords[0]}`
+        if (pickupLat && pickupLng && destLat && destLng) {
+          return `https://lyft.com/ride?pickup[latitude]=${pickupLat}&pickup[longitude]=${pickupLng}&destination[latitude]=${destLat}&destination[longitude]=${destLng}`
         }
         return 'https://www.lyft.com/'
       default:
@@ -70,6 +79,8 @@ export default memo(function RideComparisonResults({
   const handleBooking = (serviceName: string) => {
     const url = getBookingUrl(serviceName)
     if (url !== '#') {
+      // For mobile, try to open directly (which may open the app)
+      // For desktop, open in new tab
       window.open(url, '_blank', 'noopener,noreferrer')
     }
   }
@@ -218,11 +229,10 @@ export default memo(function RideComparisonResults({
         <div className="flex gap-2">
           <button
             onClick={handleSaveRoute}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
-              routeSaved
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${routeSaved
                 ? 'bg-secondary/20 border-secondary/50 text-secondary'
                 : 'card-interactive text-muted-foreground hover:text-foreground'
-            }`}
+              }`}
             title={user ? 'Save this route' : 'Sign in to save routes'}
           >
             <Bookmark className={`h-4 w-4 ${routeSaved ? 'fill-current' : ''}`} />
@@ -306,7 +316,7 @@ export default memo(function RideComparisonResults({
 
             {/* Service Header - Top Bar */}
             <div className={`${service.bgColor} p-0 h-2 w-full`}></div>
-            
+
             <div className="p-5">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -332,9 +342,8 @@ export default memo(function RideComparisonResults({
               <div className="mb-6 pb-6 border-b border-border border-dashed">
                 <div className="flex items-baseline justify-between">
                   <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Estimated Fare</span>
-                  <div className={`text-4xl font-mono font-bold tracking-tight ${
-                    service.name === bestPrice.name ? 'text-primary' : 'text-foreground'
-                  }`}>
+                  <div className={`text-4xl font-mono font-bold tracking-tight ${service.name === bestPrice.name ? 'text-primary' : 'text-foreground'
+                    }`}>
                     {service.data.price}
                   </div>
                 </div>
@@ -344,9 +353,8 @@ export default memo(function RideComparisonResults({
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-muted/20 p-3 border border-border/50">
                   <div className="text-[10px] font-mono text-muted-foreground uppercase mb-1 tracking-wider">Wait Time</div>
-                  <div className={`text-xl font-bold font-mono ${
-                    service.name === bestWaitTime.name ? 'text-secondary' : 'text-foreground'
-                  }`}>
+                  <div className={`text-xl font-bold font-mono ${service.name === bestWaitTime.name ? 'text-secondary' : 'text-foreground'
+                    }`}>
                     {service.data.waitTime}
                   </div>
                 </div>
@@ -370,7 +378,7 @@ export default memo(function RideComparisonResults({
                   disabled={service.name === 'Taxi'}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {service.name === 'Taxi' ? `CALL DISPATCH` : `CONFIRM BOOKING`}
+                    {service.name === 'Taxi' ? `CALL DISPATCH` : `Book with ${service.name}`}
                     {service.name !== 'Taxi' && <span className="text-xs">→</span>}
                   </span>
                 </button>

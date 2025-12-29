@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MapPin, Navigation2, Loader2, Locate, Shield, Plane, ArrowRight } from 'lucide-react'
+import { MapPin, Loader2, Locate, Shield, Plane, ArrowRight } from 'lucide-react'
 import RideComparisonResults from './ride-comparison-results'
 import RouteMap from './RouteMap'
 import RouteHeader from './route-header'
@@ -222,7 +222,6 @@ export default function RideComparisonForm({
   // Handle popular route selection
   useEffect(() => {
     if (selectedRoute) {
-      console.log('[AutoSubmit] detected', selectedRoute)
       setPickup(selectedRoute.pickup)
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
@@ -242,8 +241,7 @@ export default function RideComparisonForm({
         const requestKey = `${selectedRoute.pickup}-${selectedRoute.destination}`
 
         // If this exact request is already in flight, ignore
-        if (currentRequestRef.current === requestKey && isLoading) {
-          console.log('[AutoSubmit] Duplicate request ignored:', requestKey)
+        if (currentRequestRef.current === requestKey) {
           return
         }
 
@@ -256,7 +254,6 @@ export default function RideComparisonForm({
         abortControllerRef.current = abortController
         currentRequestRef.current = requestKey
 
-        console.log('[AutoSubmit] Starting fetch...')
         setIsLoading(true)
         setResults(null)
         setInsights('')
@@ -281,7 +278,6 @@ export default function RideComparisonForm({
             signal: abortController.signal,
           }).catch(error => {
             if (error.name === 'AbortError') {
-              console.log('[AutoSubmit] Request aborted:', requestKey)
               return null
             }
             throw error
@@ -298,7 +294,6 @@ export default function RideComparisonForm({
             return
           }
 
-          console.log('[AutoSubmit] Success, displaying results')
           setResults(data.comparisons)
           setInsights(data.insights)
           setPickupCoords(data.pickupCoords)
@@ -575,7 +570,6 @@ export default function RideComparisonForm({
 
     // If this exact request is already in flight, ignore the duplicate
     if (currentRequestRef.current === requestKey && isLoading) {
-      console.log('[Submit] Duplicate request ignored:', requestKey)
       return
     }
 
@@ -623,7 +617,6 @@ export default function RideComparisonForm({
       }).catch(error => {
         // Don't throw on abort
         if (error.name === 'AbortError') {
-          console.log('[Submit] Request aborted:', requestKey)
           return null
         }
         console.error('Fetch error:', error)
@@ -1132,6 +1125,8 @@ export default function RideComparisonForm({
             timeRecommendations={timeRecommendations}
             pickup={pickup}
             destination={destination}
+            pickupCoords={pickupCoords}
+            destinationCoords={destinationCoords}
           />
         )}
       </section>

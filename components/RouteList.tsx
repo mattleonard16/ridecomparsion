@@ -62,7 +62,6 @@ interface RouteListProps {
 export default function RouteList({ onRouteSelect, processingRouteId }: RouteListProps) {
   const handleRouteClick = useCallback(
     (route: (typeof POPULAR_ROUTES)[0]) => {
-      console.log('[RouteClick]', route.pickup, '→', route.destination)
       onRouteSelect({
         pickup: route.pickup,
         destination: route.destination,

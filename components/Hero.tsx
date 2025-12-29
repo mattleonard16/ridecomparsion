@@ -1,7 +1,7 @@
 'use client'
 
 import { UserMenu } from '@/components/user-menu'
-import { MapPin, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 export default function Hero() {
   return (

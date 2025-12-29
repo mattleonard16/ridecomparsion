@@ -14,12 +14,9 @@ import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 
 async function handleGet(request: NextRequest) {
   try {
-    console.log('[CompareAPI GET] Request received')
     const { searchParams } = new URL(request.url)
     const pickup = searchParams.get('pickup')
     const destination = searchParams.get('destination')
-
-    console.log('[CompareAPI GET] Params:', { pickup, destination })
 
     if (!pickup || !destination) {
       console.error('[CompareAPI GET] Missing params')
@@ -28,7 +25,6 @@ async function handleGet(request: NextRequest) {
 
     const isPrecomputedRoute = !!findPrecomputedRouteByAddresses(pickup, destination)
 
-    console.log('[CompareAPI GET] Calling compareRidesByAddresses')
     const comparisons = await compareRidesByAddresses(
       pickup,
       destination,
@@ -50,7 +46,6 @@ async function handleGet(request: NextRequest) {
       ? 'private, max-age=300, stale-while-revalidate=1800'
       : 'private, max-age=30, stale-while-revalidate=120'
 
-    console.log('[CompareAPI GET] Success, returning data')
     return NextResponse.json(
       {
         comparisons: comparisons.results,
@@ -109,12 +104,8 @@ async function handlePost(request: NextRequest) {
           console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
         }
       } else {
-        console.log(
-          `reCAPTCHA verified: score ${recaptchaResult.score}, action ${recaptchaResult.action}`
-        )
       }
     } else if (isPrecomputedRoute) {
-      console.log('[CompareAPI] Skipping reCAPTCHA for pre-computed route')
     }
 
     let requestData

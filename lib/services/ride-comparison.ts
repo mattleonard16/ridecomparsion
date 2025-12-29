@@ -57,7 +57,6 @@ export async function compareRidesByAddresses(
     persist?: boolean
   }
 ): Promise<ComparisonComputation | null> {
-  const startTime = Date.now()
   const sanitizedPickup = sanitizeString(pickupAddress)
   const sanitizedDestination = sanitizeString(destinationAddress)
 
@@ -66,7 +65,6 @@ export async function compareRidesByAddresses(
   const now = Date.now()
 
   if (cached && cached.expiresAt > now) {
-    console.log(`[CompareAPI] Cache hit for ${cacheKey} - ${Date.now() - startTime}ms`)
     return cached.value
   }
 
@@ -76,11 +74,9 @@ export async function compareRidesByAddresses(
   let destinationCoords: Coordinates | null
 
   if (precomputedRoute) {
-    console.log(`[CompareAPI] Using pre-computed route data for ${sanitizedPickup} → ${sanitizedDestination}`)
     pickupCoords = precomputedRoute.pickup.coordinates
     destinationCoords = precomputedRoute.destination.coordinates
   } else {
-    console.log(`[CompareAPI] Starting comparison for ${sanitizedPickup} → ${sanitizedDestination}`)
     pickupCoords = await geocodeWithCache(sanitizedPickup)
     destinationCoords = await geocodeWithCache(sanitizedDestination)
   }
@@ -110,7 +106,6 @@ export async function compareRidesByAddresses(
     expiresAt: now + cacheTTL,
   })
 
-  console.log(`[CompareAPI] Total time: ${Date.now() - startTime}ms`)
   return result
 }
 
@@ -128,17 +123,14 @@ export async function compareRidesByCoordinates(
     precomputedMetrics?: RouteMetrics
   }
 ): Promise<ComparisonComputation> {
-  const startTime = Date.now()
   const normalisedServices = services.length ? services : DEFAULT_SERVICES
   const uniqueServices = Array.from(
     new Set<ServiceType>(normalisedServices.map(service => service.toLowerCase() as ServiceType))
   )
 
-  const metricsStart = Date.now()
-  const metrics = options?.precomputedMetrics 
-    ? options.precomputedMetrics 
+  const metrics = options?.precomputedMetrics
+    ? options.precomputedMetrics
     : await getRouteMetrics(pickup.coordinates, destination.coordinates)
-  console.log(`[CompareAPI] Route metrics fetched in ${Date.now() - metricsStart}ms${options?.precomputedMetrics ? ' (pre-computed)' : ''}`)
 
   const shouldPersist = options?.persist !== false
   const pickupAddress = options?.pickupAddress ?? pickup.name
@@ -156,9 +148,7 @@ export async function compareRidesByCoordinates(
     )
   }
 
-  const pricingStart = Date.now()
   const resultsEntries = uniqueServices.map(service => {
-    const serviceStart = Date.now()
     const computation = pricingEngine.calculateFare({
       service,
       pickupCoords: pickup.coordinates,
@@ -169,13 +159,9 @@ export async function compareRidesByCoordinates(
       osrmDurationSec: metrics.osrmDurationSec,
       expectedDurationSec: metrics.durationMin * 60,
     })
-    console.log(
-      `[CompareAPI] ${service.charAt(0).toUpperCase() + service.slice(1)}: ${Date.now() - serviceStart}ms`
-    )
 
     return [service, buildRideResult(service, computation, metrics), computation] as const
   })
-  console.log(`[CompareAPI] All pricing calculations: ${Date.now() - pricingStart}ms`)
 
   const comparisonResults = Object.fromEntries(
     resultsEntries.map(([service, result]) => [service, result])
@@ -249,7 +235,6 @@ export async function compareRidesByCoordinates(
     insights: generateRecommendation(comparisonResults),
   }
 
-  console.log(`[CompareAPI] compareRidesByCoordinates total: ${Date.now() - startTime}ms`)
   return result
 }
 

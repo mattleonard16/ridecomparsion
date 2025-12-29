@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useMemo } from 'react'
 
 import { motion, useSpring, AnimatePresence } from 'framer-motion'
 
@@ -38,17 +38,15 @@ export const PillBase: React.FC = () => {
 
   
 
-  const navItems: NavItem[] = [
-
-    { label: 'Home', id: 'home' },
-
-    { label: 'Routes', id: 'routes' },
-
-    { label: 'Features', id: 'features' },
-
-    { label: 'Compare', id: 'compare' },
-
-  ]
+  const navItems: NavItem[] = useMemo(
+    () => [
+      { label: 'Home', id: 'home' },
+      { label: 'Routes', id: 'routes' },
+      { label: 'Features', id: 'features' },
+      { label: 'Compare', id: 'compare' },
+    ],
+    []
+  )
 
   // Spring animations for smooth motion
 
