@@ -194,7 +194,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
         {/* Footer note */}
         <div className="mt-8 flex items-center justify-center gap-2 text-xs font-mono text-muted-foreground opacity-60">
           <Train className="w-3 h-3" />
-          <span>SCHEDULE UPDATES EVERY 30 SECONDS</span>
+          <span>CLICK ANY ROUTE FOR LIVE PRICING</span>
         </div>
       </div>
     </section>
