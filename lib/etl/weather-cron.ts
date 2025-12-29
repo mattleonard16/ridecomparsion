@@ -49,8 +49,8 @@ export async function fetchAndStoreWeatherData() {
       // Fetch weather data
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?` +
-          `lat=${location.coords[1]}&lon=${location.coords[0]}` +
-          `&appid=${apiKey}`
+        `lat=${location.coords[1]}&lon=${location.coords[0]}` +
+        `&appid=${apiKey}`
       )
 
       if (!response.ok) {

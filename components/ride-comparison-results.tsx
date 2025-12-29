@@ -230,8 +230,8 @@ export default memo(function RideComparisonResults({
           <button
             onClick={handleSaveRoute}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${routeSaved
-                ? 'bg-secondary/20 border-secondary/50 text-secondary'
-                : 'card-interactive text-muted-foreground hover:text-foreground'
+              ? 'bg-secondary/20 border-secondary/50 text-secondary'
+              : 'card-interactive text-muted-foreground hover:text-foreground'
               }`}
             title={user ? 'Save this route' : 'Sign in to save routes'}
           >

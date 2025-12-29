@@ -5,8 +5,51 @@ import { createHash } from 'crypto'
 const ServiceTypeEnum = $Enums.ServiceType
 const TrafficLevelEnum = $Enums.TrafficLevel
 
-const isDatabaseAvailable = () => {
-  return !!process.env.DATABASE_URL
+/**
+ * Check if database is available
+ * In production, throws an error if DATABASE_URL is missing (unless ALLOW_DB_MOCK is set)
+ */
+const isDatabaseAvailable = (): boolean => {
+  const hasDb = !!process.env.DATABASE_URL
+
+  if (!hasDb && process.env.NODE_ENV === 'production' && !process.env.ALLOW_DB_MOCK) {
+    throw new Error(
+      'DATABASE_URL is required in production. Set ALLOW_DB_MOCK=true to bypass (not recommended).'
+    )
+  }
+
+  return hasDb
+}
+
+/**
+ * Report a persistence error to monitoring (Axiom/Sentry if configured)
+ */
+function reportPersistenceError(operation: string, error: unknown): void {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  console.error(`[DB] ${operation} failed:`, errorMessage)
+
+  // Forward to Axiom if configured
+  if (process.env.AXIOM_TOKEN && process.env.AXIOM_DATASET) {
+    // Fire-and-forget log to Axiom
+    fetch(`https://api.axiom.co/v1/datasets/${process.env.AXIOM_DATASET}/ingest`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.AXIOM_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        {
+          _time: new Date().toISOString(),
+          level: 'error',
+          operation,
+          error: errorMessage,
+          service: 'rideshare-db',
+        },
+      ]),
+    }).catch(() => {
+      // Silently ignore Axiom errors to avoid cascade
+    })
+  }
 }
 
 // Generate route hash for uniqueness
@@ -75,7 +118,7 @@ export async function findOrCreateRoute(
 
     return newRoute.id
   } catch (error) {
-    console.error('Error creating route:', error)
+    reportPersistenceError('findOrCreateRoute', error)
     return null
   }
 }
@@ -143,8 +186,8 @@ export async function logPriceSnapshot(
         surge_multiplier: surge,
         final_price: price,
         wait_time_minutes: waitTime,
-        day_of_week: now.getDay(),
-        hour_of_day: now.getHours(),
+        day_of_week: now.getUTCDay(),
+        hour_of_day: now.getUTCHours(),
         weather_condition: factors?.weather,
         weather_temp_f: factors?.temperature,
         is_raining: factors?.isRaining || false,
@@ -153,7 +196,7 @@ export async function logPriceSnapshot(
       },
     })
   } catch (error) {
-    console.error('Error logging price snapshot:', error)
+    reportPersistenceError('logPriceSnapshot', error)
   }
 }
 
@@ -188,7 +231,7 @@ export async function logSearch(
       },
     })
   } catch (error) {
-    console.error('Error logging search:', error)
+    reportPersistenceError('logSearch', error)
   }
 }
 
@@ -231,7 +274,7 @@ export async function getRoutePriceHistory(routeId: string, daysBack: number = 7
       weather_condition: snapshot.weather_condition,
     }))
   } catch (error) {
-    console.error('Error fetching price history:', error)
+    reportPersistenceError('getRoutePriceHistory', error)
     return []
   }
 }
@@ -278,7 +321,7 @@ export async function getHourlyPriceAverage(routeId: string, service: 'uber' | '
       }))
       .sort((a, b) => a.hour - b.hour)
   } catch (error) {
-    console.error('Error fetching hourly averages:', error)
+    reportPersistenceError('getHourlyPriceAverage', error)
     return []
   }
 }
@@ -335,7 +378,7 @@ export async function saveRouteForUser(userId: string, routeId: string, nickname
 
     return true
   } catch (error) {
-    console.error('Error saving route:', error)
+    reportPersistenceError('saveRouteForUser', error)
     return false
   }
 }
@@ -411,7 +454,7 @@ export async function createPriceAlert(
 
     return alert
   } catch (error) {
-    console.error('Error creating price alert:', error)
+    reportPersistenceError('createPriceAlert', error)
     return null
   }
 }
@@ -452,9 +495,18 @@ export async function logWeatherData(
       },
     })
   } catch (error) {
-    console.error('Error logging weather:', error)
+    reportPersistenceError('logWeatherData', error)
   }
 }
 
 // Legacy exports for backward compatibility
-export const isSupabaseMockMode = !isDatabaseAvailable()
+// Note: This is a getter to avoid throwing at module load time in production
+export const isSupabaseMockMode = (() => {
+  try {
+    return !isDatabaseAvailable()
+  } catch {
+    // In production without DATABASE_URL, isDatabaseAvailable() throws
+    // Return false here since we're about to fail anyway
+    return false
+  }
+})()

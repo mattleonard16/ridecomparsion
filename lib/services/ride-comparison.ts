@@ -69,7 +69,7 @@ export async function compareRidesByAddresses(
   }
 
   const precomputedRoute = findPrecomputedRouteByAddresses(sanitizedPickup, sanitizedDestination)
-  
+
   let pickupCoords: Coordinates | null
   let destinationCoords: Coordinates | null
 

@@ -10,8 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum ServiceType {
@@ -38,6 +39,8 @@ model Route {
   searchLogs     SearchLog[]
   priceSnapshots PriceSnapshot[]
   trafficLogs    TrafficLog[]
+
+  @@index([createdAt])
 }
 
 model PriceSnapshot {
@@ -80,6 +83,7 @@ model SearchLog {
 
   @@index([userId])
   @@index([routeId])
+  @@index([createdAt])
 }
 
 model EventLog {
@@ -95,6 +99,9 @@ model EventLog {
   raw_data    Json?
   createdAt   DateTime @default(now())
   ticket_price_range String?
+
+  @@index([start_time])
+  @@index([coords_lat, coords_lng])
 }
 
 model WeatherLog {
@@ -110,6 +117,8 @@ model WeatherLog {
   raw_data    Json?
   createdAt   DateTime @default(now())
   loggedAt    DateTime @default(now())
+
+  @@index([coords_lat, coords_lng, createdAt])
 }
 
 model TrafficLog {
@@ -120,6 +129,8 @@ model TrafficLog {
   delay_minutes Int?
   incidents    Json?
   createdAt    DateTime @default(now())
+
+  @@index([routeId, createdAt])
 }
 
 enum TrafficLevel {
