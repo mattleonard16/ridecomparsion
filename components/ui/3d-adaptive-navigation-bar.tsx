@@ -5,11 +5,9 @@ import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { motion, useSpring, AnimatePresence } from 'framer-motion'
 
 interface NavItem {
-
   label: string
 
   id: string
-
 }
 
 /**
@@ -21,7 +19,6 @@ interface NavItem {
  */
 
 export const PillBase: React.FC = () => {
-
   const [activeSection, setActiveSection] = useState('home')
 
   const [expanded, setExpanded] = useState(false)
@@ -35,8 +32,6 @@ export const PillBase: React.FC = () => {
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const prevSectionRef = useRef('home')
-
-  
 
   const navItems: NavItem[] = useMemo(
     () => [
@@ -57,22 +52,24 @@ export const PillBase: React.FC = () => {
   // Scroll detection to update active section
   useEffect(() => {
     const handleScroll = () => {
-      const sections = navItems.map(item => {
-        const element = document.getElementById(item.id)
-        if (element) {
-          const rect = element.getBoundingClientRect()
-          return {
-            id: item.id,
-            top: rect.top,
-            bottom: rect.bottom,
-            center: rect.top + rect.height / 2,
+      const sections = navItems
+        .map(item => {
+          const element = document.getElementById(item.id)
+          if (element) {
+            const rect = element.getBoundingClientRect()
+            return {
+              id: item.id,
+              top: rect.top,
+              bottom: rect.bottom,
+              center: rect.top + rect.height / 2,
+            }
           }
-        }
-        return null
-      }).filter(Boolean) as Array<{ id: string; top: number; bottom: number; center: number }>
+          return null
+        })
+        .filter(Boolean) as Array<{ id: string; top: number; bottom: number; center: number }>
 
       const viewportCenter = window.innerHeight / 2
-      
+
       // Find the section closest to viewport center
       const closestSection = sections.reduce((prev, curr) => {
         const prevDistance = Math.abs(prev.center - viewportCenter)
@@ -80,7 +77,11 @@ export const PillBase: React.FC = () => {
         return currDistance < prevDistance ? curr : prev
       })
 
-      if (closestSection && closestSection.top < viewportCenter && closestSection.bottom > viewportCenter) {
+      if (
+        closestSection &&
+        closestSection.top < viewportCenter &&
+        closestSection.bottom > viewportCenter
+      ) {
         setActiveSection(closestSection.id)
       }
     }
@@ -94,57 +95,38 @@ export const PillBase: React.FC = () => {
   // Handle hover expansion
 
   useEffect(() => {
-
     if (hovering) {
-
       setExpanded(true)
 
       pillWidth.set(580)
 
       if (hoverTimeoutRef.current) {
-
         clearTimeout(hoverTimeoutRef.current)
-
       }
-
     } else {
-
       hoverTimeoutRef.current = setTimeout(() => {
-
         setExpanded(false)
 
         pillWidth.set(140)
-
       }, 600)
-
     }
 
     return () => {
-
       if (hoverTimeoutRef.current) {
-
         clearTimeout(hoverTimeoutRef.current)
-
       }
-
     }
-
   }, [hovering, pillWidth])
 
   const handleMouseEnter = () => {
-
     setHovering(true)
-
   }
 
   const handleMouseLeave = () => {
-
     setHovering(false)
-
   }
 
   const handleSectionClick = (sectionId: string) => {
-
     // Trigger transition state
 
     setIsTransitioning(true)
@@ -153,56 +135,37 @@ export const PillBase: React.FC = () => {
 
     setActiveSection(sectionId)
 
-    
-
     // Scroll to section
 
     const element = document.getElementById(sectionId)
 
     if (element) {
-
       element.scrollIntoView({
-
         behavior: 'smooth',
 
         block: 'start',
-
       })
-
     }
-
-    
 
     // Collapse the pill after selection
 
     setHovering(false)
 
-    
-
     // Reset transition state after animation completes
 
     setTimeout(() => {
-
       setIsTransitioning(false)
-
     }, 400)
-
   }
 
   const activeItem = navItems.find(item => item.id === activeSection)
 
   return (
-
     <motion.nav
-
       onMouseEnter={handleMouseEnter}
-
       onMouseLeave={handleMouseLeave}
-
       className="relative rounded-full"
-
       style={{
-
         width: pillWidth,
 
         height: '56px',
@@ -232,7 +195,6 @@ export const PillBase: React.FC = () => {
         `,
 
         boxShadow: expanded
-
           ? `
 
             0 2px 4px rgba(0, 0, 0, 0.08),
@@ -254,10 +216,8 @@ export const PillBase: React.FC = () => {
             inset 0 -1px 2px rgba(0, 0, 0, 0.08)
 
           `
-
           : isTransitioning
-
-          ? `
+            ? `
 
             0 3px 6px rgba(0, 0, 0, 0.10),
 
@@ -280,8 +240,7 @@ export const PillBase: React.FC = () => {
             inset 0 0 20px rgba(255, 255, 255, 0.15)
 
           `
-
-          : `
+            : `
 
             0 3px 6px rgba(0, 0, 0, 0.12),
 
@@ -308,73 +267,49 @@ export const PillBase: React.FC = () => {
         overflow: 'hidden',
 
         transition: 'box-shadow 0.3s ease-out',
-
       }}
-
     >
-
       {/* Primary top edge ridge - ultra bright */}
 
-      <div 
-
+      <div
         className="absolute inset-x-0 top-0 rounded-t-full pointer-events-none"
-
         style={{
-
           height: '2px',
 
-          background: 'linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.95) 5%, rgba(255, 255, 255, 1) 15%, rgba(255, 255, 255, 1) 85%, rgba(255, 255, 255, 0.95) 95%, rgba(255, 255, 255, 0) 100%)',
+          background:
+            'linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.95) 5%, rgba(255, 255, 255, 1) 15%, rgba(255, 255, 255, 1) 85%, rgba(255, 255, 255, 0.95) 95%, rgba(255, 255, 255, 0) 100%)',
 
           filter: 'blur(0.3px)',
-
         }}
-
       />
-
-      
 
       {/* Top hemisphere light catch */}
 
-      <div 
-
+      <div
         className="absolute inset-x-0 top-0 rounded-full pointer-events-none"
-
         style={{
-
           height: '55%',
 
-          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 30%, rgba(255, 255, 255, 0.10) 60%, rgba(255, 255, 255, 0) 100%)',
-
+          background:
+            'linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.25) 30%, rgba(255, 255, 255, 0.10) 60%, rgba(255, 255, 255, 0) 100%)',
         }}
-
       />
-
-      
 
       {/* Directional light - top left */}
 
-      <div 
-
+      <div
         className="absolute inset-0 rounded-full pointer-events-none"
-
         style={{
-
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.20) 20%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0) 65%)',
-
+          background:
+            'linear-gradient(135deg, rgba(255, 255, 255, 0.40) 0%, rgba(255, 255, 255, 0.20) 20%, rgba(255, 255, 255, 0.08) 40%, rgba(255, 255, 255, 0) 65%)',
         }}
-
       />
-
-      
 
       {/* Premium gloss reflection - main */}
 
-      <div 
-
+      <div
         className="absolute rounded-full pointer-events-none"
-
         style={{
-
           left: expanded ? '18%' : '15%',
 
           top: '16%',
@@ -383,30 +318,23 @@ export const PillBase: React.FC = () => {
 
           height: '14px',
 
-          background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.35) 40%, rgba(255, 255, 255, 0.10) 70%, rgba(255, 255, 255, 0) 100%)',
+          background:
+            'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.35) 40%, rgba(255, 255, 255, 0.10) 70%, rgba(255, 255, 255, 0) 100%)',
 
           filter: 'blur(4px)',
 
           transform: 'rotate(-12deg)',
 
           transition: 'all 0.3s ease',
-
         }}
-
       />
-
-      
 
       {/* Secondary gloss accent - only show when expanded */}
 
       {expanded && (
-
-        <div 
-
+        <div
           className="absolute rounded-full pointer-events-none"
-
           style={{
-
             right: '22%',
 
             top: '20%',
@@ -415,146 +343,98 @@ export const PillBase: React.FC = () => {
 
             height: '10px',
 
-            background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.15) 60%, rgba(255, 255, 255, 0) 100%)',
+            background:
+              'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.15) 60%, rgba(255, 255, 255, 0) 100%)',
 
             filter: 'blur(3px)',
 
             transform: 'rotate(8deg)',
-
           }}
-
         />
-
       )}
-
-      
 
       {/* Left edge illumination - only show when expanded */}
 
       {expanded && (
-
-        <div 
-
+        <div
           className="absolute inset-y-0 left-0 rounded-l-full pointer-events-none"
-
           style={{
-
             width: '35%',
 
-            background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.10) 40%, rgba(255, 255, 255, 0.03) 70%, rgba(255, 255, 255, 0) 100%)',
-
+            background:
+              'linear-gradient(90deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.10) 40%, rgba(255, 255, 255, 0.03) 70%, rgba(255, 255, 255, 0) 100%)',
           }}
-
         />
-
       )}
-
-      
 
       {/* Right edge shadow - only show when expanded */}
 
       {expanded && (
-
-        <div 
-
+        <div
           className="absolute inset-y-0 right-0 rounded-r-full pointer-events-none"
-
           style={{
-
             width: '35%',
 
-            background: 'linear-gradient(270deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.02) 70%, rgba(0, 0, 0, 0) 100%)',
-
+            background:
+              'linear-gradient(270deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.02) 70%, rgba(0, 0, 0, 0) 100%)',
           }}
-
         />
-
       )}
-
-      
 
       {/* Bottom curvature - deep shadow */}
 
-      <div 
-
+      <div
         className="absolute inset-x-0 bottom-0 rounded-b-full pointer-events-none"
-
         style={{
-
           height: '50%',
 
-          background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0%, rgba(0, 0, 0, 0.08) 25%, rgba(0, 0, 0, 0.03) 50%, rgba(0, 0, 0, 0) 100%)',
-
+          background:
+            'linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0%, rgba(0, 0, 0, 0.08) 25%, rgba(0, 0, 0, 0.03) 50%, rgba(0, 0, 0, 0) 100%)',
         }}
-
       />
 
       {/* Bottom edge contact shadow */}
 
-      <div 
-
+      <div
         className="absolute inset-x-0 bottom-0 rounded-b-full pointer-events-none"
-
         style={{
-
           height: '20%',
 
           background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0) 100%)',
 
           filter: 'blur(2px)',
-
         }}
-
       />
 
       {/* Inner diffuse glow */}
 
-      <div 
-
+      <div
         className="absolute inset-0 rounded-full pointer-events-none"
-
         style={{
-
           boxShadow: 'inset 0 0 40px rgba(255, 255, 255, 0.22)',
 
           opacity: 0.7,
-
         }}
-
       />
-
-      
 
       {/* Micro edge definition */}
 
-      <div 
-
+      <div
         className="absolute inset-0 rounded-full pointer-events-none"
-
         style={{
-
           boxShadow: 'inset 0 0 0 0.5px rgba(0, 0, 0, 0.10)',
-
         }}
-
       />
 
       {/* Navigation items container */}
 
-      <div 
-
+      <div
         ref={containerRef}
-
         className="relative z-10 h-full flex items-center justify-center px-6"
-
         style={{
-
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
-
+          fontFamily: 'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
         }}
-
       >
-
         {/* Collapsed state - show only active section with smooth text transitions */}
         {!expanded && (
           <div className="flex items-center relative">
@@ -567,7 +447,7 @@ export const PillBase: React.FC = () => {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{
                     duration: 0.25,
-                    ease: [0.4, 0.0, 0.2, 1]
+                    ease: [0.4, 0.0, 0.2, 1],
                   }}
                   style={{
                     fontSize: '15.5px',
@@ -575,7 +455,8 @@ export const PillBase: React.FC = () => {
                     color: '#1a1a1a',
                     letterSpacing: '0.45px',
                     whiteSpace: 'nowrap',
-                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
+                    fontFamily:
+                      'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
                     WebkitFontSmoothing: 'antialiased',
                     MozOsxFontSmoothing: 'grayscale',
                     textShadow: `
@@ -596,43 +477,26 @@ export const PillBase: React.FC = () => {
         {/* Expanded state - show all sections with stagger */}
 
         {expanded && (
-
           <div className="flex items-center justify-evenly w-full">
-
             {navItems.map((item, index) => {
-
               const isActive = item.id === activeSection
 
-              
-
               return (
-
                 <motion.button
-
                   key={item.id}
-
                   initial={{ opacity: 0, x: -10 }}
-
                   animate={{ opacity: 1, x: 0 }}
-
                   exit={{ opacity: 0, x: -10 }}
-
-                  transition={{ 
-
+                  transition={{
                     delay: index * 0.08,
 
                     duration: 0.25,
 
-                    ease: 'easeOut'
-
+                    ease: 'easeOut',
                   }}
-
                   onClick={() => handleSectionClick(item.id)}
-
                   className="relative cursor-pointer transition-all duration-200"
-
                   style={{
-
                     fontSize: isActive ? '15.5px' : '15px',
 
                     fontWeight: isActive ? 680 : 510,
@@ -653,7 +517,8 @@ export const PillBase: React.FC = () => {
 
                     whiteSpace: 'nowrap',
 
-                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
+                    fontFamily:
+                      'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
 
                     WebkitFontSmoothing: 'antialiased',
 
@@ -661,8 +526,7 @@ export const PillBase: React.FC = () => {
 
                     transform: isActive ? 'translateY(-1.5px)' : 'translateY(0)',
 
-                    textShadow: isActive 
-
+                    textShadow: isActive
                       ? `
 
                         0 1px 0 rgba(0, 0, 0, 0.35),
@@ -674,7 +538,6 @@ export const PillBase: React.FC = () => {
                         -1px 1px 0 rgba(0, 0, 0, 0.15)
 
                       `
-
                       : `
 
                         0 1px 0 rgba(0, 0, 0, 0.22),
@@ -686,13 +549,9 @@ export const PillBase: React.FC = () => {
                         -1px 1px 0 rgba(0, 0, 0, 0.10)
 
                       `,
-
                   }}
-
-                  onMouseEnter={(e) => {
-
+                  onMouseEnter={e => {
                     if (!isActive) {
-
                       e.currentTarget.style.color = '#3a3a3a'
 
                       e.currentTarget.style.transform = 'translateY(-0.5px)'
@@ -708,15 +567,10 @@ export const PillBase: React.FC = () => {
                         -1px 1px 0 rgba(0, 0, 0, 0.12)
 
                       `
-
                     }
-
                   }}
-
-                  onMouseLeave={(e) => {
-
+                  onMouseLeave={e => {
                     if (!isActive) {
-
                       e.currentTarget.style.color = '#656565'
 
                       e.currentTarget.style.transform = 'translateY(0)'
@@ -732,29 +586,16 @@ export const PillBase: React.FC = () => {
                         -1px 1px 0 rgba(0, 0, 0, 0.10)
 
                       `
-
                     }
-
                   }}
-
                 >
-
                   {item.label}
-
                 </motion.button>
-
               )
-
             })}
-
           </div>
-
         )}
-
       </div>
-
     </motion.nav>
-
   )
-
 }
