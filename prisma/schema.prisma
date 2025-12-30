@@ -10,8 +10,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum ServiceType {
@@ -21,23 +22,32 @@ enum ServiceType {
 }
 
 model Route {
-  id             String         @id @default(cuid())
-  pickup_address String
-  pickup_lat     Float
-  pickup_lng     Float
+  id                  String         @id @default(cuid())
+  pickup_address      String
+  pickup_lat          Float
+  pickup_lng          Float
   destination_address String
-  destination_lat Float
-  destination_lng Float
-  distance_miles Float?
-  duration_minutes Float?
-  route_hash     String         @unique
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  destination_lat     Float
+  destination_lng     Float
+  distance_miles      Float?
+  duration_minutes    Float?
+  route_hash          String         @unique
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  // Geohash clustering: store at max precision (8), use prefixes for cluster queries
+  pickup_geohash      String?        @db.VarChar(12)
+  destination_geohash String?        @db.VarChar(12)
+  geohash_precision   Int            @default(8)
+
   savedRoutes    SavedRoute[]   @relation("RouteToSavedRoute")
   rideHistories  RideHistory[]
   searchLogs     SearchLog[]
   priceSnapshots PriceSnapshot[]
   trafficLogs    TrafficLog[]
+
+  @@index([createdAt])
+  @@index([pickup_geohash, destination_geohash])
 }
 
 model PriceSnapshot {
@@ -80,6 +90,7 @@ model SearchLog {
 
   @@index([userId])
   @@index([routeId])
+  @@index([createdAt])
 }
 
 model EventLog {
@@ -95,6 +106,9 @@ model EventLog {
   raw_data    Json?
   createdAt   DateTime @default(now())
   ticket_price_range String?
+
+  @@index([start_time])
+  @@index([coords_lat, coords_lng])
 }
 
 model WeatherLog {
@@ -110,6 +124,8 @@ model WeatherLog {
   raw_data    Json?
   createdAt   DateTime @default(now())
   loggedAt    DateTime @default(now())
+
+  @@index([coords_lat, coords_lng, createdAt])
 }
 
 model TrafficLog {
@@ -120,6 +136,8 @@ model TrafficLog {
   delay_minutes Int?
   incidents    Json?
   createdAt    DateTime @default(now())
+
+  @@index([routeId, createdAt])
 }
 
 enum TrafficLevel {

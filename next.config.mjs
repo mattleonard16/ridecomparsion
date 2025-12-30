@@ -4,6 +4,7 @@ const nextConfig = {
   output: 'standalone',
   // TypeScript and ESLint checks are now enforced at build time
   // This ensures type errors and linting issues don't hide security vulnerabilities
+  transpilePackages: ['ngeohash'],
 }
 
 // Only load PWA in production to avoid babel compatibility issues

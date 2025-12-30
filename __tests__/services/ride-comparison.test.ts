@@ -1,7 +1,7 @@
 import { compareRidesByAddresses, compareRidesByCoordinates } from '@/lib/services/ride-comparison'
 import type { Coordinates } from '@/types'
 
-jest.mock('@/lib/supabase', () => ({
+jest.mock('@/lib/database', () => ({
   findOrCreateRoute: jest.fn(async () => 'mock-route-id'),
   logPriceSnapshot: jest.fn(async () => undefined),
   logSearch: jest.fn(async () => undefined),

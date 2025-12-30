@@ -4,7 +4,7 @@
  * Run via Vercel Cron or similar service
  */
 
-import { logWeatherData } from '@/lib/supabase'
+import { logWeatherData } from '@/lib/database'
 
 const BAY_AREA_LOCATIONS = [
   { name: 'San Francisco', coords: [-122.4194, 37.7749] as [number, number] },
@@ -49,8 +49,8 @@ export async function fetchAndStoreWeatherData() {
       // Fetch weather data
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?` +
-          `lat=${location.coords[1]}&lon=${location.coords[0]}` +
-          `&appid=${apiKey}`
+        `lat=${location.coords[1]}&lon=${location.coords[0]}` +
+        `&appid=${apiKey}`
       )
 
       if (!response.ok) {

@@ -115,7 +115,6 @@ export async function healthCheck() {
     status: 'healthy' as 'healthy' | 'degraded' | 'unhealthy',
     checks: {
       database: await checkDatabase(),
-      supabase: await checkSupabase(),
       osrm: await checkOSRM(),
     },
   }
@@ -130,19 +129,9 @@ export async function healthCheck() {
 }
 
 async function checkDatabase(): Promise<{ healthy: boolean; latency?: number }> {
-  // Placeholder - would check Prisma connection
-  return { healthy: true, latency: 10 }
-}
-
-async function checkSupabase(): Promise<{ healthy: boolean; latency?: number }> {
-  const start = Date.now()
-  try {
-    // Simple check - could ping Supabase
-    const latency = Date.now() - start
-    return { healthy: true, latency }
-  } catch (error) {
-    return { healthy: false }
-  }
+  // Placeholder - would check Prisma/Neon connection
+  // In production, this should do a simple SELECT 1 query
+  return { healthy: !!process.env.DATABASE_URL, latency: 10 }
 }
 
 async function checkOSRM(): Promise<{ healthy: boolean; latency?: number }> {

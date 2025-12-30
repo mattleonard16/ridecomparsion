@@ -1,5 +1,5 @@
 import { API_CONFIG } from '@/lib/constants'
-import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/supabase'
+import { findOrCreateRoute, logPriceSnapshot, logSearch } from '@/lib/database'
 import { getAirportByCode, parseAirportCode } from '@/lib/airports'
 import { getBestTimeRecommendations, getTimeBasedMultiplier, pricingEngine } from '@/lib/pricing'
 import { sanitizeString } from '@/lib/validation'
@@ -15,7 +15,6 @@ import type {
   PriceString,
   RideService,
 } from '@/types'
-import type { Database } from '@/types/supabase'
 
 const GEOCODE_CACHE = new Map<string, { value: Coordinates; expiresAt: number }>()
 const ROUTE_CACHE = new Map<string, { value: RouteMetrics; expiresAt: number }>()
@@ -69,7 +68,7 @@ export async function compareRidesByAddresses(
   }
 
   const precomputedRoute = findPrecomputedRouteByAddresses(sanitizedPickup, sanitizedDestination)
-  
+
   let pickupCoords: Coordinates | null
   let destinationCoords: Coordinates | null
 
@@ -240,7 +239,7 @@ export async function compareRidesByCoordinates(
 
 function classifyTraffic(
   multiplier: number
-): Database['public']['Enums']['traffic_level'] | undefined {
+): 'light' | 'moderate' | 'heavy' | 'severe' | undefined {
   if (multiplier <= 1.1) return 'light'
   if (multiplier <= 1.25) return 'moderate'
   if (multiplier <= 1.4) return 'heavy'

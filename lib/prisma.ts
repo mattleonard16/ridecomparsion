@@ -8,11 +8,32 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+/**
+ * Log connection pool status on startup (development only)
+ */
+function logConnectionStatus() {
+  if (process.env.NODE_ENV !== 'development') return
+
+  const hasPooledUrl = !!process.env.DATABASE_URL
+  const hasDirectUrl = !!process.env.DIRECT_URL
+
+  if (hasPooledUrl && hasDirectUrl) {
+    console.log('✅ Database configured with connection pooling (DATABASE_URL + DIRECT_URL)')
+  } else if (hasPooledUrl) {
+    console.log('⚠️ Database configured without DIRECT_URL - migrations may fail in serverless')
+  } else {
+    console.log('❌ DATABASE_URL not configured - lib/database.ts functions will use mock mode')
+  }
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+  logConnectionStatus()
+}
 

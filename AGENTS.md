@@ -26,11 +26,11 @@
   - `cors.ts` – CORS middleware with `withCors()` wrapper for API routes.
   - `recaptcha.ts` – Google reCAPTCHA v3 verification.
   - `validation.ts` – Zod schemas and input sanitization utilities.
-  - `supabase.ts` – Database operations (routes, price snapshots, search logging).
+  - `database.ts` – Database operations (routes, price snapshots, search logging) via Prisma/Neon.
   - `popular-routes-data.ts` – Pre-computed route cache for popular origins/destinations.
   - `airports.ts` – Airport coordinates lookup and detection.
   - `etl/weather-cron.ts` – Weather data fetching for the cron endpoint.
-- `types/`: Shared TypeScript contracts (`index.ts`, `supabase.ts`).
+- `types/`: Shared TypeScript contracts (`index.ts`).
 - `prisma/`: `schema.prisma` and migration history; generates the Prisma Client consumed via `@/auth` and data services.
 - `scripts/`: Operational tasks such as `fetch-quotes.ts`, `seed.ts`, and `create-test-user.ts`; run with `tsx scripts/<script-name>.ts`.
 - `__tests__/`: Jest + React Testing Library specs with fixtures in `__tests__/fixtures/`; assets live in `public/`.
@@ -64,7 +64,7 @@
 
 ## Security & Configuration
 - Copy env keys from `ENV_EXAMPLE.md` into `.env.local` (local) or `.env` (Docker); never commit secrets.
-- Use `SETUP_SUPABASE.md` and `SECURITY.md` for data-handling expectations; rotate credentials after sharing and prefer Supabase/NextAuth secrets via env.
+- Use `ENV_EXAMPLE.md` and `SECURITY.md` for data-handling expectations; rotate credentials after sharing and prefer NextAuth secrets via env.
 - Clear sensitive console output/logs before committing and avoid embedding API tokens in test fixtures.
 - **Cron jobs (optional)**: The weather cron endpoint is opt-in and requires manual setup:
   - `app/api/cron/weather/route.ts` uses `lib/etl/weather-cron.ts`; ready for Vercel Cron but requires `OPENWEATHER_API_KEY` and `CRON_SECRET` env vars.
