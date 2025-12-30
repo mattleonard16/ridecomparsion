@@ -22,18 +22,24 @@ enum ServiceType {
 }
 
 model Route {
-  id             String         @id @default(cuid())
-  pickup_address String
-  pickup_lat     Float
-  pickup_lng     Float
+  id                  String         @id @default(cuid())
+  pickup_address      String
+  pickup_lat          Float
+  pickup_lng          Float
   destination_address String
-  destination_lat Float
-  destination_lng Float
-  distance_miles Float?
-  duration_minutes Float?
-  route_hash     String         @unique
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  destination_lat     Float
+  destination_lng     Float
+  distance_miles      Float?
+  duration_minutes    Float?
+  route_hash          String         @unique
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  // Geohash clustering: store at max precision (8), use prefixes for cluster queries
+  pickup_geohash      String?        @db.VarChar(12)
+  destination_geohash String?        @db.VarChar(12)
+  geohash_precision   Int            @default(8)
+
   savedRoutes    SavedRoute[]   @relation("RouteToSavedRoute")
   rideHistories  RideHistory[]
   searchLogs     SearchLog[]
@@ -41,6 +47,7 @@ model Route {
   trafficLogs    TrafficLog[]
 
   @@index([createdAt])
+  @@index([pickup_geohash, destination_geohash])
 }
 
 model PriceSnapshot {
