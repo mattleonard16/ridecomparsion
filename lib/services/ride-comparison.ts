@@ -20,6 +20,41 @@ const GEOCODE_CACHE = new Map<string, { value: Coordinates; expiresAt: number }>
 const ROUTE_CACHE = new Map<string, { value: RouteMetrics; expiresAt: number }>()
 const COMPARISON_CACHE = new Map<string, { value: ComparisonComputation; expiresAt: number }>()
 
+// Cache size limits to prevent memory leaks
+const MAX_CACHE_SIZE = 1000
+const CACHE_CLEANUP_THRESHOLD = 0.8 // Trigger cleanup at 80% capacity
+
+/**
+ * Clean up expired entries from a cache
+ */
+function cleanupCache<T>(cache: Map<string, { value: T; expiresAt: number }>): void {
+  const now = Date.now()
+  const keysToDelete: string[] = []
+  cache.forEach((entry, key) => {
+    if (entry.expiresAt <= now) {
+      keysToDelete.push(key)
+    }
+  })
+  keysToDelete.forEach(key => cache.delete(key))
+}
+
+/**
+ * Perform cache maintenance - cleanup expired entries and evict oldest if over capacity
+ */
+function maintainCache<T>(cache: Map<string, { value: T; expiresAt: number }>): void {
+  // First, clean up expired entries
+  cleanupCache(cache)
+
+  // If still over threshold, evict oldest entries (first inserted)
+  if (cache.size > MAX_CACHE_SIZE * CACHE_CLEANUP_THRESHOLD) {
+    const entriesToRemove = cache.size - Math.floor(MAX_CACHE_SIZE * 0.5)
+    const keys = Array.from(cache.keys())
+    for (let i = 0; i < entriesToRemove && i < keys.length; i++) {
+      cache.delete(keys[i])
+    }
+  }
+}
+
 type PricingComputation = ReturnType<typeof pricingEngine.calculateFare>
 
 interface RouteMetrics {
@@ -29,6 +64,7 @@ interface RouteMetrics {
 }
 
 interface ComparisonComputation {
+  routeId: string | null
   results: ComparisonResults
   surgeInfo: SurgeInfo
   timeRecommendations: string[]
@@ -100,6 +136,7 @@ export async function compareRidesByAddresses(
   )
 
   const cacheTTL = precomputedRoute ? 1800000 : 45000
+  maintainCache(COMPARISON_CACHE)
   COMPARISON_CACHE.set(cacheKey, {
     value: result,
     expiresAt: now + cacheTTL,
@@ -225,7 +262,11 @@ export async function compareRidesByCoordinates(
       })
   }
 
+  // Await the routeId to include in response
+  const routeId = await routeIdPromise
+
   const result = {
+    routeId,
     results: comparisonResults,
     surgeInfo,
     timeRecommendations: getBestTimeRecommendations(),
@@ -259,6 +300,7 @@ async function geocodeWithCache(address: string): Promise<Coordinates | null> {
   if (airportCode) {
     const airport = getAirportByCode(airportCode)
     if (airport) {
+      maintainCache(GEOCODE_CACHE)
       GEOCODE_CACHE.set(cacheKey, {
         value: airport.coordinates,
         expiresAt: now + API_CONFIG.CACHE_TTL,
@@ -282,6 +324,7 @@ async function geocodeWithCache(address: string): Promise<Coordinates | null> {
   const lon = parseFloat(data[0].lon) as Longitude
   const lat = parseFloat(data[0].lat) as Latitude
   const coordinates: Coordinates = [lon, lat]
+  maintainCache(GEOCODE_CACHE)
   GEOCODE_CACHE.set(cacheKey, {
     value: coordinates,
     expiresAt: now + API_CONFIG.CACHE_TTL,
@@ -322,6 +365,7 @@ async function getRouteMetrics(
     osrmDurationSec: route.duration,
   }
 
+  maintainCache(ROUTE_CACHE)
   ROUTE_CACHE.set(cacheKey, {
     value: metrics,
     expiresAt: now + API_CONFIG.ROUTE_CACHE_TTL,

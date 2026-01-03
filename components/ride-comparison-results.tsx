@@ -48,6 +48,7 @@ type RouteClusterStats = {
 }
 
 type RideComparisonResultsProps = {
+  routeId?: string | null
   results: Results
   insights: string
   surgeInfo?: {
@@ -64,6 +65,7 @@ type RideComparisonResultsProps = {
 }
 
 export default memo(function RideComparisonResults({
+  routeId = null,
   results,
   insights,
   surgeInfo,
@@ -187,31 +189,74 @@ export default memo(function RideComparisonResults({
       return
     }
 
-    const mockRouteId = `route-${Date.now()}`
+    if (!routeId) {
+      console.error('No route ID available to save')
+      return
+    }
+
     const nickname = `${pickup?.split(',')[0] || 'Pickup'} → ${destination?.split(',')[0] || 'Destination'}`
 
-    const success = await saveRouteForUser(user.id, mockRouteId, nickname)
+    const success = await saveRouteForUser(user.id, routeId, nickname)
     if (success) {
       setRouteSaved(true)
       setTimeout(() => setRouteSaved(false), 3000)
     }
   }
 
-  const handleSetPriceAlert = (threshold: number) => {
+  const handleSetPriceAlert = async (threshold: number) => {
     if (!user) {
       setShowAuthDialog(true)
       return
     }
 
-    const newAlert = { threshold, timestamp: new Date() }
-    const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
-    existingAlerts.push({
-      ...newAlert,
+    // If we have a routeId, use the API to persist the alert
+    if (routeId) {
+      try {
+        const response = await fetch('/api/price-alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            routeId,
+            targetPrice: threshold,
+            service: 'any',
+            alertType: 'below',
+          }),
+        })
+
+        if (response.ok) {
+          // Also store in localStorage for quick access
+          const localAlert = {
+            threshold,
+            timestamp: new Date().toISOString(),
+            pickup: pickup?.split(',')[0],
+            destination: destination?.split(',')[0],
+            route: pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
+            routeId,
+            synced: true,
+          }
+          const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
+          existingAlerts.push(localAlert)
+          localStorage.setItem('priceAlerts', JSON.stringify(existingAlerts))
+          return
+        }
+
+        console.warn('Failed to save alert to API, falling back to localStorage')
+      } catch (error) {
+        console.warn('Error saving alert to API:', error)
+      }
+    }
+
+    // Fallback to localStorage only (for routes without ID or API errors)
+    const newAlert = {
+      threshold,
+      timestamp: new Date().toISOString(),
       pickup: pickup?.split(',')[0],
       destination: destination?.split(',')[0],
-      route:
-        pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
-    })
+      route: pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
+      synced: false,
+    }
+    const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
+    existingAlerts.push(newAlert)
     localStorage.setItem('priceAlerts', JSON.stringify(existingAlerts))
   }
 

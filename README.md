@@ -4,7 +4,7 @@ Compare prices and wait times across Uber, Lyft, and Taxi services in the Bay Ar
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm
 
 ## Getting Started

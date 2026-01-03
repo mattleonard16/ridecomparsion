@@ -19,6 +19,7 @@ enum ServiceType {
   UBER
   LYFT
   TAXI
+  ANY
 }
 
 model Route {
@@ -152,7 +153,7 @@ model SavedRoute {
   user        User       @relation(fields: [userId], references: [id])
   userId      String
   route       Route?     @relation("RouteToSavedRoute", fields: [routeId], references: [id])
-  routeId     String?    @unique
+  routeId     String?
   fromName    String
   fromLat     Float
   fromLng     Float
@@ -163,6 +164,9 @@ model SavedRoute {
   updatedAt   DateTime   @updatedAt
   priceAlerts PriceAlert[]
   rideHistories RideHistory[]
+
+  @@unique([userId, routeId])
+  @@index([userId])
 }
 
 model PriceAlert {
@@ -173,6 +177,7 @@ model PriceAlert {
   savedRouteId   String
   service        ServiceType
   targetPrice    Float
+  alertType      AlertType    @default(BELOW)
   isActive       Boolean      @default(true)
   lastTriggeredAt DateTime?
   triggerCount   Int         @default(0)

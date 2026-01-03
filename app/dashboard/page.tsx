@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { getRoutePriceHistory, getHourlyPriceAverage } from '@/lib/database'
-import { TrendingDown, Clock, Zap, ArrowLeft, BarChart3 } from 'lucide-react'
+import { TrendingDown, Clock, Zap, ArrowLeft, BarChart3, MapPin } from 'lucide-react'
 
 interface PriceSnapshot {
   timestamp: string
@@ -14,13 +13,24 @@ interface PriceSnapshot {
   weather_condition?: string
 }
 
+interface SavedRoute {
+  id: string
+  routeId: string | null
+  fromName: string
+  toName: string
+  createdAt: string
+}
+
 export default function DashboardPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([])
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null)
   const [priceData, setPriceData] = useState<PriceSnapshot[]>([])
   const [hourlyAverages, setHourlyAverages] = useState<any[]>([])
   const [selectedService, setSelectedService] = useState<'uber' | 'lyft' | 'taxi'>('uber')
   const [dataLoading, setDataLoading] = useState(true)
+  const [routesLoading, setRoutesLoading] = useState(true)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,21 +38,53 @@ export default function DashboardPage() {
     }
   }, [user, loading, router])
 
+  // Fetch saved routes on mount
+  useEffect(() => {
+    async function loadSavedRoutes() {
+      if (!user) return
+
+      setRoutesLoading(true)
+      try {
+        const response = await fetch('/api/dashboard?savedRoutes=true')
+        if (response.ok) {
+          const data = await response.json()
+          setSavedRoutes(data.savedRoutes || [])
+          // Auto-select first route if available
+          if (data.savedRoutes?.length > 0 && data.savedRoutes[0].routeId) {
+            setSelectedRouteId(data.savedRoutes[0].routeId)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved routes:', error)
+      } finally {
+        setRoutesLoading(false)
+      }
+    }
+
+    loadSavedRoutes()
+  }, [user])
+
+  // Fetch price data when route or service changes
   useEffect(() => {
     async function loadData() {
-      if (!user) return
+      if (!user || !selectedRouteId) {
+        setDataLoading(false)
+        return
+      }
 
       setDataLoading(true)
       try {
-        const mockRouteId = 'route-1'
+        const response = await fetch(
+          `/api/dashboard?routeId=${encodeURIComponent(selectedRouteId)}&service=${selectedService}&daysBack=7`
+        )
 
-        const [history, averages] = await Promise.all([
-          getRoutePriceHistory(mockRouteId, 7),
-          getHourlyPriceAverage(mockRouteId, selectedService),
-        ])
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data')
+        }
 
-        setPriceData(history as any)
-        setHourlyAverages(averages)
+        const data = await response.json()
+        setPriceData(data.priceHistory || [])
+        setHourlyAverages(data.hourlyAverages || [])
       } catch (error) {
         console.error('Error loading dashboard data:', error)
       } finally {
@@ -51,7 +93,7 @@ export default function DashboardPage() {
     }
 
     loadData()
-  }, [user, selectedService])
+  }, [user, selectedRouteId, selectedService])
 
   if (loading || !user) {
     return (
@@ -77,6 +119,42 @@ export default function DashboardPage() {
           </span>
           <h1 className="text-4xl sm:text-5xl font-black text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground text-lg">Track price trends and optimize your ride timing</p>
+        </div>
+
+        {/* Route Selector */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
+            Select Route
+          </label>
+          {routesLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+              <span>Loading routes...</span>
+            </div>
+          ) : savedRoutes.length > 0 ? (
+            <select
+              value={selectedRouteId || ''}
+              onChange={(e) => setSelectedRouteId(e.target.value || null)}
+              className="w-full md:w-auto px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
+            >
+              <option value="">Select a route...</option>
+              {savedRoutes.map((route) => (
+                <option key={route.id} value={route.routeId || ''}>
+                  {route.fromName} → {route.toName}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border">
+              <MapPin className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <p className="text-foreground font-medium">No saved routes yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Save routes from the home page to track their price history here.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Service Selector */}

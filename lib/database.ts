@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/prisma'
-import { $Enums, type ServiceType, type TrafficLevel } from '@/lib/generated/prisma'
+import { $Enums, type ServiceType, type TrafficLevel, type AlertType } from '@/lib/generated/prisma'
 import { createHash } from 'crypto'
 import { encodeRouteGeohash, getNeighborPrefixes, getDefaultPrecision } from '@/lib/geo'
 
 const ServiceTypeEnum = $Enums.ServiceType
 const TrafficLevelEnum = $Enums.TrafficLevel
+const AlertTypeEnum = $Enums.AlertType
 
 /**
  * Check if database is available
@@ -383,7 +384,12 @@ export async function saveRouteForUser(
     }
 
     await prisma.savedRoute.upsert({
-      where: routeId ? { routeId } : { id: 'temp-id' }, // Use a temporary ID if routeId is null
+      where: {
+        userId_routeId: {
+          userId,
+          routeId,
+        },
+      },
       update: {
         fromName: route.pickup_address,
         fromLat: route.pickup_lat,
@@ -408,6 +414,44 @@ export async function saveRouteForUser(
   } catch (error) {
     reportPersistenceError('saveRouteForUser', error)
     return false
+  }
+}
+
+/**
+ * Get saved routes for a user
+ */
+export async function getSavedRoutesForUser(userId: string) {
+  if (!isDatabaseAvailable()) {
+    console.log('🔧 [MOCK] Getting saved routes for user:', userId)
+    return []
+  }
+
+  try {
+    const savedRoutes = await prisma.savedRoute.findMany({
+      where: { userId },
+      include: {
+        route: {
+          select: {
+            id: true,
+            pickup_address: true,
+            destination_address: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return savedRoutes.map(sr => ({
+      id: sr.id,
+      routeId: sr.routeId,
+      fromName: sr.fromName,
+      toName: sr.toName,
+      createdAt: sr.createdAt,
+      route: sr.route,
+    }))
+  } catch (error) {
+    reportPersistenceError('getSavedRoutesForUser', error)
+    return []
   }
 }
 
@@ -443,10 +487,15 @@ export async function createPriceAlert(
       return null
     }
 
-    // Find or create saved route
+    // Find or create saved route for this user
     let savedRoute = routeId
       ? await prisma.savedRoute.findUnique({
-          where: { routeId },
+          where: {
+            userId_routeId: {
+              userId,
+              routeId,
+            },
+          },
         })
       : null
 
@@ -472,7 +521,10 @@ export async function createPriceAlert(
           ? ServiceTypeEnum.LYFT
           : service === 'taxi'
             ? ServiceTypeEnum.TAXI
-            : ServiceTypeEnum.UBER // Default for 'any'
+            : ServiceTypeEnum.ANY
+
+    const alertTypeValue: AlertType =
+      alertType === 'above' ? AlertTypeEnum.ABOVE : AlertTypeEnum.BELOW
 
     if (!savedRoute) {
       console.error('Saved route not found or could not be created')
@@ -485,6 +537,7 @@ export async function createPriceAlert(
         savedRouteId: savedRoute.id,
         service: serviceType,
         targetPrice,
+        alertType: alertTypeValue,
       },
     })
 
