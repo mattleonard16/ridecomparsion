@@ -257,6 +257,7 @@ export default function RideComparisonForm({
 
         setIsLoading(true)
         setResults(null)
+        setRouteId(null)
         setInsights('')
         setError('')
         setPickupCoords(null)
@@ -587,6 +588,7 @@ export default function RideComparisonForm({
 
     setIsLoading(true)
     setResults(null)
+    setRouteId(null)
     setInsights('')
     setError('')
     // Clear coordinates when starting a new search
@@ -788,7 +790,10 @@ export default function RideComparisonForm({
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 animate-pulse-dot"></span>
-                  <label htmlFor="pickup" className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <label
+                    htmlFor="pickup"
+                    className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                  >
                     Origin Station
                   </label>
                 </div>
@@ -855,7 +860,9 @@ export default function RideComparisonForm({
                         className="p-3 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0 transition-colors group"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">▶</span>
+                          <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">
+                            ▶
+                          </span>
                           <div>
                             <div className="font-bold text-sm text-foreground font-mono uppercase tracking-tight">
                               {suggestion.name || suggestion.display_name.split(',')[0]}
@@ -880,7 +887,9 @@ export default function RideComparisonForm({
                 className="flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors group"
               >
                 <Plane className="h-3 w-3 mr-2 group-hover:-translate-y-0.5 transition-transform" />
-                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-primary">QUICK_SELECT_AIRPORT</span>
+                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-primary">
+                  QUICK_SELECT_AIRPORT
+                </span>
               </button>
             </div>
 
@@ -888,7 +897,10 @@ export default function RideComparisonForm({
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="w-1.5 h-1.5 bg-secondary rounded-full mr-2 animate-pulse-dot"></span>
-                  <label htmlFor="destination" className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  <label
+                    htmlFor="destination"
+                    className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                  >
                     Destination Station
                   </label>
                 </div>
@@ -960,7 +972,9 @@ export default function RideComparisonForm({
                         className="p-3 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0 transition-colors group"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-secondary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">▶</span>
+                          <span className="text-secondary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">
+                            ▶
+                          </span>
                           <div>
                             <div className="font-bold text-sm text-foreground font-mono uppercase tracking-tight">
                               {suggestion.name || suggestion.display_name.split(',')[0]}
@@ -985,7 +999,9 @@ export default function RideComparisonForm({
                 className="flex items-center text-xs font-mono text-muted-foreground hover:text-secondary transition-colors group"
               >
                 <Plane className="h-3 w-3 mr-2 group-hover:-translate-y-0.5 transition-transform" />
-                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-secondary">QUICK_SELECT_AIRPORT</span>
+                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-secondary">
+                  QUICK_SELECT_AIRPORT
+                </span>
               </button>
             </div>
 

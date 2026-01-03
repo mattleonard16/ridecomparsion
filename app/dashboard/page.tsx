@@ -118,7 +118,9 @@ export default function DashboardPage() {
             Analytics
           </span>
           <h1 className="text-4xl sm:text-5xl font-black text-foreground mb-2">Dashboard</h1>
-          <p className="text-muted-foreground text-lg">Track price trends and optimize your ride timing</p>
+          <p className="text-muted-foreground text-lg">
+            Track price trends and optimize your ride timing
+          </p>
         </div>
 
         {/* Route Selector */}
@@ -134,11 +136,11 @@ export default function DashboardPage() {
           ) : savedRoutes.length > 0 ? (
             <select
               value={selectedRouteId || ''}
-              onChange={(e) => setSelectedRouteId(e.target.value || null)}
+              onChange={e => setSelectedRouteId(e.target.value || null)}
               className="w-full md:w-auto px-4 py-2.5 rounded-lg bg-muted border border-border text-foreground focus:border-primary focus:ring-1 focus:ring-primary transition-all duration-200"
             >
               <option value="">Select a route...</option>
-              {savedRoutes.map((route) => (
+              {savedRoutes.map(route => (
                 <option key={route.id} value={route.routeId || ''}>
                   {route.fromName} → {route.toName}
                 </option>
@@ -163,10 +165,11 @@ export default function DashboardPage() {
             <button
               key={service}
               onClick={() => setSelectedService(service)}
-              className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${selectedService === service
-                ? 'bg-primary text-primary-foreground'
-                : 'card-interactive text-muted-foreground hover:text-foreground'
-                }`}
+              className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                selectedService === service
+                  ? 'bg-primary text-primary-foreground'
+                  : 'card-interactive text-muted-foreground hover:text-foreground'
+              }`}
             >
               {service.charAt(0).toUpperCase() + service.slice(1)}
             </button>
@@ -214,7 +217,9 @@ export default function DashboardPage() {
                           </div>
                         )}
                         {snapshot.weather_condition && (
-                          <div className="text-xs text-muted-foreground">{snapshot.weather_condition}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {snapshot.weather_condition}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -272,19 +277,19 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-4">
                 <div className="p-4 bg-secondary/10 border border-secondary/20 rounded-lg">
-                  <div className="font-medium text-foreground mb-1">💡 Pro Tip</div>
+                  <div className="font-medium text-foreground mb-1">Pro Tip</div>
                   <p className="text-sm text-muted-foreground">
                     Prices are typically lowest between 10 AM - 3 PM on weekdays
                   </p>
                 </div>
                 <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                  <div className="font-medium text-foreground mb-1">⚠️ Peak Hours</div>
+                  <div className="font-medium text-foreground mb-1">Peak Hours</div>
                   <p className="text-sm text-muted-foreground">
                     Expect 1.5-2.5x surge during rush hours (7-9 AM, 5-7 PM)
                   </p>
                 </div>
                 <div className="p-4 bg-muted rounded-lg">
-                  <div className="font-medium text-foreground mb-1">🌧️ Weather Impact</div>
+                  <div className="font-medium text-foreground mb-1">Weather Impact</div>
                   <p className="text-sm text-muted-foreground">
                     Rain can increase prices by 20-40% due to higher demand
                   </p>

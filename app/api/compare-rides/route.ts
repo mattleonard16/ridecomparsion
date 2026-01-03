@@ -80,7 +80,9 @@ async function handlePost(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const isPrecomputedRoute = body.pickup && body.destination &&
+    const isPrecomputedRoute =
+      body.pickup &&
+      body.destination &&
       !!findPrecomputedRouteByAddresses(body.pickup, body.destination)
 
     const isProduction = process.env.NODE_ENV === 'production'
@@ -96,7 +98,10 @@ async function handlePost(request: NextRequest) {
       if (!recaptchaResult.success) {
         // Action mismatch is suspicious - could indicate replay attack
         if (recaptchaResult.error?.includes('Action mismatch')) {
-          console.error('[SECURITY] reCAPTCHA action mismatch - potential replay attack:', recaptchaResult.error)
+          console.error(
+            '[SECURITY] reCAPTCHA action mismatch - potential replay attack:',
+            recaptchaResult.error
+          )
           return NextResponse.json(
             { error: 'Security verification failed. Please refresh and try again.' },
             { status: 403 }
@@ -104,7 +109,10 @@ async function handlePost(request: NextRequest) {
         }
 
         // Low score indicates likely bot
-        if (recaptchaResult.score !== undefined && recaptchaResult.score < RECAPTCHA_CONFIG.LENIENT_THRESHOLD) {
+        if (
+          recaptchaResult.score !== undefined &&
+          recaptchaResult.score < RECAPTCHA_CONFIG.LENIENT_THRESHOLD
+        ) {
           return NextResponse.json(
             {
               error: 'Security verification failed. Please try again.',
@@ -122,15 +130,15 @@ async function handlePost(request: NextRequest) {
             { status: 503 }
           )
         } else {
-          console.warn('[reCAPTCHA] Verification failed in development, continuing:', recaptchaResult.error)
+          console.warn(
+            '[reCAPTCHA] Verification failed in development, continuing:',
+            recaptchaResult.error
+          )
         }
       }
     } else if (!isPrecomputedRoute && !body.recaptchaToken && isProduction) {
       // In production, require reCAPTCHA token for non-precomputed routes
-      return NextResponse.json(
-        { error: 'Security token required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Security token required' }, { status: 400 })
     }
 
     let requestData

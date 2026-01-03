@@ -83,7 +83,7 @@ export async function findOrCreateRoute(
         /\./g,
         ''
       )
-    console.log('🔧 [MOCK] Created route:', mockRouteId)
+    console.log('[MOCK] Created route:', mockRouteId)
     return mockRouteId
   }
 
@@ -151,7 +151,7 @@ export async function logPriceSnapshot(
 ): Promise<void> {
   if (!isDatabaseAvailable()) {
     const now = new Date()
-    console.log('🔧 [MOCK] Price snapshot:', {
+    console.log('[MOCK] Price snapshot:', {
       service,
       price: `$${price.toFixed(2)}`,
       surge: `${surge}x`,
@@ -223,7 +223,7 @@ export async function logSearch(
   sessionId?: string
 ): Promise<void> {
   if (!isDatabaseAvailable()) {
-    console.log('🔧 [MOCK] Search logged:', {
+    console.log('[MOCK] Search logged:', {
       routeId,
       userId,
       sessionId,
@@ -360,7 +360,7 @@ export async function saveRouteForUser(
   nickname?: string
 ): Promise<boolean> {
   if (!isDatabaseAvailable()) {
-    console.log('🔧 [MOCK] Saved route for user:', { userId, routeId, nickname })
+    console.log('[MOCK] Saved route for user:', { userId, routeId, nickname })
     return true
   }
 
@@ -422,7 +422,7 @@ export async function saveRouteForUser(
  */
 export async function getSavedRoutesForUser(userId: string) {
   if (!isDatabaseAvailable()) {
-    console.log('🔧 [MOCK] Getting saved routes for user:', userId)
+    console.log('[MOCK] Getting saved routes for user:', userId)
     return []
   }
 
@@ -466,7 +466,7 @@ export async function createPriceAlert(
   alertType: 'below' | 'above' = 'below'
 ) {
   if (!isDatabaseAvailable()) {
-    console.log('🔧 [MOCK] Created price alert:', {
+    console.log('[MOCK] Created price alert:', {
       userId,
       routeId,
       targetPrice,
@@ -487,15 +487,10 @@ export async function createPriceAlert(
       return null
     }
 
-    // Find or create saved route for this user
+    // Find or create saved route using composite key
     let savedRoute = routeId
       ? await prisma.savedRoute.findUnique({
-          where: {
-            userId_routeId: {
-              userId,
-              routeId,
-            },
-          },
+          where: { userId_routeId: { userId, routeId } },
         })
       : null
 
@@ -536,8 +531,8 @@ export async function createPriceAlert(
         userId,
         savedRouteId: savedRoute.id,
         service: serviceType,
-        targetPrice,
         alertType: alertTypeValue,
+        targetPrice,
       },
     })
 
@@ -563,7 +558,7 @@ export async function logWeatherData(
   }
 ): Promise<void> {
   if (!isDatabaseAvailable()) {
-    console.log('🔧 [MOCK] Weather logged:', { coords, weatherData })
+    console.log('[MOCK] Weather logged:', { coords, weatherData })
     return
   }
 
@@ -731,7 +726,8 @@ export async function getRouteAndClusterPriceStats(
     })
 
     const exactValues = exactSnapshots.map(s => s.final_price)
-    const exactStats = exactValues.length >= MIN_SAMPLES_THRESHOLD ? computeStats(exactValues) : undefined
+    const exactStats =
+      exactValues.length >= MIN_SAMPLES_THRESHOLD ? computeStats(exactValues) : undefined
 
     // If exact route has sufficient samples, use it
     if (exactStats && exactStats.count >= MIN_SAMPLES_THRESHOLD) {
@@ -792,7 +788,8 @@ export async function getRouteAndClusterPriceStats(
     }
 
     const clusterValues = clusterSnapshots.map(s => s.final_price)
-    const clusterStatsRaw = clusterValues.length >= MIN_SAMPLES_THRESHOLD ? computeStats(clusterValues) : undefined
+    const clusterStatsRaw =
+      clusterValues.length >= MIN_SAMPLES_THRESHOLD ? computeStats(clusterValues) : undefined
 
     if (clusterStatsRaw) {
       return {
