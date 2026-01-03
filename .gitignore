@@ -36,8 +36,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Claude Code documentation
-CLAUDE.md
+
 
 /lib/generated/prisma
 

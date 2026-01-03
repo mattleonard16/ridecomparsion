@@ -140,6 +140,22 @@ export async function verifyRecaptchaToken(
   try {
     // Get secret key from environment - prefer runtime env over build-time
     const secretKey = process.env.RECAPTCHA_SECRET_KEY || TEST_SECRET_KEY
+    const isUsingTestKey = secretKey === TEST_SECRET_KEY
+    const isProduction = process.env.NODE_ENV === 'production'
+
+    // SECURITY: Fail closed in production if using test keys
+    if (isUsingTestKey && isProduction) {
+      console.error('[SECURITY CRITICAL] Using test reCAPTCHA key in production!')
+      return {
+        success: false,
+        error: 'reCAPTCHA not properly configured for production',
+      }
+    }
+
+    // Log warning in development when using test keys
+    if (isUsingTestKey && !isProduction) {
+      console.warn('[reCAPTCHA] Using test key - verification will always pass')
+    }
 
     if (!secretKey) {
       return {

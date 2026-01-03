@@ -191,6 +191,7 @@ export default function RideComparisonForm({
 
   // Results state
   const [results, setResults] = useState<RideResults | null>(null)
+  const [routeId, setRouteId] = useState<string | null>(null)
   const [insights, setInsights] = useState('')
   const [error, setError] = useState('')
   const [surgeInfo, setSurgeInfo] = useState<SurgeInfo | null>(null)
@@ -295,6 +296,7 @@ export default function RideComparisonForm({
           }
 
           setResults(data.comparisons)
+          setRouteId(data.routeId || null)
           setInsights(data.insights)
           setPickupCoords(data.pickupCoords)
           setDestinationCoords(data.destinationCoords)
@@ -641,6 +643,7 @@ export default function RideComparisonForm({
       }
 
       setResults(data.comparisons)
+      setRouteId(data.routeId || null)
       setInsights(data.insights)
       setPickupCoords(data.pickupCoords)
       setDestinationCoords(data.destinationCoords)
@@ -675,6 +678,7 @@ export default function RideComparisonForm({
       }
 
       setResults(simulatedResults)
+      setRouteId(null) // Simulated data has no real route
       setInsights(
         'Based on price and wait time, Lyft appears to be your best option for this trip.'
       )
@@ -754,6 +758,7 @@ export default function RideComparisonForm({
     setPickup('')
     setDestination('')
     setResults(null)
+    setRouteId(null)
     setInsights('')
     setError('')
     setPickupCoords(null)
@@ -1119,6 +1124,7 @@ export default function RideComparisonForm({
 
         {results && (
           <RideComparisonResults
+            routeId={routeId}
             results={results}
             insights={insights}
             surgeInfo={surgeInfo}

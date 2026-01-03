@@ -40,7 +40,7 @@ if (!isDev) {
         },
       },
       {
-        urlPattern: /^http:\/\/router\.project-osrm\.org\/.*/i,
+        urlPattern: /^https:\/\/router\.project-osrm\.org\/.*/i,
         handler: 'NetworkFirst',
         options: {
           cacheName: 'osrm-api',

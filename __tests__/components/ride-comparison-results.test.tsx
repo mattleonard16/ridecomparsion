@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react'
 import RideComparisonResults from '@/components/ride-comparison-results'
-import { AuthProvider } from '@/lib/auth-context'
 
 // Mock the auth context
 jest.mock('@/lib/auth-context', () => ({
@@ -42,9 +41,9 @@ describe('RideComparisonResults', () => {
   it('renders the results with all ride services', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
-    expect(screen.getByText('Uber')).toBeInTheDocument()
-    expect(screen.getByText('Lyft')).toBeInTheDocument()
-    expect(screen.getByText('Taxi')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /uber/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /lyft/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /taxi/i })).toBeInTheDocument()
   })
 
   it('displays the correct pricing information', () => {
@@ -69,20 +68,19 @@ describe('RideComparisonResults', () => {
     expect(screen.getByText('6 min')).toBeInTheDocument() // Lyft card
     expect(screen.getByText('8 min')).toBeInTheDocument() // Taxi card
 
-    // Check driver counts - use getAllByText since there are multiple instances
-    expect(screen.getAllByText('4')).toHaveLength(1) // Driver count for Uber
-    expect(screen.getAllByText('3')).toHaveLength(1) // Driver count for Lyft
-    expect(screen.getAllByText('2')).toHaveLength(1) // Driver count for Taxi
-    expect(screen.getAllByText('Drivers')).toHaveLength(3) // Label appears 3 times
+    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getAllByText(/nearby units/i)).toHaveLength(3)
   })
 
   it('displays service icons correctly', () => {
     render(<RideComparisonResults results={mockResults} insights={mockInsights} />)
 
-    // Check for service names instead of test IDs since the component uses text-based icons
-    expect(screen.getByText('Uber')).toBeInTheDocument()
-    expect(screen.getByText('Lyft')).toBeInTheDocument()
-    expect(screen.getByText('Taxi')).toBeInTheDocument()
+    // Check for service names (rendered in uppercase headers)
+    expect(screen.getByRole('heading', { name: /uber/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /lyft/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /taxi/i })).toBeInTheDocument()
   })
 
   it('formats prices consistently', () => {
@@ -104,6 +102,6 @@ describe('RideComparisonResults', () => {
     render(<RideComparisonResults results={edgeCaseResults} insights={mockInsights} />)
 
     expect(screen.getByText('0')).toBeInTheDocument() // Driver count for Uber
-    expect(screen.getAllByText('Drivers')).toHaveLength(3) // Label appears 3 times
+    expect(screen.getAllByText(/nearby units/i)).toHaveLength(3)
   })
 })

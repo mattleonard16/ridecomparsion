@@ -48,6 +48,7 @@ async function handleGet(request: NextRequest) {
 
     return NextResponse.json(
       {
+        routeId: comparisons.routeId,
         comparisons: comparisons.results,
         insights: comparisons.insights,
         pickupCoords: comparisons.pickup,
@@ -82,6 +83,9 @@ async function handlePost(request: NextRequest) {
     const isPrecomputedRoute = body.pickup && body.destination &&
       !!findPrecomputedRouteByAddresses(body.pickup, body.destination)
 
+    const isProduction = process.env.NODE_ENV === 'production'
+
+    // reCAPTCHA verification - fail closed in production
     if (body.recaptchaToken && !isPrecomputedRoute) {
       const recaptchaResult = await verifyRecaptchaToken(
         body.recaptchaToken,
@@ -90,9 +94,17 @@ async function handlePost(request: NextRequest) {
       )
 
       if (!recaptchaResult.success) {
+        // Action mismatch is suspicious - could indicate replay attack
         if (recaptchaResult.error?.includes('Action mismatch')) {
-          console.warn('reCAPTCHA action mismatch, continuing:', recaptchaResult.error)
-        } else if (recaptchaResult.score !== undefined && recaptchaResult.score < 0.3) {
+          console.error('[SECURITY] reCAPTCHA action mismatch - potential replay attack:', recaptchaResult.error)
+          return NextResponse.json(
+            { error: 'Security verification failed. Please refresh and try again.' },
+            { status: 403 }
+          )
+        }
+
+        // Low score indicates likely bot
+        if (recaptchaResult.score !== undefined && recaptchaResult.score < RECAPTCHA_CONFIG.LENIENT_THRESHOLD) {
           return NextResponse.json(
             {
               error: 'Security verification failed. Please try again.',
@@ -100,12 +112,25 @@ async function handlePost(request: NextRequest) {
             },
             { status: 403 }
           )
-        } else {
-          console.warn('Continuing without reCAPTCHA verification due to:', recaptchaResult.error)
         }
-      } else {
+
+        // For other errors in production, fail closed
+        if (isProduction) {
+          console.error('[SECURITY] reCAPTCHA verification failed:', recaptchaResult.error)
+          return NextResponse.json(
+            { error: 'Security verification unavailable. Please try again later.' },
+            { status: 503 }
+          )
+        } else {
+          console.warn('[reCAPTCHA] Verification failed in development, continuing:', recaptchaResult.error)
+        }
       }
-    } else if (isPrecomputedRoute) {
+    } else if (!isPrecomputedRoute && !body.recaptchaToken && isProduction) {
+      // In production, require reCAPTCHA token for non-precomputed routes
+      return NextResponse.json(
+        { error: 'Security token required' },
+        { status: 400 }
+      )
     }
 
     let requestData
@@ -178,9 +203,17 @@ async function handlePost(request: NextRequest) {
         return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
       }
 
+      // Apply validation to legacy requests (security fix)
+      const sanitizedPickup = sanitizeString(pickup)
+      const sanitizedDestination = sanitizeString(destination)
+
+      if (detectSpamPatterns(sanitizedPickup) || detectSpamPatterns(sanitizedDestination)) {
+        return NextResponse.json({ error: 'Invalid location names detected' }, { status: 400 })
+      }
+
       const comparisons = await compareRidesByAddresses(
-        pickup,
-        destination,
+        sanitizedPickup,
+        sanitizedDestination,
         ['uber', 'lyft', 'taxi'],
         new Date(),
         {
@@ -195,6 +228,7 @@ async function handlePost(request: NextRequest) {
       }
 
       return NextResponse.json({
+        routeId: comparisons.routeId,
         comparisons: comparisons.results,
         insights: comparisons.insights,
         pickupCoords: comparisons.pickup,
@@ -224,6 +258,7 @@ async function handlePost(request: NextRequest) {
     }
 
     return NextResponse.json({
+      routeId: comparisons.routeId,
       comparisons: comparisons.results,
       insights: comparisons.insights,
       pickupCoords: comparisons.pickup,

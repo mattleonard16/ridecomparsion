@@ -1,5 +1,28 @@
 import '@testing-library/jest-dom'
 
+// Mock next-auth/react
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({
+    data: null,
+    status: 'unauthenticated',
+  })),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  getSession: jest.fn(() => Promise.resolve(null)),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}))
+
+// Mock @/auth
+jest.mock('@/auth', () => ({
+  auth: jest.fn(() => Promise.resolve(null)),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  handlers: {
+    GET: jest.fn(),
+    POST: jest.fn(),
+  },
+}))
+
 // Mock fetch globally
 global.fetch = jest.fn()
 

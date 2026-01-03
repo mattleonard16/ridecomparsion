@@ -12,6 +12,8 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  // Handle ESM modules from next-auth and related packages
+  transformIgnorePatterns: ['/node_modules/(?!(next-auth|@auth|@panva)/)'],
 }
 
 module.exports = createJestConfig(customJestConfig)

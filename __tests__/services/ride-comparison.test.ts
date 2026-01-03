@@ -410,10 +410,15 @@ describe('ride-comparison service', () => {
     })
 
     it('should recognize SFO airport code', async () => {
-      const result = await compareRidesByAddresses('SFO', 'San Francisco, CA', ['uber'])
+      // Use a destination that does not match any precomputed route so OSRM is exercised.
+      const result = await compareRidesByAddresses('SFO', 'Berkeley, CA', ['uber'])
 
       expect(result).not.toBeNull()
+      const nominatimCalls = mockFetch.mock.calls.filter(call => call[0].includes('nominatim'))
       const osrmCalls = mockFetch.mock.calls.filter(call => call[0].includes('osrm'))
+
+      // Airport code should bypass Nominatim for pickup, but destination still needs geocoding.
+      expect(nominatimCalls.length).toBe(1)
       expect(osrmCalls.length).toBe(1)
     })
 
