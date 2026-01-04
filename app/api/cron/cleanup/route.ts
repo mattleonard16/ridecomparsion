@@ -61,10 +61,7 @@ export async function GET(request: NextRequest) {
 
   // Check if database is available
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
-      { error: 'Database not configured', success: false },
-      { status: 503 }
-    )
+    return NextResponse.json({ error: 'Database not configured', success: false }, { status: 503 })
   }
 
   const results: CleanupResult[] = []
@@ -122,10 +119,7 @@ export async function GET(request: NextRequest) {
     const deleted = await prisma.eventLog.deleteMany({
       where: {
         start_time: { lt: cutoff },
-        OR: [
-          { end_time: { lt: cutoff } },
-          { end_time: null },
-        ],
+        OR: [{ end_time: { lt: cutoff } }, { end_time: null }],
       },
     })
     results.push({
@@ -165,4 +159,3 @@ export async function GET(request: NextRequest) {
 
 // POST is an alias for GET (some cron systems use POST)
 export const POST = GET
-

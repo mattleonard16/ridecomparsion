@@ -54,7 +54,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${bebasNeue.variable} ${ibmPlexSans.variable} ${jetbrainsMono.variable} antialiased font-sans`}>
+      <body
+        className={`${bebasNeue.variable} ${ibmPlexSans.variable} ${jetbrainsMono.variable} antialiased font-sans`}
+      >
         <Providers>
           {/* Fixed Navigation Bar */}
           <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">

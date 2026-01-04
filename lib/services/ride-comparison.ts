@@ -223,7 +223,10 @@ export async function compareRidesByCoordinates(
                 trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
               }
             ).catch(err => {
-              console.warn('[CompareAPI] Price snapshot logging failed (non-critical):', err.message)
+              console.warn(
+                '[CompareAPI] Price snapshot logging failed (non-critical):',
+                err.message
+              )
             })
           })
         }

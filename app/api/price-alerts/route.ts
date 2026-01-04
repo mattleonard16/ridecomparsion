@@ -39,13 +39,7 @@ async function handlePost(request: NextRequest) {
 
     const { routeId, targetPrice, service, alertType } = validation.data
 
-    const alert = await createPriceAlert(
-      session.user.id,
-      routeId,
-      targetPrice,
-      service,
-      alertType
-    )
+    const alert = await createPriceAlert(session.user.id, routeId, targetPrice, service, alertType)
 
     if (!alert) {
       return NextResponse.json(

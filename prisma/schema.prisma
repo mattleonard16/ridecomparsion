@@ -176,8 +176,8 @@ model PriceAlert {
   savedRoute     SavedRoute   @relation(fields: [savedRouteId], references: [id])
   savedRouteId   String
   service        ServiceType
-  targetPrice    Float
   alertType      AlertType    @default(BELOW)
+  targetPrice    Float
   isActive       Boolean      @default(true)
   lastTriggeredAt DateTime?
   triggerCount   Int         @default(0)

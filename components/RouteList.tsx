@@ -14,7 +14,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$45-65',
     estimatedTime: '35-50 min',
     lineColor: 'bg-primary',
-    code: 'RL-01'
+    code: 'RL-01',
   },
   {
     id: 'stanford-apple',
@@ -26,7 +26,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$15-25',
     estimatedTime: '15-20 min',
     lineColor: 'bg-secondary',
-    code: 'RL-02'
+    code: 'RL-02',
   },
   {
     id: 'sjc-santa-clara',
@@ -38,7 +38,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$20-30',
     estimatedTime: '20-25 min',
     lineColor: 'bg-accent',
-    code: 'RL-03'
+    code: 'RL-03',
   },
   {
     id: 'palo-alto-google',
@@ -50,7 +50,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$12-18',
     estimatedTime: '10-15 min',
     lineColor: 'bg-primary',
-    code: 'RL-04'
+    code: 'RL-04',
   },
 ]
 
@@ -81,7 +81,10 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
   )
 
   return (
-    <section id="routes" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28 scanline-overlay">
+    <section
+      id="routes"
+      className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28 scanline-overlay"
+    >
       {/* Subtle background */}
       <div className="absolute inset-0 bg-dot-grid opacity-30" />
 
@@ -134,18 +137,22 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
                       <span className="font-mono text-sm font-bold">{route.code}</span>
                     </div>
                     {isProcessing ? (
-                      <span className="text-accent font-mono text-xs animate-pulse">PROCESSING</span>
+                      <span className="text-accent font-mono text-xs animate-pulse">
+                        PROCESSING
+                      </span>
                     ) : (
                       <span className="text-primary font-mono text-xs">ON TIME</span>
                     )}
                   </div>
 
                   {/* Desktop Columns */}
-                  
+
                   {/* Line Info */}
                   <div className="col-span-2 p-4 sm:border-r border-border/50 flex items-center gap-3 bg-muted/10 group-hover:bg-muted/30 transition-colors">
                     <div className={`w-1.5 h-8 rounded-sm ${route.lineColor}`}></div>
-                    <span className="font-mono text-lg text-foreground tracking-tight">{route.code}</span>
+                    <span className="font-mono text-lg text-foreground tracking-tight">
+                      {route.code}
+                    </span>
                   </div>
 
                   {/* Route Info */}

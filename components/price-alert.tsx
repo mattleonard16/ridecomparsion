@@ -46,14 +46,18 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
             </div>
             <h3 className="text-xl font-bold text-foreground">Set Price Alert</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="mb-6">
           <p className="text-muted-foreground mb-2">
-            Current best price: <strong className="text-foreground">${currentBestPrice.toFixed(2)}</strong>
+            Current best price:{' '}
+            <strong className="text-foreground">${currentBestPrice.toFixed(2)}</strong>
           </p>
           <p className="text-sm text-muted-foreground">
             We&apos;ll notify you when any ride option drops below your threshold.

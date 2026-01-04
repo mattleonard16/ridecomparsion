@@ -49,7 +49,10 @@ const SECONDARY_FEATURES = [
 
 export default function FeatureGrid() {
   return (
-    <section id="features" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28">
+    <section
+      id="features"
+      className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28"
+    >
       {/* Subtle background */}
       <div className="absolute inset-0 bg-route-pattern opacity-20" />
 
@@ -60,7 +63,7 @@ export default function FeatureGrid() {
             Why RideCompare
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-foreground leading-[0.95] max-w-3xl">
-            The fastest way to find your 
+            The fastest way to find your
             <span className="text-accent-gradient"> cheapest ride</span>
           </h2>
         </div>
@@ -75,7 +78,9 @@ export default function FeatureGrid() {
               </div>
               <div className="text-right">
                 <div className="text-4xl font-black text-foreground">{FEATURES[0].stat}</div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">{FEATURES[0].statLabel}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                  {FEATURES[0].statLabel}
+                </div>
               </div>
             </div>
             <h3 className="text-2xl font-black text-foreground mb-3">{FEATURES[0].title}</h3>
@@ -84,10 +89,10 @@ export default function FeatureGrid() {
 
           {/* Two stacked cards */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            {FEATURES.slice(1).map((feature) => {
+            {FEATURES.slice(1).map(feature => {
               const Icon = feature.icon
               return (
-                <div 
+                <div
                   key={feature.id}
                   className="card-interactive rounded-2xl p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center gap-6"
                 >
@@ -102,7 +107,9 @@ export default function FeatureGrid() {
                   </div>
                   <div className="text-left sm:text-right pl-16 sm:pl-0">
                     <div className="text-3xl font-black text-foreground">{feature.stat}</div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">{feature.statLabel}</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {feature.statLabel}
+                    </div>
                   </div>
                 </div>
               )

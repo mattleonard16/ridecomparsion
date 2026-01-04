@@ -42,11 +42,13 @@ Compare prices and wait times across Uber, Lyft, and Taxi services in the Bay Ar
 Create a `.env.local` file in the project root. See `ENV_EXAMPLE.md` for all required variables.
 
 **Minimum required:**
+
 ```
 DATABASE_URL="postgresql://user:YOUR_PASSWORD@localhost:5432/rideshareappnew?schema=public"
 ```
 
 For Docker, create a `.env` file with:
+
 ```
 POSTGRES_USER=rideshare
 POSTGRES_PASSWORD=your_secure_password_here

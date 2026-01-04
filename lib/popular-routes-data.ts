@@ -24,7 +24,7 @@ function coords(lon: number, lat: number): Coordinates {
 /**
  * Pre-computed route data for popular routes.
  * This eliminates the need for external API calls (geocoding + routing) for these common routes.
- * 
+ *
  * Coordinates and metrics are pre-calculated from actual API responses to ensure accuracy.
  */
 export const PRECOMPUTED_ROUTES: Record<string, PrecomputedRouteData> = {
@@ -51,7 +51,7 @@ export const PRECOMPUTED_ROUTES: Record<string, PrecomputedRouteData> = {
     },
     destination: {
       name: 'Apple Park, Cupertino, CA, USA',
-      coordinates: coords(-122.0090, 37.3349),
+      coordinates: coords(-122.009, 37.3349),
     },
     metrics: {
       distanceKm: 12.8,
@@ -77,11 +77,11 @@ export const PRECOMPUTED_ROUTES: Record<string, PrecomputedRouteData> = {
   'palo-alto-google': {
     pickup: {
       name: 'Palo Alto, CA, USA',
-      coordinates: coords(-122.1430, 37.4419),
+      coordinates: coords(-122.143, 37.4419),
     },
     destination: {
       name: 'Googleplex, Mountain View, CA, USA',
-      coordinates: coords(-122.0841, 37.4220),
+      coordinates: coords(-122.0841, 37.422),
     },
     metrics: {
       distanceKm: 6.5,
@@ -113,7 +113,7 @@ export const PRECOMPUTED_ROUTES: Record<string, PrecomputedRouteData> = {
     },
     destination: {
       name: 'Palo Alto, CA, USA',
-      coordinates: coords(-122.1430, 37.4419),
+      coordinates: coords(-122.143, 37.4419),
     },
     metrics: {
       distanceKm: 32.5,
@@ -173,7 +173,7 @@ export const PRECOMPUTED_ROUTES: Record<string, PrecomputedRouteData> = {
     },
     destination: {
       name: 'Cupertino, CA, USA',
-      coordinates: coords(-122.0322, 37.3230),
+      coordinates: coords(-122.0322, 37.323),
     },
     metrics: {
       distanceKm: 38,
@@ -288,4 +288,3 @@ export function findPrecomputedRouteByAddresses(
 
   return undefined
 }
-

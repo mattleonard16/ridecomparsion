@@ -9,6 +9,7 @@ Comparative Rideshares: A Next.js 14 application that compares prices and wait t
 ## Development Commands
 
 ### Setup
+
 ```bash
 npm install              # Install dependencies
 npm run db:migrate       # Apply Prisma migrations locally (creates schema)
@@ -17,12 +18,14 @@ npm run db:studio        # Open Prisma Studio data browser
 ```
 
 ### Development
+
 ```bash
 npm run dev              # Start development server (localhost:3000)
 npm run dev:https        # Start with HTTPS enabled
 ```
 
 ### Code Quality
+
 ```bash
 npm run typecheck        # Run TypeScript compiler checks
 npm run lint             # Run ESLint
@@ -33,12 +36,14 @@ npm run quality          # Run all checks (typecheck + lint + format:check + tes
 ```
 
 ### Testing
+
 ```bash
 npm test                 # Run Jest tests
 npm test:watch           # Run tests in watch mode
 ```
 
 ### Build & Deployment
+
 ```bash
 npm run build            # Build for production (runs prisma generate + next build)
 npm start                # Start production server
@@ -46,12 +51,14 @@ npm run db:deploy        # Deploy migrations in production
 ```
 
 ### Data Management
+
 ```bash
 npm run seed             # Seed database with sample data
 npm run fetch:quotes     # Fetch ride quotes (custom script)
 ```
 
 ### Docker
+
 ```bash
 docker compose up --build -d        # Build and run full stack
 docker compose up -d db             # Run database only (for local development)
@@ -116,6 +123,7 @@ The service uses `findPrecomputedRouteByAddresses` from `lib/popular-routes-data
 **Location**: `auth.ts` (root)
 
 NextAuth.js v5 with:
+
 - Prisma adapter pointing to custom client path (`lib/generated/prisma`)
 - JWT session strategy (not database sessions)
 - Credentials provider with bcrypt password hashing
@@ -124,6 +132,7 @@ NextAuth.js v5 with:
 ### Frontend Architecture
 
 **Next.js App Router** structure:
+
 - `app/page.tsx`: Main ride comparison UI
 - `app/dashboard/page.tsx`: User dashboard
 - `app/demo/page.tsx`: Demo/testing page
@@ -136,6 +145,7 @@ NextAuth.js v5 with:
 **Location**: `next.config.mjs`
 
 Progressive Web App enabled in production only (disabled in dev to avoid babel issues):
+
 - Caches OpenStreetMap tiles (7 days, CacheFirst)
 - Caches Nominatim API (1 day, NetworkFirst)
 - Caches OSRM API (1 hour, NetworkFirst)
@@ -167,18 +177,23 @@ See `ENV_EXAMPLE.md` for complete reference.
 ## Important Patterns
 
 ### Database Access
+
 Always import Prisma client from `lib/prisma.ts` (not from generated folder). The generated client is at `lib/generated/prisma` due to custom `output` setting in schema.
 
 ### Pricing Calculations
+
 Use `pricingEngine.calculateFare()` for full breakdown or helper functions (`calculateEnhancedFare`, `getTimeBasedMultiplier`) for simplified use cases. Never hardcode pricing logic outside `lib/pricing.ts`.
 
 ### API Error Handling
+
 APIs use non-blocking async logging that catches and logs errors without failing the request. Database operations use `.catch()` with warning logs for non-critical operations (see `ride-comparison.ts:188-196`).
 
 ### Geohash Clustering
+
 Routes use geohash prefixes for location clustering (precision 8). When querying by area, use prefix matching on `pickup_geohash` and `destination_geohash` fields.
 
 ### Caching Strategy
+
 External API calls (Nominatim, OSRM) are cached in-memory with TTL. Precomputed routes have longer TTL (30min). Always check cache before external API calls.
 
 ## Deployment Notes
@@ -192,11 +207,13 @@ External API calls (Nominatim, OSRM) are cached in-memory with TTL. Precomputed 
 ## Testing Strategy
 
 Jest configuration in `jest.config.js` with:
+
 - Test environment: jsdom
 - Path aliases: `@/` maps to root
 - Setup file: `jest.setup.ts` (with @testing-library/jest-dom)
 
 Run specific test file:
+
 ```bash
 npm test -- path/to/test.spec.ts
 ```
@@ -219,6 +236,7 @@ codex exec resume <SESSION_ID> "follow-up prompt" 2>/dev/null
 **IMPORTANT: Always run in background** using `run_in_background: true` parameter on Bash tool. This allows conversation to continue while Codex analyzes. Wait for `<bash-notification>` completion signal, then retrieve with `TaskOutput`. Never set explicit timeouts - Codex analysis is thorough and should complete naturally.
 
 **CRITICAL: Always use `2>/dev/null`**. Without it, Codex outputs verbose reasoning traces to stderr that bloat Claude's context window by 10x or more. The `2>/dev/null` suffix:
+
 - Suppresses stderr (where all `thinking` + `exec` traces go)
 - Returns only stdout (the clean final answer)
 - Reduces a ~15KB trace to ~1.5KB answer

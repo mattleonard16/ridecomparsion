@@ -1,109 +1,68 @@
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
+'use client'
+
 import { useEffect, useState, memo, useCallback, useRef } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
+import MapLibreGL from 'maplibre-gl'
+import { Map, MapMarker, MarkerContent, MapRoute, MapControls, useMap } from '@/components/ui/map'
 
-// Fix for default markers in react-leaflet
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
-
-// Custom icons for pickup and destination
-const pickupIcon = new L.Icon({
-  iconUrl:
-    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
-
-const destinationIcon = new L.Icon({
-  iconUrl:
-    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-})
-
-// Performance monitoring removed - check console logs instead
-
-// Enhanced map controller with smooth transitions
+// Map view controller for fitting bounds
 function MapViewController({
   pickup,
   destination,
   routeCoordinates,
   isRouteLoading,
-  onUpdateTiming,
 }: {
-  pickup: [number, number]
-  destination: [number, number]
-  routeCoordinates: [number, number][]
+  pickup: [number, number] // [lon, lat]
+  destination: [number, number] // [lon, lat]
+  routeCoordinates: [number, number][] // [[lon, lat], ...]
   isRouteLoading: boolean
-  onUpdateTiming: (time: number) => void
 }) {
-  const map = useMap()
+  const { map, isLoaded } = useMap()
   const hasInitialized = useRef(false)
-  const updateStartTime = useRef<number>()
 
+  // Fit bounds when coordinates change
   useEffect(() => {
-    if (!map) return
+    if (!map || !isLoaded) return
 
-    updateStartTime.current = performance.now()
-
-    // Immediate markers update - don't wait for route
-    const markerBounds = L.latLngBounds([
-      [pickup[1], pickup[0]],
-      [destination[1], destination[0]],
-    ])
-
-    // Add padding to ensure markers are visible
-    const paddedBounds = markerBounds.pad(0.1)
+    // Create bounds from pickup and destination
+    const bounds = new MapLibreGL.LngLatBounds()
+      .extend([pickup[0], pickup[1]])
+      .extend([destination[0], destination[1]])
 
     if (!hasInitialized.current) {
       // First load - instant fit
-      map.fitBounds(paddedBounds, {
-        padding: [20, 20],
-        animate: false, // No animation on first load for speed
+      map.fitBounds(bounds, {
+        padding: 40,
+        duration: 0,
       })
       hasInitialized.current = true
     } else {
-      // Subsequent updates - smooth fly animation
-      map.flyToBounds(paddedBounds, {
-        padding: [20, 20],
-        duration: 1.0, // 1 second smooth animation
-        easeLinearity: 0.25,
+      // Subsequent updates - smooth animation
+      map.fitBounds(bounds, {
+        padding: 40,
+        duration: 1000,
       })
     }
+  }, [map, isLoaded, pickup, destination])
 
-    // Report timing when animation completes
-    const timing = performance.now() - updateStartTime.current
-    onUpdateTiming(timing)
-  }, [map, pickup, destination, onUpdateTiming])
-
-  // Separate effect for route-based bounds (optional refinement)
+  // Refine bounds when route loads
   useEffect(() => {
-    if (!map || !routeCoordinates.length || isRouteLoading) return
+    if (!map || !isLoaded || !routeCoordinates.length || isRouteLoading) return
 
-    // When route loads, optionally refine the bounds (subtle adjustment)
-    const routeBounds = L.latLngBounds(routeCoordinates)
+    // Create bounds including all route coordinates
+    const bounds = new MapLibreGL.LngLatBounds()
+    routeCoordinates.forEach(coord => bounds.extend(coord))
+
+    // Only adjust if route extends beyond current view
     const currentBounds = map.getBounds()
-
-    // Only adjust if route extends significantly beyond current view
-    if (!currentBounds.contains(routeBounds)) {
-      map.flyToBounds(routeBounds, {
-        padding: [15, 15],
-        duration: 0.8,
-        easeLinearity: 0.25,
+    const sw = bounds.getSouthWest()
+    const ne = bounds.getNorthEast()
+    if (currentBounds && (!currentBounds.contains(sw) || !currentBounds.contains(ne))) {
+      map.fitBounds(bounds, {
+        padding: 40,
+        duration: 800,
       })
     }
-  }, [map, routeCoordinates, isRouteLoading])
+  }, [map, isLoaded, routeCoordinates, isRouteLoading])
 
   return null
 }
@@ -122,6 +81,30 @@ function RouteLoadingIndicator({ isLoading }: { isLoading: boolean }) {
   )
 }
 
+// Custom pickup marker (green pin)
+function PickupMarkerIcon() {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="w-6 h-6 bg-green-500 border-2 border-white rounded-full shadow-lg flex items-center justify-center">
+        <div className="w-2 h-2 bg-white rounded-full" />
+      </div>
+      <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-green-500 -mt-1" />
+    </div>
+  )
+}
+
+// Custom destination marker (red pin)
+function DestinationMarkerIcon() {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="w-6 h-6 bg-red-500 border-2 border-white rounded-full shadow-lg flex items-center justify-center">
+        <div className="w-2 h-2 bg-white rounded-full" />
+      </div>
+      <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-red-500 -mt-1" />
+    </div>
+  )
+}
+
 type RouteMapClientProps = {
   pickup: [number, number] // [lon, lat]
   destination: [number, number] // [lon, lat]
@@ -131,34 +114,23 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([])
   const [isRouteLoading, setIsRouteLoading] = useState(false)
   const [routeError, setRouteError] = useState(false)
-  const [updateCount, setUpdateCount] = useState(0)
-  const [lastUpdateTime, setLastUpdateTime] = useState(0)
-  const [routeLoadTime, setRouteLoadTime] = useState<number | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const debounceTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Optimized center calculation
+  // Calculate center for initial map view
   const center: [number, number] = [
-    (pickup[1] + destination[1]) / 2,
     (pickup[0] + destination[0]) / 2,
+    (pickup[1] + destination[1]) / 2,
   ]
 
-  // Timing callback
-  const handleUpdateTiming = useCallback((time: number) => {
-    setLastUpdateTime(Math.round(time))
-    setUpdateCount(prev => prev + 1)
-  }, [])
-
-  // Enhanced route fetching with HTTPS and better debugging
+  // Fetch route from OSRM
   const fetchRoute = useCallback(
     async (pickupCoords: [number, number], destCoords: [number, number], signal: AbortSignal) => {
-      const routeStartTime = performance.now()
-
       try {
         const [pickupLon, pickupLat] = pickupCoords
         const [destLon, destLat] = destCoords
 
-        // Use HTTPS endpoint to avoid mixed content issues
+        // Use HTTPS endpoint
         const url = `https://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${destLon},${destLat}?overview=full&geometries=geojson&alternatives=false`
 
         const response = await fetch(url, {
@@ -183,15 +155,11 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
             throw new Error('Route geometry missing')
           }
 
-          // Convert coordinates from [lon, lat] to [lat, lon] for Leaflet
-          const coordinates = route.geometry.coordinates.map((coord: [number, number]) => [
-            coord[1], // latitude
-            coord[0], // longitude
-          ])
+          // OSRM returns coordinates as [lon, lat] which is what MapLibre expects
+          const coordinates = route.geometry.coordinates as [number, number][]
 
           setRouteCoordinates(coordinates)
           setRouteError(false)
-          setRouteLoadTime(Math.round(performance.now() - routeStartTime))
         } else {
           throw new Error(`OSRM error: ${data.code} - ${data.message || 'No route found'}`)
         }
@@ -200,12 +168,8 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
         if (errorMessage === 'AbortError') return // Ignore aborted requests
 
         // Fallback to straight line on error
-        setRouteCoordinates([
-          [pickupCoords[1], pickupCoords[0]], // [lat, lon]
-          [destCoords[1], destCoords[0]], // [lat, lon]
-        ])
+        setRouteCoordinates([pickupCoords, destCoords])
         setRouteError(true)
-        setRouteLoadTime(Math.round(performance.now() - routeStartTime))
       }
     },
     []
@@ -250,37 +214,33 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
     }
   }, [pickup, destination, fetchRoute])
 
-  // Generate a unique key to force map updates when locations change significantly
-  const mapKey = `${pickup[0].toFixed(3)}-${pickup[1].toFixed(3)}-${destination[0].toFixed(3)}-${destination[1].toFixed(3)}`
-
   return (
-    <div className="mt-4 relative">
-      <MapContainer
-        key={mapKey}
-        center={center}
-        zoom={10}
-        style={{ height: 300, width: '100%' }}
-        className="rounded-lg overflow-hidden"
-      >
-        <TileLayer
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-          attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-        />
+    <div className="mt-4 relative h-[300px] rounded-lg overflow-hidden">
+      <Map center={center} zoom={10}>
+        <MapControls position="bottom-right" showZoom={true} />
 
         {/* Pickup marker (green) */}
-        <Marker position={[pickup[1], pickup[0]]} icon={pickupIcon} />
+        <MapMarker longitude={pickup[0]} latitude={pickup[1]}>
+          <MarkerContent>
+            <PickupMarkerIcon />
+          </MarkerContent>
+        </MapMarker>
 
         {/* Destination marker (red) */}
-        <Marker position={[destination[1], destination[0]]} icon={destinationIcon} />
+        <MapMarker longitude={destination[0]} latitude={destination[1]}>
+          <MarkerContent>
+            <DestinationMarkerIcon />
+          </MarkerContent>
+        </MapMarker>
 
-        {/* Route polyline with loading state */}
+        {/* Route polyline */}
         {routeCoordinates.length > 0 && (
-          <Polyline
-            positions={routeCoordinates}
+          <MapRoute
+            coordinates={routeCoordinates}
             color={routeError ? '#ef4444' : '#2563eb'}
-            weight={4}
+            width={4}
             opacity={isRouteLoading ? 0.4 : 0.8}
-            dashArray={routeError ? '10, 10' : undefined}
+            dashArray={routeError ? [10, 10] : undefined}
           />
         )}
 
@@ -290,9 +250,8 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
           destination={destination}
           routeCoordinates={routeCoordinates}
           isRouteLoading={isRouteLoading}
-          onUpdateTiming={handleUpdateTiming}
         />
-      </MapContainer>
+      </Map>
 
       {/* Loading indicator overlay */}
       <RouteLoadingIndicator isLoading={isRouteLoading} />
