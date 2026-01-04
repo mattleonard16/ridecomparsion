@@ -43,9 +43,18 @@ Create a `.env.local` file in the project root. See `ENV_EXAMPLE.md` for all req
 
 **Minimum required:**
 
-```
+```bash
+# Database (PostgreSQL)
+# For Vercel/serverless: Use pooled connection for DATABASE_URL
+# and unpooled connection for DIRECT_URL (migrations)
 DATABASE_URL="postgresql://user:YOUR_PASSWORD@localhost:5432/rideshareappnew?schema=public"
+DIRECT_URL="postgresql://user:YOUR_PASSWORD@localhost:5432/rideshareappnew?schema=public"
+
+# NextAuth.js
+AUTH_SECRET="your-auth-secret-key-generate-with-openssl-rand-base64-32"
 ```
+
+> **Note:** For production (Vercel/Neon), see `ENV_EXAMPLE.md` for Neon connection string format and additional optional variables.
 
 For Docker, create a `.env` file with:
 
@@ -99,7 +108,7 @@ To use hot reloading, continue to run `npm run dev` locally outside Docker.
 - **Best time recommendations** for optimal pricing
 - **ETA sharing** to notify family/friends
 - **Price alerts** for fare drop notifications
-- **Interactive route mapping** with OpenStreetMap
+- **Interactive route mapping** with MapLibre GL
 - **Comprehensive comparison** across Uber, Lyft & Taxi
 
 ## Usage
@@ -113,15 +122,12 @@ To use hot reloading, continue to run `npm run dev` locally outside Docker.
 ## Technologies Used
 
 - Next.js 14, TypeScript, Tailwind CSS
-- React Leaflet, OpenStreetMap, OSRM API
+- MapLibre GL (via mapcn), OSRM API
+- Prisma ORM, PostgreSQL
 - Vercel deployment
 
 ## Testing
 
 ```bash
 npm test
-```
-
-```
-
 ```
