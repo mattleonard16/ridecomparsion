@@ -178,7 +178,6 @@ model PriceAlert {
   service        ServiceType
   alertType      AlertType    @default(BELOW)
   targetPrice    Float
-  alertType      AlertType    @default(BELOW)
   isActive       Boolean      @default(true)
   lastTriggeredAt DateTime?
   triggerCount   Int         @default(0)
