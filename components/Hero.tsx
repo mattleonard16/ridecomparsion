@@ -5,7 +5,10 @@ import { ArrowRight } from 'lucide-react'
 
 export default function Hero() {
   return (
-    <section id="home" className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-32 scanline-overlay">
+    <section
+      id="home"
+      className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-32 scanline-overlay"
+    >
       {/* Dot Grid Background */}
       <div className="absolute inset-0 bg-dot-grid opacity-40" />
 
@@ -24,7 +27,9 @@ export default function Hero() {
             {/* Transit Status Indicator */}
             <div className="inline-flex items-center gap-3 px-3 py-1 mb-8 border border-border bg-card shadow-sm">
               <span className="w-2 h-2 bg-accent rounded-full animate-pulse-dot"></span>
-              <span className="font-mono text-xs tracking-wider text-muted-foreground uppercase">System Operational</span>
+              <span className="font-mono text-xs tracking-wider text-muted-foreground uppercase">
+                System Operational
+              </span>
               <div className="w-px h-3 bg-border"></div>
               <span className="font-mono text-xs tracking-wider text-primary">SF • OAK • SJC</span>
             </div>
@@ -40,7 +45,8 @@ export default function Hero() {
 
           <div className="animate-fade-in-up delay-200">
             <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-xl mx-auto font-mono leading-relaxed">
-              [SYSTEM_MSG]: Comparing real-time fares across<br />
+              [SYSTEM_MSG]: Comparing real-time fares across
+              <br />
               Uber, Lyft & Taxi networks.
             </p>
           </div>
@@ -66,7 +72,9 @@ export default function Hero() {
               <div className="w-2 h-full min-h-[60px] bg-black group-hover:bg-primary transition-colors"></div>
               <div className="p-4 flex-1 text-left">
                 <div className="font-display text-2xl leading-none mb-1">UBER</div>
-                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Line Active</div>
+                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Line Active
+                </div>
               </div>
             </div>
 
@@ -75,7 +83,9 @@ export default function Hero() {
               <div className="w-2 h-full min-h-[60px] bg-pink-600 group-hover:bg-primary transition-colors"></div>
               <div className="p-4 flex-1 text-left">
                 <div className="font-display text-2xl leading-none mb-1">LYFT</div>
-                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Line Active</div>
+                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Line Active
+                </div>
               </div>
             </div>
 
@@ -84,7 +94,9 @@ export default function Hero() {
               <div className="w-2 h-full min-h-[60px] bg-amber-500 group-hover:bg-primary transition-colors"></div>
               <div className="p-4 flex-1 text-left">
                 <div className="font-display text-2xl leading-none mb-1">TAXI</div>
-                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Line Active</div>
+                <div className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Line Active
+                </div>
               </div>
             </div>
           </div>
@@ -94,9 +106,15 @@ export default function Hero() {
             <div className="flex animate-ticker whitespace-nowrap">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="flex items-center gap-12 mx-6">
-                  <span className="font-mono text-sm text-muted-foreground">AVG_SAVINGS: <span className="text-foreground font-bold">40%</span></span>
-                  <span className="font-mono text-sm text-muted-foreground">NETWORKS: <span className="text-foreground font-bold">3</span></span>
-                  <span className="font-mono text-sm text-muted-foreground">LATENCY: <span className="text-foreground font-bold">&lt;200ms</span></span>
+                  <span className="font-mono text-sm text-muted-foreground">
+                    AVG_SAVINGS: <span className="text-foreground font-bold">40%</span>
+                  </span>
+                  <span className="font-mono text-sm text-muted-foreground">
+                    NETWORKS: <span className="text-foreground font-bold">3</span>
+                  </span>
+                  <span className="font-mono text-sm text-muted-foreground">
+                    LATENCY: <span className="text-foreground font-bold">&lt;200ms</span>
+                  </span>
                   <span className="text-accent">●</span>
                 </div>
               ))}

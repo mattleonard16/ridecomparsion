@@ -11,13 +11,9 @@ import { PillBase } from '@/components/ui/3d-adaptive-navigation-bar'
  */
 
 export default function Demo() {
-
   return (
-
-    <div 
-
-      style={{ 
-
+    <div
+      style={{
         background: '#ffffff',
 
         minHeight: '100vh',
@@ -27,16 +23,9 @@ export default function Demo() {
         alignItems: 'center',
 
         justifyContent: 'center',
-
       }}
-
     >
-
       <PillBase />
-
     </div>
-
   )
-
 }
-

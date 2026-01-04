@@ -39,7 +39,8 @@ body {
 }
 
 @keyframes pulse-dot {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -84,11 +85,21 @@ body {
 }
 
 /* Staggered delays */
-.delay-100 { animation-delay: 100ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
+.delay-100 {
+  animation-delay: 100ms;
+}
+.delay-200 {
+  animation-delay: 200ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-400 {
+  animation-delay: 400ms;
+}
+.delay-500 {
+  animation-delay: 500ms;
+}
 
 @layer utilities {
   .text-balance {
@@ -104,13 +115,13 @@ body {
   }
 
   /* Transit-inspired Utilities */
-  
+
   /* Dot Grid Background - Engineering Paper Style */
   .bg-dot-grid {
-    background-image: radial-gradient(hsl(var(--muted-foreground)/0.2) 1px, transparent 1px);
+    background-image: radial-gradient(hsl(var(--muted-foreground) / 0.2) 1px, transparent 1px);
     background-size: 20px 20px;
   }
-  
+
   /* Platform Edge Stripe - Warning Pattern */
   .bg-platform-stripe {
     background-image: repeating-linear-gradient(
@@ -121,15 +132,15 @@ body {
       hsl(var(--background)) 20px
     );
   }
-  
+
   /* Scanline Effect for Departure Boards */
   .scanline-overlay {
     position: relative;
     overflow: hidden;
   }
-  
+
   .scanline-overlay::after {
-    content: " ";
+    content: ' ';
     display: block;
     position: absolute;
     top: 0;
@@ -153,9 +164,11 @@ body {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     box-shadow: 0 2px 0 hsl(var(--border));
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
-  
+
   .card-transit:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 0 hsl(var(--primary));
@@ -166,7 +179,7 @@ body {
   .hover-mechanical {
     transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
   .hover-mechanical:active {
     transform: translateY(1px);
     box-shadow: none;
@@ -176,49 +189,55 @@ body {
 @layer base {
   :root {
     /* Japanese Transit Palette */
-    --background: 210 20% 98%;        /* Clean off-white (like station walls) */
-    --foreground: 220 25% 10%;        /* Near-black text */
-    --card: 0 0% 100%;                /* Pure white cards */
+    --background: 210 20% 98%; /* Clean off-white (like station walls) */
+    --foreground: 220 25% 10%; /* Near-black text */
+    --card: 0 0% 100%; /* Pure white cards */
     --card-foreground: 220 25% 10%;
-    
-    --primary: 210 100% 45%;          /* JR Blue - iconic transit blue */
+
+    --primary: 210 100% 45%; /* JR Blue - iconic transit blue */
     --primary-foreground: 0 0% 100%;
-    
-    --secondary: 358 70% 50%;         /* Maroon Red - like Marunouchi line */
+
+    --secondary: 358 70% 50%; /* Maroon Red - like Marunouchi line */
     --secondary-foreground: 0 0% 100%;
-    
-    --accent: 45 95% 55%;             /* Warning Yellow - platform edge */
+
+    --accent: 45 95% 55%; /* Warning Yellow - platform edge */
     --accent-foreground: 220 25% 10%;
-    
-    --muted: 210 15% 92%;             /* Soft gray panels */
+
+    --muted: 210 15% 92%; /* Soft gray panels */
     --muted-foreground: 215 10% 45%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --border: 215 15% 85%;
     --input: 215 15% 95%;
     --ring: 210 100% 45%;
-    
+
     --radius: 0px; /* Sharp corners for transit aesthetic */
   }
-  
+
   /* Dark mode - Night transit */
   .dark {
     --background: 220 25% 10%;
     --foreground: 210 20% 98%;
     --card: 220 20% 13%;
     --card-foreground: 210 20% 98%;
-    
+
     --primary: 210 100% 60%;
     --secondary: 358 70% 60%;
     --accent: 45 95% 55%;
-    
+
     --muted: 220 20% 16%;
     --muted-foreground: 215 10% 65%;
-    
+
     --border: 220 20% 20%;
     --input: 220 20% 16%;
+  }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
   }
 }
 

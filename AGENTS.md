@@ -11,6 +11,7 @@
   - If something isn't fully wired yet, keep the UX surface intact and stub/annotate it instead of deleting it.
 
 ## Project Structure & Module Organization
+
 - `app/`: Next.js App Router entry point (`layout.tsx`, `page.tsx`), feature routes under `dashboard/` and `demo/`.
   - **API Routes** (`app/api/`):
     - `compare-rides/route.ts` – Main ride comparison endpoint (GET/POST with rate limiting, CORS, reCAPTCHA).
@@ -36,6 +37,7 @@
 - `__tests__/`: Jest + React Testing Library specs with fixtures in `__tests__/fixtures/`; assets live in `public/`.
 
 ## Build, Test, and Development Commands
+
 - **Node version**: Use Node.js 20 (specified in `.nvmrc`); run `nvm use` if using nvm.
 - `npm run dev` (or `dev:https`): Start the dev server at :3000; HTTPS variant for service-worker/PWA testing.
 - `npm run build`: Generate Prisma client then compile Next.js; `npm start` serves the production build.
@@ -46,26 +48,34 @@
 - Docker: `docker compose up -d` (full stack) or `docker compose up -d db` for database-only; use `docker compose up --build -d` for production builds.
 
 ## Coding Style & Naming Conventions
+
 - TypeScript-first with `strict` mode; keep components functional and typed at the boundary.
 - Use Prettier defaults (2-space indent, single quotes where applicable) and `next lint` for rules; alias imports with `@/`.
 - Components/contexts/hooks use `PascalCase`/`camelCase`/`use*`; API routes live in `app/api/<name>/route.ts`.
 - Co-locate styles via Tailwind utility classes; favor existing UI primitives before adding new ones.
 
 ## Testing Guidelines
+
 - Frameworks: Jest with `jest-environment-jsdom` and React Testing Library (`jest.setup.ts`).
 - File naming: `*.test.ts(x)` in `__tests__/...`; share sample payloads in `__tests__/fixtures`.
 - Prefer behavioral tests over snapshots; mock network calls and Prisma where possible; validate loading/error/empty states.
 - Run `npm run quality` before opening a PR; keep coverage near feature parity when adding routes or components.
 
 ## Commit & Pull Request Guidelines
+
 - Commits follow the existing style: concise, imperative subject lines (e.g., `Fix Vercel build: Add Prisma generate to build process`); keep scopes small.
 - PRs should include: summary of changes, linked issue/story, screenshots for UI updates, notes on migrations/seeds/env vars, and test/quality command results.
 - Highlight any new scripts or config toggles; request review early if a Prisma migration is involved.
 
 ## Security & Configuration
+
 - Copy env keys from `ENV_EXAMPLE.md` into `.env.local` (local) or `.env` (Docker); never commit secrets.
 - Use `ENV_EXAMPLE.md` and `SECURITY.md` for data-handling expectations; rotate credentials after sharing and prefer NextAuth secrets via env.
 - Clear sensitive console output/logs before committing and avoid embedding API tokens in test fixtures.
-- **Cron jobs (optional)**: The weather cron endpoint is opt-in and requires manual setup:
-  - `app/api/cron/weather/route.ts` uses `lib/etl/weather-cron.ts`; ready for Vercel Cron but requires `OPENWEATHER_API_KEY` and `CRON_SECRET` env vars.
-  - `vercel.json` is intentionally empty; to enable cron in production, add a `crons` array with the desired schedule (e.g., `{ "path": "/api/cron/weather", "schedule": "0 * * * *" }`) and deploy with the required env vars.
+- **Cron jobs**: Only the cleanup cron is enabled by default (Vercel Hobby plan limit: 1 cron/day).
+  - `app/api/cron/cleanup/route.ts` runs daily at 3am UTC to prune old logs (configured in `vercel.json`).
+  - `app/api/cron/weather/route.ts` is available but **not scheduled** on Vercel Hobby. To use it:
+    - Upgrade to Pro plan and add to `vercel.json`, OR
+    - Call manually via `curl /api/cron/weather -H "Authorization: Bearer $CRON_SECRET"`, OR
+    - Use an external cron service (e.g., cron-job.org) to trigger it.
+  - Both cron endpoints require `CRON_SECRET` env var for authentication in production.

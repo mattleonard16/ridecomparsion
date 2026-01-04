@@ -1,4 +1,15 @@
-import { AlertCircle, Share2, Bell, Bookmark, Zap, Clock, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react'
+import {
+  AlertCircle,
+  Share2,
+  Bell,
+  Bookmark,
+  Zap,
+  Clock,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  BarChart3,
+} from 'lucide-react'
 import { useState, memo } from 'react'
 import PriceAlert from './price-alert'
 import { useAuth } from '@/lib/auth-context'
@@ -230,7 +241,10 @@ export default memo(function RideComparisonResults({
             timestamp: new Date().toISOString(),
             pickup: pickup?.split(',')[0],
             destination: destination?.split(',')[0],
-            route: pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
+            route:
+              pickup && destination
+                ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}`
+                : 'Route',
             routeId,
             synced: true,
           }
@@ -252,7 +266,8 @@ export default memo(function RideComparisonResults({
       timestamp: new Date().toISOString(),
       pickup: pickup?.split(',')[0],
       destination: destination?.split(',')[0],
-      route: pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
+      route:
+        pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
       synced: false,
     }
     const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
@@ -328,16 +343,16 @@ export default memo(function RideComparisonResults({
   const hasHistoricalStats =
     historicalStats &&
     Object.values(historicalStats).some(
-      s =>
-        s &&
-        ((s.source === 'exact' && s.exact) || (s.source === 'cluster' && s.cluster))
+      s => s && ((s.source === 'exact' && s.exact) || (s.source === 'cluster' && s.cluster))
     )
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
       {/* Header with actions */}
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-normal text-foreground tracking-tight uppercase">Your Options</h2>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-normal text-foreground tracking-tight uppercase">
+          Your Options
+        </h2>
         <div className="flex gap-2">
           <button
             onClick={handleSaveRoute}
@@ -391,7 +406,9 @@ export default memo(function RideComparisonResults({
                 services.reduce((sum, s) => sum + parseFloat(s.data.price.replace('$', '')), 0) / 3
               ).toFixed(0)}
             </div>
-            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Average Price</div>
+            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground">
+              Average Price
+            </div>
           </div>
         </div>
       </div>
@@ -578,7 +595,9 @@ export default memo(function RideComparisonResults({
               </div>
               <div>
                 <strong className="text-foreground">Historical Price Context</strong>
-                <div className="text-xs text-muted-foreground">Based on recent trips in this area</div>
+                <div className="text-xs text-muted-foreground">
+                  Based on recent trips in this area
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -601,13 +620,17 @@ export default memo(function RideComparisonResults({
                         {comparison.isHigher && (
                           <>
                             <TrendingUp className="w-3 h-3 text-destructive" />
-                            <span className="text-xs font-mono text-destructive">+{comparison.percentDiff}%</span>
+                            <span className="text-xs font-mono text-destructive">
+                              +{comparison.percentDiff}%
+                            </span>
                           </>
                         )}
                         {comparison.isLower && (
                           <>
                             <TrendingDown className="w-3 h-3 text-secondary" />
-                            <span className="text-xs font-mono text-secondary">{comparison.percentDiff}%</span>
+                            <span className="text-xs font-mono text-secondary">
+                              {comparison.percentDiff}%
+                            </span>
                           </>
                         )}
                         {comparison.isTypical && (
@@ -628,13 +651,20 @@ export default memo(function RideComparisonResults({
                       <span className="text-[10px] text-muted-foreground">
                         {comparison.sampleCount} samples
                       </span>
-                      <span className={`text-[10px] font-mono uppercase ${
-                        comparison.confidence >= 0.8 ? 'text-secondary' :
-                        comparison.confidence >= 0.6 ? 'text-muted-foreground' :
-                        'text-muted-foreground/60'
-                      }`}>
-                        {comparison.source === 'exact' ? 'exact route' :
-                         comparison.source === 'cluster' ? 'area avg' : 'estimate'}
+                      <span
+                        className={`text-[10px] font-mono uppercase ${
+                          comparison.confidence >= 0.8
+                            ? 'text-secondary'
+                            : comparison.confidence >= 0.6
+                              ? 'text-muted-foreground'
+                              : 'text-muted-foreground/60'
+                        }`}
+                      >
+                        {comparison.source === 'exact'
+                          ? 'exact route'
+                          : comparison.source === 'cluster'
+                            ? 'area avg'
+                            : 'estimate'}
                       </span>
                     </div>
                   </div>

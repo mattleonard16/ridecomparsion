@@ -44,20 +44,20 @@ let usingInMemoryFallback = !isRedisAvailable
 // Redis-backed rate limiters (only created if Redis is available)
 const redisRateLimiters = redis
   ? {
-    burst: new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(
-        RATE_LIMIT_CONFIG.BURST_REQUESTS,
-        `${RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS}s`
-      ),
-      prefix: 'ratelimit:burst',
-    }),
-    hour: new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR, '1h'),
-      prefix: 'ratelimit:hour',
-    }),
-  }
+      burst: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(
+          RATE_LIMIT_CONFIG.BURST_REQUESTS,
+          `${RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS}s`
+        ),
+        prefix: 'ratelimit:burst',
+      }),
+      hour: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR, '1h'),
+        prefix: 'ratelimit:hour',
+      }),
+    }
   : null
 
 /**
@@ -129,9 +129,12 @@ async function checkRateLimitRedis(
 /**
  * Check rate limit using in-memory storage (fallback)
  */
-function checkRateLimitInMemory(
-  clientId: string
-): { allowed: boolean; remainingRequests: number; resetTime: number; reason?: string } {
+function checkRateLimitInMemory(clientId: string): {
+  allowed: boolean
+  remainingRequests: number
+  resetTime: number
+  reason?: string
+} {
   const now = Date.now()
 
   // Check burst protection

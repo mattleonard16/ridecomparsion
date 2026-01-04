@@ -432,7 +432,8 @@ export const PillBase: React.FC = () => {
         ref={containerRef}
         className="relative z-10 h-full flex items-center justify-center px-6"
         style={{
-          fontFamily: 'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
+          fontFamily:
+            'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
         }}
       >
         {/* Collapsed state - show only active section with smooth text transitions */}
