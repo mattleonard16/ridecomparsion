@@ -14,6 +14,8 @@ const customJestConfig = {
   },
   // Handle ESM modules from next-auth and related packages
   transformIgnorePatterns: ['/node_modules/(?!(next-auth|@auth|@panva)/)'],
+  // Exclude Playwright e2e tests from Jest
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
 }
 
 module.exports = createJestConfig(customJestConfig)
