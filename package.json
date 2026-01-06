@@ -16,6 +16,9 @@
     "quality": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
     "fetch:quotes": "tsx scripts/fetch-quotes.ts",
     "seed": "tsx scripts/seed.ts",
     "db:migrate": "prisma migrate dev",
@@ -57,6 +60,7 @@
   },
   "devDependencies": {
     "@babel/plugin-bugfix-firefox-class-in-computed-class-key": "^7.28.5",
+    "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

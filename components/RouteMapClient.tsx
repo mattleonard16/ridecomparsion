@@ -233,14 +233,18 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
           </MarkerContent>
         </MapMarker>
 
-        {/* Route polyline */}
+        {/* Route polyline - uses theme-aware colors by default */}
         {routeCoordinates.length > 0 && (
           <MapRoute
             coordinates={routeCoordinates}
-            color={routeError ? '#ef4444' : '#2563eb'}
+            // Only override color for error state (red), otherwise use theme-aware defaults
+            color={routeError ? '#ef4444' : undefined}
+            hoverColor={routeError ? '#dc2626' : undefined}
             width={4}
-            opacity={isRouteLoading ? 0.4 : 0.8}
+            hoverWidth={6}
+            opacity={isRouteLoading ? 0.5 : 0.85}
             dashArray={routeError ? [10, 10] : undefined}
+            interactive={!routeError}
           />
         )}
 

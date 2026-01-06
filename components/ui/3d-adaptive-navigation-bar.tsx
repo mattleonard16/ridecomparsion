@@ -71,6 +71,8 @@ export const PillBase: React.FC = () => {
       const viewportCenter = window.innerHeight / 2
 
       // Find the section closest to viewport center
+      if (sections.length === 0) return
+
       const closestSection = sections.reduce((prev, curr) => {
         const prevDistance = Math.abs(prev.center - viewportCenter)
         const currDistance = Math.abs(curr.center - viewportCenter)
