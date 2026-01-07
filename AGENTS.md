@@ -16,10 +16,14 @@
   - **API Routes** (`app/api/`):
     - `compare-rides/route.ts` – Main ride comparison endpoint (GET/POST with rate limiting, CORS, reCAPTCHA).
     - `auth/[...nextauth]/route.ts` – NextAuth.js authentication handler.
+    - `dashboard/route.ts` – User dashboard data endpoint (saved routes, ride history, price alerts).
+    - `price-alerts/route.ts` – CRUD operations for user price alerts.
     - `health/route.ts` – Health check endpoint for monitoring.
+    - `cron/cleanup/route.ts` – Daily cleanup cron job (prunes old logs, runs at 3am UTC).
     - `cron/weather/route.ts` – Optional weather data cron job (requires `OPENWEATHER_API_KEY`).
 - `auth.ts`: Root-level NextAuth configuration (providers, callbacks, session handling).
 - `components/`: Shared UI, forms, and map widgets; prefer reusing primitives in `components/ui/`.
+  - **UI Components** (`components/ui/`): Radix UI primitives (button, input, label, switch, alert, card) plus `map.tsx` (MapLibre GL map component with markers, routes, and controls).
 - `lib/`: Utility helpers, API clients, and service layer:
   - `services/ride-comparison.ts` – Core comparison logic, geocoding, route metrics via OSRM/Nominatim.
   - `pricing.ts` – `PricingEngine` class for fare calculation with surge, traffic, and location modifiers.
@@ -42,7 +46,7 @@
 - `npm run dev` (or `dev:https`): Start the dev server at :3000; HTTPS variant for service-worker/PWA testing.
 - `npm run build`: Generate Prisma client then compile Next.js; `npm start` serves the production build.
 - Quality gates: `npm run lint`, `lint:fix`, `format`, `format:check`, `typecheck`, or run all via `npm run quality`.
-- Tests: `npm test` for one-off runs, `npm run test:watch` for TDD loops.
+- Tests: `npm test` for one-off runs, `npm run test:watch` for TDD loops, `npm run test:e2e` for Playwright.
 - Data/DB: `npm run db:migrate` (local dev), `db:deploy` (prod), `db:generate`, `db:studio`, `npm run seed`, and `npm run fetch:quotes`.
 - Scripts: Run utility scripts with `tsx scripts/<script-name>.ts` (e.g., `tsx scripts/create-test-user.ts` for test user creation).
 - Docker: `docker compose up -d` (full stack) or `docker compose up -d db` for database-only; use `docker compose up --build -d` for production builds.
@@ -59,6 +63,8 @@
 - Frameworks: Jest with `jest-environment-jsdom` and React Testing Library (`jest.setup.ts`).
 - File naming: `*.test.ts(x)` in `__tests__/...`; share sample payloads in `__tests__/fixtures`.
 - Prefer behavioral tests over snapshots; mock network calls and Prisma where possible; validate loading/error/empty states.
+- Playwright E2E runs against `npm run dev` and uses dev-only `/test/*` routes; these routes 404 in production via `app/test/layout.tsx`.
+- Test pages may expose internal helpers (e.g., `window.__testMap`) and must never be reachable in production.
 - Run `npm run quality` before opening a PR; keep coverage near feature parity when adding routes or components.
 
 ## Commit & Pull Request Guidelines
