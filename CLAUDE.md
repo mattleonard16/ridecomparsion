@@ -40,7 +40,12 @@ npm run quality          # Run all checks (typecheck + lint + format:check + tes
 ```bash
 npm test                 # Run Jest tests
 npm test:watch           # Run tests in watch mode
+npm run test:e2e         # Run Playwright E2E (dev server)
+npm run test:e2e:ui      # Playwright UI mode
+npm run test:e2e:headed  # Playwright headed mode
 ```
+
+Playwright E2E runs against `npm run dev` and uses `/test/*` routes that are blocked in production via `app/test/layout.tsx`. Test pages may expose internal helpers (for example, `window.__testMap`) and must remain dev-only.
 
 ### Build & Deployment
 
@@ -110,13 +115,27 @@ The service uses `findPrecomputedRouteByAddresses` from `lib/popular-routes-data
 
 ### API Routes
 
-**Location**: `app/api/compare-rides/route.ts`
+**Location**: `app/api/`
+
+#### Compare Rides (`compare-rides/route.ts`)
 
 - `GET /api/compare-rides?pickup=...&destination=...`: Prefetch endpoint
 - `POST /api/compare-rides`: Main comparison endpoint with reCAPTCHA verification (skipped for precomputed routes)
 - Wrapped with CORS (`lib/cors.ts`) and rate limiting (`lib/rate-limiter.ts` using Upstash Redis)
 - Input validation via Zod schemas in `lib/validation.ts`
 - Supports legacy request format (pickup/destination strings) and new format (coordinate-based)
+
+#### Dashboard (`dashboard/route.ts`)
+
+- `GET /api/dashboard`: Returns user's saved routes, ride history, and price alerts
+- Requires authentication (returns 401 if not logged in)
+
+#### Price Alerts (`price-alerts/route.ts`)
+
+- `GET /api/price-alerts`: List user's price alerts
+- `POST /api/price-alerts`: Create new price alert
+- `DELETE /api/price-alerts?id=...`: Delete a price alert
+- All endpoints require authentication
 
 ### Authentication
 
@@ -138,7 +157,21 @@ NextAuth.js v5 with:
 - `app/demo/page.tsx`: Demo/testing page
 - `app/providers.tsx`: Client-side provider wrapper
 
-**UI Components**: Radix UI primitives in `components/ui/` (button, input, label, switch, alert, card)
+**UI Components**: Radix UI primitives in `components/ui/` (button, input, label, switch, alert, card, map)
+
+### Map Component
+
+**Location**: `components/ui/map.tsx`
+
+MapLibre GL-based map component (via mapcn/shadcn) with:
+
+- `Map`: Root container with theme-aware CARTO basemap tiles (auto light/dark switching)
+- `MapMarker` + `MarkerContent`: Custom markers with Tailwind-styled pins
+- `MapRoute`: GeoJSON line rendering for route visualization
+- `MapControls`: Zoom, compass, locate, and fullscreen controls
+- `useMap()`: Hook for programmatic map access (fitBounds, flyTo, etc.)
+
+Used by `RouteMapClient.tsx` for route visualization with OSRM-fetched driving directions.
 
 ### PWA Configuration
 

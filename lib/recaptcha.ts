@@ -191,16 +191,16 @@ export async function verifyRecaptchaToken(
       }
     }
 
-    // Check action matches
-    if (data.action !== expectedAction) {
+    // Check action matches (skip for test keys - they don't return action properly)
+    if (!isUsingTestKey && data.action !== expectedAction) {
       return {
         success: false,
         error: `Action mismatch: expected '${expectedAction}', got '${data.action}'`,
       }
     }
 
-    // Check score threshold
-    if (data.score < minimumScore) {
+    // Check score threshold (skip for test keys - they don't return real scores)
+    if (!isUsingTestKey && data.score < minimumScore) {
       return {
         success: false,
         score: data.score,

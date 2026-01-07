@@ -45,7 +45,7 @@ export default function Hero() {
 
           <div className="animate-fade-in-up delay-200">
             <p className="text-lg sm:text-xl text-muted-foreground mb-10 max-w-xl mx-auto font-mono leading-relaxed">
-              [SYSTEM_MSG]: Comparing real-time fares across
+               Comparing real-time fares across
               <br />
               Uber, Lyft & Taxi networks.
             </p>

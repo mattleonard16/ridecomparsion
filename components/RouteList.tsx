@@ -14,7 +14,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$45-65',
     estimatedTime: '35-50 min',
     lineColor: 'bg-primary',
-    code: 'RL-01',
+    code: '01',
   },
   {
     id: 'stanford-apple',
@@ -26,7 +26,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$15-25',
     estimatedTime: '15-20 min',
     lineColor: 'bg-secondary',
-    code: 'RL-02',
+    code: '02',
   },
   {
     id: 'sjc-santa-clara',
@@ -38,7 +38,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$20-30',
     estimatedTime: '20-25 min',
     lineColor: 'bg-accent',
-    code: 'RL-03',
+    code: '03',
   },
   {
     id: 'palo-alto-google',
@@ -50,7 +50,7 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$12-18',
     estimatedTime: '10-15 min',
     lineColor: 'bg-primary',
-    code: 'RL-04',
+    code: '04',
   },
 ]
 
@@ -111,7 +111,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
         <div className="grid grid-cols-1 gap-3">
           {/* Header Row */}
           <div className="hidden sm:grid grid-cols-12 gap-4 px-6 py-2 text-xs font-mono text-muted-foreground uppercase tracking-wider border-b border-border/50">
-            <div className="col-span-2">Line / Code</div>
+            <div className="col-span-2">Routes</div>
             <div className="col-span-5">Destination</div>
             <div className="col-span-3">Est. Time</div>
             <div className="col-span-2 text-right">Status</div>

@@ -220,21 +220,23 @@ export default function RideComparisonForm({
   const currentRequestRef = useRef<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Refs for reCAPTCHA to avoid dependency changes triggering effect re-runs
+  const isRecaptchaLoadedRef = useRef(isRecaptchaLoaded)
+  const executeRecaptchaRef = useRef(executeRecaptcha)
+
+  // Keep refs in sync with reCAPTCHA state
+  useEffect(() => {
+    isRecaptchaLoadedRef.current = isRecaptchaLoaded
+    executeRecaptchaRef.current = executeRecaptcha
+  }, [isRecaptchaLoaded, executeRecaptcha])
+
   // Handle popular route selection
+  // Uses refs for reCAPTCHA to prevent race conditions from dependency changes
   useEffect(() => {
     if (selectedRoute) {
       setPickup(selectedRoute.pickup)
       setDestination(selectedRoute.destination)
       setShowForm(true) // Ensure form is visible
-
-      // Execute reCAPTCHA immediately in background
-      let recaptchaPromise: Promise<string> = Promise.resolve('')
-      if (isRecaptchaLoaded) {
-        recaptchaPromise = executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON).catch(err => {
-          console.warn('reCAPTCHA failed, proceeding without token:', err)
-          return ''
-        })
-      }
 
       // Auto-submit the form after setting the values
       const submitForm = async () => {
@@ -264,8 +266,17 @@ export default function RideComparisonForm({
         setDestinationCoords(null)
 
         try {
-          // Wait for reCAPTCHA to complete (should be fast since it started immediately)
-          const recaptchaToken = await recaptchaPromise
+          // Get reCAPTCHA token using refs (access latest values without deps)
+          let recaptchaToken = ''
+          if (isRecaptchaLoadedRef.current) {
+            try {
+              recaptchaToken = await executeRecaptchaRef.current(
+                RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON
+              )
+            } catch (err) {
+              console.warn('reCAPTCHA failed, proceeding without token:', err)
+            }
+          }
 
           const response = await fetch('/api/compare-rides', {
             method: 'POST',
@@ -317,12 +328,17 @@ export default function RideComparisonForm({
       }
 
       // Small delay to allow UI to update
-      setTimeout(submitForm, AUTO_SUBMIT_DELAY_MS)
+      const timeoutId = setTimeout(submitForm, AUTO_SUBMIT_DELAY_MS)
 
       // Call the callback to clear the selected route
       onRouteProcessed?.()
+
+      // Cleanup: cancel timeout if effect re-runs (e.g., route changes rapidly)
+      return () => {
+        clearTimeout(timeoutId)
+      }
     }
-  }, [selectedRoute, onRouteProcessed, isRecaptchaLoaded, executeRecaptcha])
+  }, [selectedRoute, onRouteProcessed])
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -794,7 +810,7 @@ export default function RideComparisonForm({
                     htmlFor="pickup"
                     className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider"
                   >
-                    Origin Station
+                    Pickup Location
                   </label>
                 </div>
                 <button
@@ -901,7 +917,7 @@ export default function RideComparisonForm({
                     htmlFor="destination"
                     className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider"
                   >
-                    Destination Station
+                    Dropoff Location
                   </label>
                 </div>
                 <button
