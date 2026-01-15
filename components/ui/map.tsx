@@ -872,12 +872,14 @@ type MapRouteProps = {
 // Theme-aware default colors for routes
 const routeColors = {
   light: {
-    default: '#2563eb', // blue-600
-    hover: '#1d4ed8', // blue-700
+    default: '#1d4ed8', // blue-700 - darker blue for better contrast on light maps
+    hover: '#1e40af', // blue-800
+    casing: '#ffffff', // white outline for contrast
   },
   dark: {
     default: '#3b82f6', // blue-500
     hover: '#60a5fa', // blue-400
+    casing: '#1e293b', // slate-800 outline for contrast
   },
 }
 
@@ -901,6 +903,7 @@ function MapRoute({
   const id = customId ?? generatedId
   const sourceId = `${ROUTE_SOURCE_PREFIX}${id}`
   const layerId = `${ROUTE_LAYER_PREFIX}${id}`
+  const casingLayerId = `${ROUTE_LAYER_PREFIX}${id}-casing`
   const [isHovered, setIsHovered] = useState(false)
 
   // Compute theme-aware colors
@@ -908,6 +911,8 @@ function MapRoute({
   const effectiveColor = color ?? themeColors.default
   const effectiveHoverColor = hoverColor ?? themeColors.hover
   const effectiveHoverWidth = hoverWidth ?? width + 2
+  const casingColor = themeColors.casing
+  const casingWidth = width + 4 // Casing is slightly wider than the route
 
   // Add source and layer on mount
   useEffect(() => {
@@ -922,6 +927,20 @@ function MapRoute({
       },
     })
 
+    // Add casing layer first (underneath) for better contrast
+    map.addLayer({
+      id: casingLayerId,
+      type: 'line',
+      source: sourceId,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': casingColor,
+        'line-width': casingWidth,
+        'line-opacity': opacity * 0.8,
+      },
+    })
+
+    // Add main route layer on top
     map.addLayer({
       id: layerId,
       type: 'line',
@@ -938,13 +957,14 @@ function MapRoute({
     return () => {
       try {
         if (map.getLayer(layerId)) map.removeLayer(layerId)
+        if (map.getLayer(casingLayerId)) map.removeLayer(casingLayerId)
         if (map.getSource(sourceId)) map.removeSource(sourceId)
       } catch {
         // ignore
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, map, sourceId, layerId])
+  }, [isLoaded, map, sourceId, layerId, casingLayerId])
 
   // When coordinates change, update the source data
   useEffect(() => {
@@ -965,6 +985,17 @@ function MapRoute({
   useEffect(() => {
     if (!isLoaded || !map || !map.getLayer(layerId)) return
 
+    // Update casing properties
+    if (map.getLayer(casingLayerId)) {
+      map.setPaintProperty(casingLayerId, 'line-color', casingColor)
+      map.setPaintProperty(
+        casingLayerId,
+        'line-width',
+        (isHovered ? effectiveHoverWidth : width) + 4
+      )
+      map.setPaintProperty(casingLayerId, 'line-opacity', opacity * 0.8)
+    }
+
     // Always update base properties
     map.setPaintProperty(layerId, 'line-color', isHovered ? effectiveHoverColor : effectiveColor)
     map.setPaintProperty(layerId, 'line-width', isHovered ? effectiveHoverWidth : width)
@@ -981,8 +1012,10 @@ function MapRoute({
     isLoaded,
     map,
     layerId,
+    casingLayerId,
     effectiveColor,
     effectiveHoverColor,
+    casingColor,
     width,
     effectiveHoverWidth,
     opacity,
