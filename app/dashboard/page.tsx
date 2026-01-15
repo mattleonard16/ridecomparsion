@@ -202,7 +202,7 @@ export default function DashboardPage() {
                         <div className="font-bold text-foreground">
                           ${snapshot.final_price.toFixed(2)}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground" suppressHydrationWarning>
                           {new Date(snapshot.timestamp).toLocaleDateString()} at{' '}
                           {new Date(snapshot.timestamp).toLocaleTimeString([], {
                             hour: '2-digit',

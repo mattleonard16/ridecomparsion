@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { ArrowRight, Loader2, Train, Clock } from 'lucide-react'
 
 const POPULAR_ROUTES = [
@@ -60,6 +60,18 @@ interface RouteListProps {
 }
 
 export default function RouteList({ onRouteSelect, processingRouteId }: RouteListProps) {
+  // Client-side time rendering to avoid hydration mismatch
+  const [currentTime, setCurrentTime] = useState<string>('--:--')
+
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+    }
+    updateTime() // Set initial time on mount
+    const interval = setInterval(updateTime, 60000) // Update every minute
+    return () => clearInterval(interval)
+  }, [])
+
   const handleRouteClick = useCallback(
     (route: (typeof POPULAR_ROUTES)[0]) => {
       onRouteSelect({
@@ -101,9 +113,7 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
           </div>
           <div className="hidden sm:block text-right">
             <div className="font-mono text-sm text-muted-foreground">SYSTEM TIME</div>
-            <div className="font-mono text-xl text-foreground font-bold">
-              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
+            <div className="font-mono text-xl text-foreground font-bold">{currentTime}</div>
           </div>
         </div>
 

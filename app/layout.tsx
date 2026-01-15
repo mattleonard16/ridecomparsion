@@ -31,6 +31,7 @@ export const metadata: Metadata = {
   description: 'Compare prices and wait times across rideshare services in the Bay Area',
   manifest: '/manifest.json',
   appleWebApp: {
+    capable: true,
     statusBarStyle: 'default',
     title: 'RideCompare',
   },

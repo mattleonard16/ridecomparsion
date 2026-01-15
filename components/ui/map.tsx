@@ -756,11 +756,15 @@ function MapPopup({
   const { map } = useMap()
   const popupRef = useRef<MapLibreGL.Popup | null>(null)
   const popupOptionsRef = useRef(popupOptions)
+  const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
-  const container = useMemo(() => document.createElement('div'), [])
+  // Create container only on client side to avoid SSR hydration mismatch
+  useEffect(() => {
+    setContainer(document.createElement('div'))
+  }, [])
 
   useEffect(() => {
-    if (!map) return
+    if (!map || !container) return
 
     const popup = new MapLibreGL.Popup({
       offset: 16,
@@ -786,7 +790,7 @@ function MapPopup({
       popupRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map])
+  }, [map, container])
 
   useEffect(() => {
     popupRef.current?.setLngLat([longitude, latitude])
@@ -810,6 +814,9 @@ function MapPopup({
     popupRef.current?.remove()
     onClose?.()
   }
+
+  // Don't render until container is available (client-side only)
+  if (!container) return null
 
   return createPortal(
     <div
