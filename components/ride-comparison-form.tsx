@@ -128,7 +128,7 @@ const COMMON_PLACES = {
 }
 
 // Constants
-const DEBOUNCE_DELAY_MS = 300
+const DEBOUNCE_DELAY_MS = 150 // Reduced from 300ms for faster response
 const AUTO_SUBMIT_DELAY_MS = 200
 
 // Cache for API results
@@ -215,6 +215,10 @@ export default function RideComparisonForm({
   const destinationRef = useRef<HTMLDivElement>(null)
   const debounceTimeoutRef = useRef<NodeJS.Timeout>()
   const destDebounceTimeoutRef = useRef<NodeJS.Timeout>()
+
+  // AbortControllers for canceling stale autocomplete requests
+  const pickupAbortRef = useRef<AbortController | null>(null)
+  const destAbortRef = useRef<AbortController | null>(null)
 
   // Request deduplication - track in-flight request to prevent duplicate submissions
   const currentRequestRef = useRef<string | null>(null)
@@ -357,8 +361,66 @@ export default function RideComparisonForm({
     }
   }, [])
 
+  // Instant common places matching - no API call needed
+  const getInstantMatches = (query: string): LocationSuggestion[] => {
+    const normalizedQuery = query.toLowerCase().trim()
+    if (normalizedQuery.length < 2) return []
+
+    return Object.entries(COMMON_PLACES)
+      .filter(
+        ([key, place]) =>
+          key.includes(normalizedQuery) ||
+          place.name.toLowerCase().includes(normalizedQuery) ||
+          place.display_name.toLowerCase().includes(normalizedQuery)
+      )
+      .map(([key, place]) => ({
+        place_id: key,
+        display_name: place.display_name,
+        name: place.name,
+        lat: place.lat,
+        lon: place.lon,
+      }))
+      .slice(0, 5)
+  }
+
+  // Fetch from Nominatim API with abort support
+  const fetchFromNominatim = async (
+    query: string,
+    signal?: AbortSignal
+  ): Promise<LocationSuggestion[]> => {
+    const normalizedQuery = query.toLowerCase().trim()
+
+    // Check cache first
+    if (searchCache.has(normalizedQuery)) {
+      return searchCache.get(normalizedQuery)
+    }
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' California')}&format=json&limit=5&countrycodes=us&addressdetails=1&extratags=1`,
+        {
+          headers: { 'User-Agent': 'RideCompareApp/1.0' },
+          signal,
+        }
+      )
+      const data = await response.json()
+      searchCache.set(normalizedQuery, data)
+      return data
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        // Request was cancelled, don't log as error
+        return []
+      }
+      console.error('Error fetching from Nominatim:', error)
+      return []
+    }
+  }
+
   // Enhanced search function that checks common places first
-  const searchPlaces = async (query: string): Promise<LocationSuggestion[]> => {
+  const searchPlaces = async (
+    query: string,
+    signal?: AbortSignal
+  ): Promise<LocationSuggestion[]> => {
     const normalizedQuery = query.toLowerCase().trim()
 
     // Check cache first
@@ -392,6 +454,7 @@ export default function RideComparisonForm({
             headers: {
               'User-Agent': 'RideCompareApp/1.0',
             },
+            signal,
           }
         )
         const apiData = await response.json()
@@ -419,6 +482,9 @@ export default function RideComparisonForm({
         searchCache.set(normalizedQuery, uniqueResults)
         return uniqueResults
       } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          return commonMatches // Return common matches if aborted
+        }
         console.error('API error, using common places:', error)
         searchCache.set(normalizedQuery, commonMatches)
         return commonMatches
@@ -433,18 +499,22 @@ export default function RideComparisonForm({
           headers: {
             'User-Agent': 'RideCompareApp/1.0',
           },
+          signal,
         }
       )
       const data = await response.json()
       searchCache.set(normalizedQuery, data)
       return data
     } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        return [] // Silently return empty if aborted
+      }
       console.error('Error fetching suggestions:', error)
       return []
     }
   }
 
-  // fetch function for pickup
+  // fetch function for pickup with abort support
   const debouncedFetchSuggestions = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
       setSuggestions([])
@@ -452,21 +522,29 @@ export default function RideComparisonForm({
       return
     }
 
+    // Cancel any in-flight request
+    if (pickupAbortRef.current) {
+      pickupAbortRef.current.abort()
+    }
+    pickupAbortRef.current = new AbortController()
+
     setIsLoadingSuggestions(true)
     try {
-      const data = await searchPlaces(query)
+      const data = await searchPlaces(query, pickupAbortRef.current.signal)
       setSuggestions(data)
       setShowPickupSuggestions(data.length > 0)
     } catch (error) {
-      console.error('Error fetching suggestions:', error)
-      setSuggestions([])
-      setShowPickupSuggestions(false)
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error fetching suggestions:', error)
+        setSuggestions([])
+        setShowPickupSuggestions(false)
+      }
     } finally {
       setIsLoadingSuggestions(false)
     }
   }, [])
 
-  // fetch function for destination
+  // fetch function for destination with abort support
   const debouncedFetchDestinationSuggestions = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
       setDestinationSuggestions([])
@@ -474,15 +552,23 @@ export default function RideComparisonForm({
       return
     }
 
+    // Cancel any in-flight request
+    if (destAbortRef.current) {
+      destAbortRef.current.abort()
+    }
+    destAbortRef.current = new AbortController()
+
     setIsLoadingDestSuggestions(true)
     try {
-      const data = await searchPlaces(query)
+      const data = await searchPlaces(query, destAbortRef.current.signal)
       setDestinationSuggestions(data)
       setShowDestinationSuggestions(data.length > 0)
     } catch (error) {
-      console.error('Error fetching destination suggestions:', error)
-      setDestinationSuggestions([])
-      setShowDestinationSuggestions(false)
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error fetching destination suggestions:', error)
+        setDestinationSuggestions([])
+        setShowDestinationSuggestions(false)
+      }
     } finally {
       setIsLoadingDestSuggestions(false)
     }
@@ -492,15 +578,30 @@ export default function RideComparisonForm({
     const value = e.target.value
     setPickup(value)
 
-    // Clear existing timeout
+    // Clear existing timeout and abort any in-flight request
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
     }
+    if (pickupAbortRef.current) {
+      pickupAbortRef.current.abort()
+    }
 
-    // Set new timeout for search
-    debounceTimeoutRef.current = setTimeout(() => {
-      debouncedFetchSuggestions(value)
-    }, DEBOUNCE_DELAY_MS)
+    // Show instant matches immediately (no debounce for common places)
+    const instantMatches = getInstantMatches(value)
+    if (instantMatches.length > 0) {
+      setSuggestions(instantMatches)
+      setShowPickupSuggestions(true)
+    } else if (value.length < 2) {
+      setSuggestions([])
+      setShowPickupSuggestions(false)
+    }
+
+    // Debounce API call to fetch additional results
+    if (value.length >= 2) {
+      debounceTimeoutRef.current = setTimeout(() => {
+        debouncedFetchSuggestions(value)
+      }, DEBOUNCE_DELAY_MS)
+    }
   }
 
   const handleSuggestionClick = (suggestion: LocationSuggestion) => {
@@ -515,15 +616,30 @@ export default function RideComparisonForm({
     const value = e.target.value
     setDestination(value)
 
-    // Clear existing timeout
+    // Clear existing timeout and abort any in-flight request
     if (destDebounceTimeoutRef.current) {
       clearTimeout(destDebounceTimeoutRef.current)
     }
+    if (destAbortRef.current) {
+      destAbortRef.current.abort()
+    }
 
-    // Set new timeout for search
-    destDebounceTimeoutRef.current = setTimeout(() => {
-      debouncedFetchDestinationSuggestions(value)
-    }, DEBOUNCE_DELAY_MS)
+    // Show instant matches immediately (no debounce for common places)
+    const instantMatches = getInstantMatches(value)
+    if (instantMatches.length > 0) {
+      setDestinationSuggestions(instantMatches)
+      setShowDestinationSuggestions(true)
+    } else if (value.length < 2) {
+      setDestinationSuggestions([])
+      setShowDestinationSuggestions(false)
+    }
+
+    // Debounce API call to fetch additional results
+    if (value.length >= 2) {
+      destDebounceTimeoutRef.current = setTimeout(() => {
+        debouncedFetchDestinationSuggestions(value)
+      }, DEBOUNCE_DELAY_MS)
+    }
   }
 
   const handleDestinationSuggestionClick = (suggestion: LocationSuggestion) => {

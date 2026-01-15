@@ -112,8 +112,13 @@ export async function compareRidesByAddresses(
     pickupCoords = precomputedRoute.pickup.coordinates
     destinationCoords = precomputedRoute.destination.coordinates
   } else {
-    pickupCoords = await geocodeWithCache(sanitizedPickup)
-    destinationCoords = await geocodeWithCache(sanitizedDestination)
+    // Parallelize geocoding calls for better performance (~200-500ms savings)
+    const [pickup, destination] = await Promise.all([
+      geocodeWithCache(sanitizedPickup),
+      geocodeWithCache(sanitizedDestination),
+    ])
+    pickupCoords = pickup
+    destinationCoords = destination
   }
 
   if (!pickupCoords || !destinationCoords) {
