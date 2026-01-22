@@ -81,8 +81,24 @@ The database uses a custom Prisma Client output path at `lib/generated/prisma` (
 - **PriceSnapshot**: Historical price data with surge multipliers, traffic levels, weather conditions, and confidence scores
 - **User/Account/Session**: NextAuth.js authentication (Credentials provider with bcrypt)
 - **SavedRoute/PriceAlert**: User-saved routes and price notification system
-- **SearchLog/RideHistory**: Analytics and user behavior tracking
+- **RideHistory**: Tracks user ride bookings with fare estimates and actuals
+- **SearchLog**: Analytics and user behavior tracking
 - **WeatherLog/EventLog/TrafficLog**: External data for pricing intelligence
+
+**Enums**: `ServiceType` (UBER, LYFT, TAXI, ANY), `TrafficLevel` (LIGHT, MODERATE, HEAVY, SEVERE), `AlertType` (BELOW, ABOVE)
+
+### Database Operations Layer
+
+**Location**: `lib/database.ts`
+
+Wrapper functions for common Prisma operations:
+
+- Route CRUD with geohash indexing
+- Price snapshot creation and queries
+- Search logging with session tracking
+- Alert management and triggering
+
+Always import Prisma client from `lib/prisma.ts` (not from generated folder).
 
 ### Pricing Engine
 
@@ -105,7 +121,7 @@ Returns detailed `PricingBreakdown` with all fee components exposed.
 
 Main business logic orchestrator:
 
-1. **Geocoding pipeline**: Checks precomputed routes → airport codes → Nominatim API (with caching)
+1. **Geocoding pipeline**: Checks precomputed routes -> airport codes -> Nominatim API (with caching)
 2. **Route metrics**: Fetches distance/duration from OSRM API with exponential retry
 3. **Parallel pricing**: Calculates all services concurrently using `PricingEngine`
 4. **Persistence**: Async database logging (non-blocking) for Route, PriceSnapshot, SearchLog
@@ -129,6 +145,7 @@ The service uses `findPrecomputedRouteByAddresses` from `lib/popular-routes-data
 
 - `GET /api/dashboard`: Returns user's saved routes, ride history, and price alerts
 - Requires authentication (returns 401 if not logged in)
+- Rate limited
 
 #### Price Alerts (`price-alerts/route.ts`)
 
@@ -136,6 +153,16 @@ The service uses `findPrecomputedRouteByAddresses` from `lib/popular-routes-data
 - `POST /api/price-alerts`: Create new price alert
 - `DELETE /api/price-alerts?id=...`: Delete a price alert
 - All endpoints require authentication
+
+#### Health Check (`health/route.ts`)
+
+- `GET /api/health`: Returns health status of database and OSRM connectivity
+- Used for monitoring and uptime checks
+
+#### Cron Jobs (`cron/`)
+
+- `GET /api/cron/weather`: Collects weather data from OpenWeatherMap API (requires `CRON_SECRET`)
+- `GET/POST /api/cron/cleanup`: Data retention cleanup - removes old logs (90 days) and price data (365 days)
 
 ### Authentication
 
@@ -155,19 +182,39 @@ NextAuth.js v5 with:
 - `app/page.tsx`: Main ride comparison UI
 - `app/dashboard/page.tsx`: User dashboard
 - `app/demo/page.tsx`: Demo/testing page
-- `app/providers.tsx`: Client-side provider wrapper
+- `app/providers.tsx`: Client-side provider wrapper (SessionProvider, AuthProvider, ThemeProvider)
 
-**UI Components**: Radix UI primitives in `components/ui/` (button, input, label, switch, alert, card, map)
+**UI Components** (`components/ui/`): Radix UI primitives:
+
+- `button.tsx`: Button with variants (primary, secondary, destructive)
+- `input.tsx`: Input with label integration
+- `label.tsx`: Accessible label component
+- `card.tsx`: Card container with header/footer
+- `alert.tsx`: Alert box with icons
+- `switch.tsx`: Toggle switch
+- `map.tsx`: MapLibre GL map component
+- `3d-adaptive-navigation-bar.tsx`: Floating navigation pill with 3D animations
+
+**Feature Components** (`components/`):
+
+- `ride-comparison-form.tsx`: Pickup/destination input with autocomplete
+- `ride-comparison-results.tsx`: Results display with price cards
+- `RouteMapClient.tsx`: Client wrapper for map with OSRM route fetching
+- `price-alert.tsx`: Price alert creation/management
+- `auth-dialog.tsx`: Login/signup modal
+- `RouteList.tsx`: Saved routes list
+- `user-menu.tsx`: User dropdown menu
+- `Hero.tsx`, `FeatureGrid.tsx`: Landing page components
 
 ### Map Component
 
 **Location**: `components/ui/map.tsx`
 
-MapLibre GL-based map component (via mapcn/shadcn) with:
+MapLibre GL-based map component with:
 
 - `Map`: Root container with theme-aware CARTO basemap tiles (auto light/dark switching)
 - `MapMarker` + `MarkerContent`: Custom markers with Tailwind-styled pins
-- `MapRoute`: GeoJSON line rendering for route visualization
+- `MapRoute`: GeoJSON line rendering for route visualization with white casing/outline
 - `MapControls`: Zoom, compass, locate, and fullscreen controls
 - `useMap()`: Hook for programmatic map access (fitBounds, flyTo, etc.)
 
@@ -185,24 +232,55 @@ Progressive Web App enabled in production only (disabled in dev to avoid babel i
 
 ### Key Utilities
 
-- **lib/geo.ts**: Geospatial utilities (likely geohash operations)
-- **lib/airports.ts**: Airport detection by code/coordinates
-- **lib/redis.ts**: Upstash Redis client for rate limiting
-- **lib/monitoring.ts**: Application monitoring/telemetry
-- **lib/constants.ts**: API endpoints, cache TTLs, configuration
+| File | Purpose |
+|------|---------|
+| `lib/pricing.ts` | PricingEngine class for fare calculations |
+| `lib/database.ts` | Prisma wrapper functions |
+| `lib/validation.ts` | Zod schemas + input validation + spam detection |
+| `lib/geo.ts` | Geohash encoding/decoding utilities |
+| `lib/airports.ts` | Airport detection by code/coordinates (12+ airports) |
+| `lib/constants.ts` | Common places (airports, Bay Area landmarks), API config |
+| `lib/rate-limiter.ts` | Multi-layer rate limiting (burst + per-hour) |
+| `lib/cors.ts` | CORS middleware for allowed origins |
+| `lib/redis.ts` | Upstash Redis client initialization |
+| `lib/recaptcha.ts` | reCAPTCHA Enterprise API integration |
+| `lib/monitoring.ts` | Structured logging (Axiom/Sentry) |
+| `lib/popular-routes-data.ts` | Pre-computed popular Bay Area routes |
+| `lib/hooks/use-recaptcha.ts` | React hook for reCAPTCHA client-side |
+| `lib/etl/weather-cron.ts` | Weather data collection from OpenWeatherMap |
+| `lib/auth-context.tsx` | React context for authentication state |
+| `lib/utils.ts` | Utility helper `cn()` for Tailwind CSS merging |
+| `lib/prisma.ts` | Prisma client singleton with connection pooling |
 
 ## Environment Variables
 
 Required in `.env.local`:
 
 ```bash
+# Database
 DATABASE_URL="postgresql://..."         # Prisma connection string
 DIRECT_URL="postgresql://..."           # Direct database connection (for migrations)
-UPSTASH_REDIS_REST_URL="https://..."   # Rate limiting
-UPSTASH_REDIS_REST_TOKEN="..."         # Rate limiting
-RECAPTCHA_SECRET_KEY="..."             # reCAPTCHA v3 verification
+
+# Rate Limiting
+UPSTASH_REDIS_REST_URL="https://..."   # Upstash Redis URL
+UPSTASH_REDIS_REST_TOKEN="..."         # Upstash Redis token
+
+# Security
+RECAPTCHA_SECRET_KEY="..."             # reCAPTCHA Enterprise project key
+RECAPTCHA_SITE_KEY="..."               # reCAPTCHA Enterprise site key
+
+# Authentication
 NEXTAUTH_SECRET="..."                  # NextAuth.js JWT signing
 NEXTAUTH_URL="http://localhost:3000"   # Auth callback URL
+
+# Optional: Cron Jobs
+CRON_SECRET="..."                      # Secret for cron endpoint auth
+OPENWEATHER_API_KEY="..."              # Weather data collection
+
+# Optional: Monitoring
+AXIOM_TOKEN="..."                      # Axiom logging
+AXIOM_DATASET="..."                    # Axiom dataset name
+SENTRY_DSN="..."                       # Sentry error tracking
 ```
 
 See `ENV_EXAMPLE.md` for complete reference.
@@ -212,6 +290,10 @@ See `ENV_EXAMPLE.md` for complete reference.
 ### Database Access
 
 Always import Prisma client from `lib/prisma.ts` (not from generated folder). The generated client is at `lib/generated/prisma` due to custom `output` setting in schema.
+
+```typescript
+import { prisma } from '@/lib/prisma'
+```
 
 ### Pricing Calculations
 
@@ -229,27 +311,72 @@ Routes use geohash prefixes for location clustering (precision 8). When querying
 
 External API calls (Nominatim, OSRM) are cached in-memory with TTL. Precomputed routes have longer TTL (30min). Always check cache before external API calls.
 
+### Security
+
+- **reCAPTCHA Enterprise**: Verifies POST requests to `/api/compare-rides` (skipped for precomputed routes)
+- **Rate Limiting**: Redis-backed burst (10/10s) + per-hour (100/hour) limits with in-memory fallback
+- **Input Validation**: Zod schemas validate all user input with spam detection
+- **CORS**: Allowed origins configured in `lib/cors.ts`
+
+### Data Retention
+
+Automated cleanup cron removes:
+- Search logs, traffic logs, event logs: 90 days
+- Price snapshots, weather logs: 365 days
+
 ## Deployment Notes
 
 - Runs on Vercel with `output: 'standalone'` in next.config.mjs
 - TypeScript and ESLint checks enforced at build time (no silent failures)
 - Prisma generation runs automatically on `postinstall` and before `build`
-- Rate limiting requires Upstash Redis (cannot run locally without credentials)
-- reCAPTCHA v3 verifies POST requests but allows degraded operation on verification failures (logs warnings)
+- Rate limiting requires Upstash Redis (falls back to in-memory for local dev)
+- reCAPTCHA Enterprise verifies POST requests but allows degraded operation on verification failures
+- Cron jobs secured with `CRON_SECRET` header validation
 
 ## Testing Strategy
 
-Jest configuration in `jest.config.js` with:
+### Jest (Unit Tests)
 
-- Test environment: jsdom
+Configuration in `jest.config.js`:
+
+- Environment: jsdom
 - Path aliases: `@/` maps to root
 - Setup file: `jest.setup.ts` (with @testing-library/jest-dom)
+- Mocks: next-auth, navigator APIs (geolocation, vibrate, share, clipboard)
+
+Test files location: `__tests__/`
+- `services/ride-comparison.test.ts`
+- `components/ride-comparison-form.test.tsx`
+- `components/ride-comparison-results.test.tsx`
+- `fixtures/uberSamples.json`
 
 Run specific test file:
 
 ```bash
 npm test -- path/to/test.spec.ts
 ```
+
+### Playwright (E2E Tests)
+
+Configuration in `playwright.config.ts`:
+
+- Browser: Chromium only
+- Base URL: localhost:3000
+- Dev server: `npm run dev`
+
+Test files location: `e2e/`
+- `map-route.spec.ts`: Map route interaction tests
+
+## Code Style
+
+Prettier configuration (`.prettierrc`):
+- No semicolons
+- Single quotes
+- Tab width: 2
+- Print width: 100
+- Trailing commas: ES5
+
+ESLint extends: `next/core-web-vitals`
 
 ## Codex Integration
 
