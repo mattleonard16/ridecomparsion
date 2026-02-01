@@ -10,7 +10,7 @@ import {
   Minus,
   BarChart3,
 } from 'lucide-react'
-import { useState, memo } from 'react'
+import { useState, memo, useMemo } from 'react'
 import PriceAlert from './price-alert'
 import { useAuth } from '@/lib/auth-context'
 import { saveRouteForUser } from '@/lib/database'
@@ -275,38 +275,51 @@ export default memo(function RideComparisonResults({
     localStorage.setItem('priceAlerts', JSON.stringify(existingAlerts))
   }
 
-  const services = [
-    {
-      name: 'Uber',
-      data: results.uber,
-      bgColor: 'bg-black',
-      textColor: 'text-foreground',
-    },
-    {
-      name: 'Lyft',
-      data: results.lyft,
-      bgColor: 'bg-pink-600',
-      textColor: 'text-foreground',
-    },
-    {
-      name: 'Taxi',
-      data: results.taxi,
-      bgColor: 'bg-amber-500',
-      textColor: 'text-black',
-    },
-  ]
+  // Memoize services array to prevent unnecessary re-renders
+  const services = useMemo(
+    () => [
+      {
+        name: 'Uber',
+        data: results.uber,
+        bgColor: 'bg-black',
+        textColor: 'text-foreground',
+      },
+      {
+        name: 'Lyft',
+        data: results.lyft,
+        bgColor: 'bg-pink-600',
+        textColor: 'text-foreground',
+      },
+      {
+        name: 'Taxi',
+        data: results.taxi,
+        bgColor: 'bg-amber-500',
+        textColor: 'text-black',
+      },
+    ],
+    [results.uber, results.lyft, results.taxi]
+  )
 
-  const bestPrice = services.reduce((best, current) => {
-    const currentPrice = Number.parseFloat(current.data.price.replace('$', ''))
-    const bestPrice = Number.parseFloat(best.data.price.replace('$', ''))
-    return currentPrice < bestPrice ? current : best
-  }, services[0])
+  // Memoize best price/wait time calculations
+  const bestPrice = useMemo(
+    () =>
+      services.reduce((best, current) => {
+        const currentPrice = Number.parseFloat(current.data.price.replace('$', ''))
+        const bestPriceVal = Number.parseFloat(best.data.price.replace('$', ''))
+        return currentPrice < bestPriceVal ? current : best
+      }, services[0]),
+    [services]
+  )
 
-  const bestWaitTime = services.reduce((best, current) => {
-    const currentTime = Number.parseInt(current.data.waitTime.replace(' min', ''))
-    const bestTime = Number.parseInt(best.data.waitTime.replace(' min', ''))
-    return currentTime < bestTime ? current : best
-  }, services[0])
+  const bestWaitTime = useMemo(
+    () =>
+      services.reduce((best, current) => {
+        const currentTime = Number.parseInt(current.data.waitTime.replace(' min', ''))
+        const bestTime = Number.parseInt(best.data.waitTime.replace(' min', ''))
+        return currentTime < bestTime ? current : best
+      }, services[0]),
+    [services]
+  )
 
   // Helper to get price comparison vs historical average
   const getPriceComparison = (serviceName: string, currentPrice: number) => {

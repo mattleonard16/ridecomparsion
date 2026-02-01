@@ -7,12 +7,17 @@ import { fetchAndStoreWeatherData } from '@/lib/etl/weather-cron'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  // Verify this is from Vercel Cron (in production)
+  // SECURITY: Verify cron secret in ALL environments
   const authHeader = request.headers.get('authorization')
-  if (process.env.NODE_ENV === 'production') {
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const cronSecret = process.env.CRON_SECRET
+
+  if (!cronSecret) {
+    console.warn('[SECURITY] CRON_SECRET not configured - weather cron endpoint is unprotected')
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 503 })
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
