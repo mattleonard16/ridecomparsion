@@ -8,6 +8,7 @@ import RouteHeader from './route-header'
 import { useRecaptcha } from '@/lib/hooks/use-recaptcha'
 import { RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { getPopularAirports } from '@/lib/airports'
+import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 
 // Common places for faster autocomplete
 const COMMON_PLACES = {
@@ -129,7 +130,8 @@ const COMMON_PLACES = {
 
 // Constants
 const DEBOUNCE_DELAY_MS = 150 // Reduced from 300ms for faster response
-const AUTO_SUBMIT_DELAY_MS = 200
+const AUTO_SUBMIT_DELAY_PRECOMPUTED_MS = 0 // Instant submit for precomputed routes
+const AUTO_SUBMIT_DELAY_DYNAMIC_MS = 50 // Minimal delay for dynamic routes
 
 // Cache configuration
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
@@ -372,8 +374,13 @@ export default function RideComparisonForm({
         }
       }
 
-      // Small delay to allow UI to update
-      const timeoutId = setTimeout(submitForm, AUTO_SUBMIT_DELAY_MS)
+      // Check if route is precomputed - submit instantly if so, minimal delay otherwise
+      const isPrecomputed = findPrecomputedRouteByAddresses(
+        selectedRoute.pickup,
+        selectedRoute.destination
+      )
+      const delay = isPrecomputed ? AUTO_SUBMIT_DELAY_PRECOMPUTED_MS : AUTO_SUBMIT_DELAY_DYNAMIC_MS
+      const timeoutId = setTimeout(submitForm, delay)
 
       // Call the callback to clear the selected route
       onRouteProcessed?.()

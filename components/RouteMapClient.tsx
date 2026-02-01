@@ -201,7 +201,7 @@ const RouteMapClient = ({ pickup, destination }: RouteMapClientProps) => {
       if (!abortController.signal.aborted) {
         setIsRouteLoading(false)
       }
-    }, 300) // 300ms debounce
+    }, 100) // 100ms debounce (reduced from 300ms for faster response)
 
     // Cleanup
     return () => {
