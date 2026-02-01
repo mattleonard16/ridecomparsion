@@ -32,12 +32,15 @@ interface CleanupResult {
 
 /**
  * Verify cron secret for authenticated access
+ * SECURITY: Requires authentication in ALL environments
  */
 function verifyCronSecret(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret) {
-    // In development, allow access without secret
-    return process.env.NODE_ENV === 'development'
+    // Log warning but still require authentication
+    console.warn('[SECURITY] CRON_SECRET not configured - cron endpoints are unprotected')
+    // Fail closed: deny access if no secret is configured
+    return false
   }
 
   const authHeader = request.headers.get('authorization')

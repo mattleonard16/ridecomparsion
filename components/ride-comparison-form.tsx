@@ -131,8 +131,49 @@ const COMMON_PLACES = {
 const DEBOUNCE_DELAY_MS = 150 // Reduced from 300ms for faster response
 const AUTO_SUBMIT_DELAY_MS = 200
 
-// Cache for API results
-const searchCache = new Map()
+// Cache configuration
+const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const MAX_SEARCH_CACHE_SIZE = 50
+
+// Bounded cache for API results with TTL
+interface CacheEntry {
+  data: LocationSuggestion[]
+  expiresAt: number
+}
+const searchCache = new Map<string, CacheEntry>()
+
+/**
+ * Get cached search result if it exists and hasn't expired
+ */
+function getCachedResult(key: string): LocationSuggestion[] | null {
+  const entry = searchCache.get(key)
+  if (!entry) return null
+
+  if (entry.expiresAt <= Date.now()) {
+    searchCache.delete(key)
+    return null
+  }
+
+  return entry.data
+}
+
+/**
+ * Set cache entry with TTL and enforce size limits
+ */
+function setCacheEntry(key: string, data: LocationSuggestion[]): void {
+  // Enforce max cache size by removing oldest entries
+  if (searchCache.size >= MAX_SEARCH_CACHE_SIZE) {
+    const firstKey = searchCache.keys().next().value
+    if (firstKey) {
+      searchCache.delete(firstKey)
+    }
+  }
+
+  searchCache.set(key, {
+    data,
+    expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
+  })
+}
 
 // Type definitions
 type LocationSuggestion = {
@@ -383,39 +424,6 @@ export default function RideComparisonForm({
       .slice(0, 5)
   }
 
-  // Fetch from Nominatim API with abort support
-  const fetchFromNominatim = async (
-    query: string,
-    signal?: AbortSignal
-  ): Promise<LocationSuggestion[]> => {
-    const normalizedQuery = query.toLowerCase().trim()
-
-    // Check cache first
-    if (searchCache.has(normalizedQuery)) {
-      return searchCache.get(normalizedQuery)
-    }
-
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' California')}&format=json&limit=5&countrycodes=us&addressdetails=1&extratags=1`,
-        {
-          headers: { 'User-Agent': 'RideCompareApp/1.0' },
-          signal,
-        }
-      )
-      const data = await response.json()
-      searchCache.set(normalizedQuery, data)
-      return data
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        // Request was cancelled, don't log as error
-        return []
-      }
-      console.error('Error fetching from Nominatim:', error)
-      return []
-    }
-  }
-
   // Enhanced search function that checks common places first
   const searchPlaces = async (
     query: string,
@@ -423,9 +431,10 @@ export default function RideComparisonForm({
   ): Promise<LocationSuggestion[]> => {
     const normalizedQuery = query.toLowerCase().trim()
 
-    // Check cache first
-    if (searchCache.has(normalizedQuery)) {
-      return searchCache.get(normalizedQuery)
+    // Check cache first (with TTL)
+    const cached = getCachedResult(normalizedQuery)
+    if (cached) {
+      return cached
     }
 
     // Check common places first
@@ -479,14 +488,14 @@ export default function RideComparisonForm({
           )
           .slice(0, 5)
 
-        searchCache.set(normalizedQuery, uniqueResults)
+        setCacheEntry(normalizedQuery, uniqueResults)
         return uniqueResults
       } catch (error) {
         if ((error as Error).name === 'AbortError') {
           return commonMatches // Return common matches if aborted
         }
         console.error('API error, using common places:', error)
-        searchCache.set(normalizedQuery, commonMatches)
+        setCacheEntry(normalizedQuery, commonMatches)
         return commonMatches
       }
     }
@@ -503,7 +512,7 @@ export default function RideComparisonForm({
         }
       )
       const data = await response.json()
-      searchCache.set(normalizedQuery, data)
+      setCacheEntry(normalizedQuery, data)
       return data
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
@@ -655,27 +664,38 @@ export default function RideComparisonForm({
     const airportString = `${airportName} (${airportCode})`
 
     // Get airport coordinates from our database
-    import('@/lib/airports').then(({ getAirportByCode }) => {
-      const airport = getAirportByCode(airportCode)
-      if (airport) {
-        const coords: [number, number] = [airport.coordinates[0], airport.coordinates[1]]
+    import('@/lib/airports')
+      .then(({ getAirportByCode }) => {
+        const airport = getAirportByCode(airportCode)
+        if (airport) {
+          const coords: [number, number] = [airport.coordinates[0], airport.coordinates[1]]
 
+          if (airportSelectorMode === 'pickup') {
+            setPickup(airportString)
+            setPickupCoords(coords)
+          } else {
+            setDestination(airportString)
+            setDestinationCoords(coords)
+          }
+        } else {
+          // Fallback if airport not found
+          if (airportSelectorMode === 'pickup') {
+            setPickup(airportString)
+          } else {
+            setDestination(airportString)
+          }
+        }
+      })
+      .catch(error => {
+        // Handle dynamic import failure gracefully
+        console.error('Failed to load airports module:', error)
+        // Still set the airport string even if we can't get coordinates
         if (airportSelectorMode === 'pickup') {
           setPickup(airportString)
-          setPickupCoords(coords)
-        } else {
-          setDestination(airportString)
-          setDestinationCoords(coords)
-        }
-      } else {
-        // Fallback if airport not found
-        if (airportSelectorMode === 'pickup') {
-          setPickup(airportString)
         } else {
           setDestination(airportString)
         }
-      }
-    })
+      })
 
     setShowAirportSelector(false)
   }

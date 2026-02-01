@@ -1,8 +1,39 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { withCors } from '@/lib/cors'
 import { withRateLimit } from '@/lib/rate-limiter'
-import { getRoutePriceHistory, getHourlyPriceAverage, getSavedRoutesForUser } from '@/lib/database'
+import {
+  getRoutePriceHistory,
+  getHourlyPriceAverage,
+  getSavedRoutesForUser,
+} from '@/lib/database'
 import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+
+/**
+ * Verify that the user owns the specified route (IDOR protection)
+ */
+async function verifyRouteOwnership(userId: string, routeId: string): Promise<boolean> {
+  if (!process.env.DATABASE_URL) {
+    // In mock mode, allow access
+    return true
+  }
+
+  try {
+    const savedRoute = await prisma.savedRoute.findUnique({
+      where: {
+        userId_routeId: {
+          userId,
+          routeId,
+        },
+      },
+      select: { id: true },
+    })
+    return savedRoute !== null
+  } catch (error) {
+    console.error('[DashboardAPI] Route ownership check failed:', error)
+    return false
+  }
+}
 
 async function handleGet(request: NextRequest) {
   try {
@@ -32,6 +63,15 @@ async function handleGet(request: NextRequest) {
         priceHistory: [],
         hourlyAverages: [],
       })
+    }
+
+    // SECURITY: Verify user owns this route before accessing price data (IDOR protection)
+    const ownsRoute = await verifyRouteOwnership(session.user.id, routeId)
+    if (!ownsRoute) {
+      return NextResponse.json(
+        { error: 'Access denied: You do not have permission to view this route' },
+        { status: 403 }
+      )
     }
 
     // Validate service parameter

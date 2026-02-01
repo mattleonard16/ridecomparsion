@@ -11,6 +11,7 @@ import {
 import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
+import { auth } from '@/auth'
 
 async function handleGet(request: NextRequest) {
   try {
@@ -249,13 +250,17 @@ async function handlePost(request: NextRequest) {
     const pickup = requestData.from.name
     const destination = requestData.to.name
 
+    // SECURITY: Get userId from authenticated session, not from untrusted headers
+    const session = await auth()
+    const authenticatedUserId = session?.user?.id ?? null
+
     const comparisons = await compareRidesByAddresses(
       pickup,
       destination,
       requestData.services,
       new Date(),
       {
-        userId: request.headers.get('x-user-id'),
+        userId: authenticatedUserId,
         sessionId: request.headers.get('x-session-id') ?? undefined,
         persist: true,
       }

@@ -8,6 +8,21 @@ const TrafficLevelEnum = $Enums.TrafficLevel
 const AlertTypeEnum = $Enums.AlertType
 
 /**
+ * Map service string to ServiceType enum
+ * Extracted to avoid code duplication (was repeated 5x in the codebase)
+ */
+function mapServiceToEnum(service: 'uber' | 'lyft' | 'taxi'): ServiceType {
+  switch (service) {
+    case 'uber':
+      return ServiceTypeEnum.UBER
+    case 'lyft':
+      return ServiceTypeEnum.LYFT
+    case 'taxi':
+      return ServiceTypeEnum.TAXI
+  }
+}
+
+/**
  * Check if database is available
  * In production, throws an error if DATABASE_URL is missing (unless ALLOW_DB_MOCK is set)
  */
@@ -164,13 +179,7 @@ export async function logPriceSnapshot(
   try {
     const now = new Date()
 
-    // Map service string to ServiceType enum
-    const serviceType: ServiceType =
-      service === 'uber'
-        ? ServiceTypeEnum.UBER
-        : service === 'lyft'
-          ? ServiceTypeEnum.LYFT
-          : ServiceTypeEnum.TAXI
+    const serviceType = mapServiceToEnum(service)
 
     // Map traffic level string to TrafficLevel enum
     let trafficLevel: TrafficLevel | null = null
@@ -309,12 +318,7 @@ export async function getHourlyPriceAverage(routeId: string, service: 'uber' | '
   }
 
   try {
-    const serviceType: ServiceType =
-      service === 'uber'
-        ? ServiceTypeEnum.UBER
-        : service === 'lyft'
-          ? ServiceTypeEnum.LYFT
-          : ServiceTypeEnum.TAXI
+    const serviceType = mapServiceToEnum(service)
 
     // Get snapshots for this route and service
     const snapshots = await prisma.priceSnapshot.findMany({
@@ -510,13 +514,7 @@ export async function createPriceAlert(
     }
 
     const serviceType: ServiceType =
-      service === 'uber'
-        ? ServiceTypeEnum.UBER
-        : service === 'lyft'
-          ? ServiceTypeEnum.LYFT
-          : service === 'taxi'
-            ? ServiceTypeEnum.TAXI
-            : ServiceTypeEnum.ANY
+      service === 'any' ? ServiceTypeEnum.ANY : mapServiceToEnum(service)
 
     const alertTypeValue: AlertType =
       alertType === 'above' ? AlertTypeEnum.ABOVE : AlertTypeEnum.BELOW
@@ -703,12 +701,7 @@ export async function getRouteAndClusterPriceStats(
   const maxSamples = options?.maxSamples ?? MAX_SAMPLES
 
   try {
-    const serviceType: ServiceType =
-      service === 'uber'
-        ? ServiceTypeEnum.UBER
-        : service === 'lyft'
-          ? ServiceTypeEnum.LYFT
-          : ServiceTypeEnum.TAXI
+    const serviceType = mapServiceToEnum(service)
 
     const since = new Date()
     since.setDate(since.getDate() - daysBack)
@@ -834,12 +827,7 @@ export async function getClusterPriceStatsByCoords(
   const precision = options?.geohashPrecision ?? CLUSTER_PRECISION
 
   try {
-    const serviceType: ServiceType =
-      service === 'uber'
-        ? ServiceTypeEnum.UBER
-        : service === 'lyft'
-          ? ServiceTypeEnum.LYFT
-          : ServiceTypeEnum.TAXI
+    const serviceType = mapServiceToEnum(service)
 
     const since = new Date()
     since.setDate(since.getDate() - daysBack)
