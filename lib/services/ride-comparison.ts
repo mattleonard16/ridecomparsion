@@ -177,17 +177,17 @@ export async function compareRidesByCoordinates(
   const pickupAddress = options?.pickupAddress ?? pickup.name
   const destinationAddress = options?.destinationAddress ?? destination.name
 
-  let routeIdPromise: Promise<string | null> = Promise.resolve(null)
-  if (shouldPersist) {
-    routeIdPromise = findOrCreateRoute(
-      pickupAddress,
-      [pickup.coordinates[0], pickup.coordinates[1]],
-      destinationAddress,
-      [destination.coordinates[0], destination.coordinates[1]],
-      metrics.distanceKm,
-      metrics.durationMin
-    )
-  }
+  // Start route creation early (await later for routeId needed by save/alert features)
+  const routeIdPromise: Promise<string | null> = shouldPersist
+    ? findOrCreateRoute(
+        pickupAddress,
+        [pickup.coordinates[0], pickup.coordinates[1]],
+        destinationAddress,
+        [destination.coordinates[0], destination.coordinates[1]],
+        metrics.distanceKm,
+        metrics.durationMin
+      )
+    : Promise.resolve(null)
 
   const resultsEntries = uniqueServices.map(service => {
     const computation = pricingEngine.calculateFare({
@@ -208,39 +208,6 @@ export async function compareRidesByCoordinates(
     resultsEntries.map(([service, result]) => [service, result])
   ) as ComparisonResults
 
-  if (shouldPersist) {
-    routeIdPromise
-      .then(routeId => {
-        if (routeId) {
-          resultsEntries.forEach(([service, _, computation]) => {
-            logPriceSnapshot(
-              routeId,
-              service,
-              computation.breakdown.finalFare,
-              computation.breakdown.surgeMultiplier,
-              deriveWaitMinutes(
-                service,
-                computation.breakdown.surgeMultiplier,
-                metrics.durationMin
-              ),
-              {
-                weather: computation.surgeReason,
-                trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
-              }
-            ).catch(err => {
-              console.warn(
-                '[CompareAPI] Price snapshot logging failed (non-critical):',
-                err.message
-              )
-            })
-          })
-        }
-      })
-      .catch(err => {
-        console.warn('[CompareAPI] Route creation failed (non-critical):', err.message)
-      })
-  }
-
   const { multiplier, surgeReason } = getTimeBasedMultiplier(
     pickup.coordinates,
     destination.coordinates,
@@ -253,27 +220,41 @@ export async function compareRidesByCoordinates(
     isActive: multiplier > 1.05,
   }
 
-  if (shouldPersist) {
-    routeIdPromise
-      .then(routeId => {
-        logSearch(
-          routeId,
-          options?.userId ?? null,
-          comparisonResults,
-          options?.sessionId ?? undefined
-        ).catch(err => {
-          console.warn('[CompareAPI] Search logging failed (non-critical):', err.message)
-        })
-      })
-      .catch(err => {
-        console.warn('[CompareAPI] Route creation failed (non-critical):', err.message)
-      })
-  }
-
-  // Await the routeId to include in response
+  // Await routeId (needed for save route and price alert features)
+  // but fire-and-forget the logging operations for faster response
   const routeId = await routeIdPromise
 
-  const result = {
+  // Fire-and-forget: Log price snapshots and search asynchronously (non-blocking)
+  if (shouldPersist && routeId) {
+    // Log price snapshots for each service
+    resultsEntries.forEach(([service, _, computation]) => {
+      logPriceSnapshot(
+        routeId,
+        service,
+        computation.breakdown.finalFare,
+        computation.breakdown.surgeMultiplier,
+        deriveWaitMinutes(service, computation.breakdown.surgeMultiplier, metrics.durationMin),
+        {
+          weather: computation.surgeReason,
+          trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
+        }
+      ).catch(err => {
+        console.warn('[CompareAPI] Price snapshot logging failed (non-critical):', err.message)
+      })
+    })
+
+    // Log the search
+    logSearch(
+      routeId,
+      options?.userId ?? null,
+      comparisonResults,
+      options?.sessionId ?? undefined
+    ).catch(err => {
+      console.warn('[CompareAPI] Search logging failed (non-critical):', err.message)
+    })
+  }
+
+  return {
     routeId,
     results: comparisonResults,
     surgeInfo,
@@ -282,8 +263,6 @@ export async function compareRidesByCoordinates(
     destination: destination.coordinates,
     insights: generateRecommendation(comparisonResults),
   }
-
-  return result
 }
 
 function classifyTraffic(
