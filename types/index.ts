@@ -11,7 +11,7 @@ export type PriceAmount = number
 export type PriceString = string
 
 // Service and ride types
-export type ServiceType = 'uber' | 'lyft' | 'taxi'
+export type ServiceType = 'uber' | 'lyft' | 'taxi' | 'waymo'
 export type RideService = string
 
 // Location suggestion interface

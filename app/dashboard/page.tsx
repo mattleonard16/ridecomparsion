@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null)
   const [priceData, setPriceData] = useState<PriceSnapshot[]>([])
   const [hourlyAverages, setHourlyAverages] = useState<any[]>([])
-  const [selectedService, setSelectedService] = useState<'uber' | 'lyft' | 'taxi'>('uber')
+  const [selectedService, setSelectedService] = useState<'uber' | 'lyft' | 'taxi' | 'waymo'>('uber')
   const [dataLoading, setDataLoading] = useState(true)
   const [routesLoading, setRoutesLoading] = useState(true)
 
@@ -160,8 +160,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Service Selector */}
-        <div className="mb-8 flex gap-2">
-          {(['uber', 'lyft', 'taxi'] as const).map(service => (
+        <div className="mb-8 flex flex-wrap gap-2">
+          {(['uber', 'lyft', 'taxi', 'waymo'] as const).map(service => (
             <button
               key={service}
               onClick={() => setSelectedService(service)}

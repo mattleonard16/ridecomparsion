@@ -10,9 +10,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-ibm)', 'sans-serif'],
-        display: ['var(--font-bebas)', 'sans-serif'],
-        mono: ['var(--font-mono)', 'monospace'],
+        sans: ['var(--font-dm-sans)', 'sans-serif'],
+        display: ['var(--font-playfair)', 'serif'],
+        mono: ['var(--font-space-mono)', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -57,9 +57,35 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
+        lg: 'calc(var(--radius) + 4px)',
+        md: 'var(--radius)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: 'calc(var(--radius) + 8px)',
+        '2xl': 'calc(var(--radius) + 12px)',
+      },
+      animation: {
+        'fade-in': 'fade-in 0.6s ease-out forwards',
+        'fade-in-up': 'fade-in-up 0.8s ease-out forwards',
+        'slide-in': 'slide-in 0.5s ease-out forwards',
+        float: 'float 3s ease-in-out infinite',
+      },
+      keyframes: {
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-in': {
+          '0%': { opacity: '0', transform: 'translateX(-20px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
       },
     },
   },

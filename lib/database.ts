@@ -11,7 +11,7 @@ const AlertTypeEnum = $Enums.AlertType
  * Map service string to ServiceType enum
  * Extracted to avoid code duplication (was repeated 5x in the codebase)
  */
-function mapServiceToEnum(service: 'uber' | 'lyft' | 'taxi'): ServiceType {
+function mapServiceToEnum(service: 'uber' | 'lyft' | 'taxi' | 'waymo'): ServiceType {
   switch (service) {
     case 'uber':
       return ServiceTypeEnum.UBER
@@ -19,6 +19,8 @@ function mapServiceToEnum(service: 'uber' | 'lyft' | 'taxi'): ServiceType {
       return ServiceTypeEnum.LYFT
     case 'taxi':
       return ServiceTypeEnum.TAXI
+    case 'waymo':
+      return ServiceTypeEnum.WAYMO
   }
 }
 
@@ -152,7 +154,7 @@ export async function findOrCreateRoute(
  */
 export async function logPriceSnapshot(
   routeId: string,
-  service: 'uber' | 'lyft' | 'taxi',
+  service: 'uber' | 'lyft' | 'taxi' | 'waymo',
   price: number,
   surge: number = 1.0,
   waitTime?: number,
@@ -312,7 +314,10 @@ export async function getRoutePriceHistory(routeId: string, daysBack: number = 7
 /**
  * Get average prices by hour for a route
  */
-export async function getHourlyPriceAverage(routeId: string, service: 'uber' | 'lyft' | 'taxi') {
+export async function getHourlyPriceAverage(
+  routeId: string,
+  service: 'uber' | 'lyft' | 'taxi' | 'waymo'
+) {
   if (!isDatabaseAvailable()) {
     return []
   }
@@ -466,7 +471,7 @@ export async function createPriceAlert(
   userId: string,
   routeId: string,
   targetPrice: number,
-  service: 'uber' | 'lyft' | 'taxi' | 'any' = 'any',
+  service: 'uber' | 'lyft' | 'taxi' | 'waymo' | 'any' = 'any',
   alertType: 'below' | 'above' = 'below'
 ) {
   if (!isDatabaseAvailable()) {
@@ -687,7 +692,7 @@ function calculateConfidence(exactCount: number, clusterCount: number): number {
  */
 export async function getRouteAndClusterPriceStats(
   routeId: string,
-  service: 'uber' | 'lyft' | 'taxi',
+  service: 'uber' | 'lyft' | 'taxi' | 'waymo',
   options?: {
     daysBack?: number
     geohashPrecision?: number
@@ -815,7 +820,7 @@ export async function getRouteAndClusterPriceStats(
 export async function getClusterPriceStatsByCoords(
   pickupCoords: [number, number],
   destCoords: [number, number],
-  service: 'uber' | 'lyft' | 'taxi',
+  service: 'uber' | 'lyft' | 'taxi' | 'waymo',
   options?: {
     daysBack?: number
     geohashPrecision?: number

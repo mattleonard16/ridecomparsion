@@ -29,7 +29,7 @@ async function handleGet(request: NextRequest) {
     const comparisons = await compareRidesByAddresses(
       pickup,
       destination,
-      ['uber', 'lyft', 'taxi'],
+      ['uber', 'lyft', 'taxi', 'waymo'],
       new Date(),
       {
         userId: null,
@@ -155,7 +155,7 @@ async function handlePost(request: NextRequest) {
           lat: '0', // Will be geocoded
           lng: '0',
         },
-        services: ['uber', 'lyft', 'taxi'], // Default all services
+        services: ['uber', 'lyft', 'taxi', 'waymo'], // Default all services
       }
     } else {
       requestData = body
@@ -223,7 +223,7 @@ async function handlePost(request: NextRequest) {
       const comparisons = await compareRidesByAddresses(
         sanitizedPickup,
         sanitizedDestination,
-        ['uber', 'lyft', 'taxi'],
+        ['uber', 'lyft', 'taxi', 'waymo'],
         new Date(),
         {
           userId: null,

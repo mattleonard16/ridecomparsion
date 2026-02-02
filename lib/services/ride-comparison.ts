@@ -77,9 +77,62 @@ const SERVICE_LABELS: Record<ServiceType, string> = {
   uber: 'UberX',
   lyft: 'Lyft Standard',
   taxi: 'Yellow Cab',
+  waymo: 'Waymo One',
 }
 
-const DEFAULT_SERVICES: ServiceType[] = ['uber', 'lyft', 'taxi']
+const DEFAULT_SERVICES: ServiceType[] = ['uber', 'lyft', 'taxi', 'waymo']
+
+// Waymo service area bounding boxes
+const WAYMO_SERVICE_AREAS = {
+  sanFrancisco: {
+    minLat: 37.7,
+    maxLat: 37.82,
+    minLon: -122.52,
+    maxLon: -122.35,
+  },
+  peninsula: {
+    minLat: 37.4,
+    maxLat: 37.7,
+    minLon: -122.5,
+    maxLon: -122.1,
+  },
+}
+
+/**
+ * Check if coordinates are within Waymo's service area
+ */
+function isInWaymoServiceArea(coords: Coordinates): boolean {
+  const [lon, lat] = coords
+
+  for (const area of Object.values(WAYMO_SERVICE_AREAS)) {
+    if (
+      lat >= area.minLat &&
+      lat <= area.maxLat &&
+      lon >= area.minLon &&
+      lon <= area.maxLon
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Filter services based on route eligibility (e.g., Waymo service area)
+ */
+function filterServicesForRoute(
+  services: ServiceType[],
+  pickup: Coordinates,
+  destination: Coordinates
+): ServiceType[] {
+  return services.filter(service => {
+    if (service === 'waymo') {
+      // Both pickup and destination must be in Waymo service area
+      return isInWaymoServiceArea(pickup) && isInWaymoServiceArea(destination)
+    }
+    return true
+  })
+}
 
 export async function compareRidesByAddresses(
   pickupAddress: string,
@@ -169,6 +222,20 @@ export async function compareRidesByCoordinates(
     new Set<ServiceType>(normalisedServices.map(service => service.toLowerCase() as ServiceType))
   )
 
+  // Filter services based on route eligibility (e.g., Waymo service area)
+  let eligibleServices = filterServicesForRoute(
+    uniqueServices,
+    pickup.coordinates,
+    destination.coordinates
+  )
+
+  // Guard against empty services (e.g., only Waymo selected but outside service area)
+  if (eligibleServices.length === 0) {
+    // Fall back to default services excluding Waymo for this route
+    const fallbackServices = DEFAULT_SERVICES.filter(s => s !== 'waymo')
+    eligibleServices = filterServicesForRoute(fallbackServices, pickup.coordinates, destination.coordinates)
+  }
+
   const metrics = options?.precomputedMetrics
     ? options.precomputedMetrics
     : await getRouteMetrics(pickup.coordinates, destination.coordinates)
@@ -189,7 +256,7 @@ export async function compareRidesByCoordinates(
       )
     : Promise.resolve(null)
 
-  const resultsEntries = uniqueServices.map(service => {
+  const resultsEntries = eligibleServices.map(service => {
     const computation = pricingEngine.calculateFare({
       service,
       pickupCoords: pickup.coordinates,
@@ -414,12 +481,15 @@ function deriveWaitMinutes(
   surgeMultiplier: number,
   durationMin: number
 ): number {
-  const base = service === 'taxi' ? 6 : 4
+  // Base wait times: Waymo has longer waits (7 min), Taxi moderate (6 min), rideshare fastest (4 min)
+  const base = service === 'waymo' ? 7 : service === 'taxi' ? 6 : 4
   const demandPenalty =
     surgeMultiplier > 1.4 ? 3 : surgeMultiplier > 1.2 ? 2 : surgeMultiplier > 1.05 ? 1 : 0
   const tripComplexity = Math.min(4, Math.round(durationMin / 15))
 
-  return Math.max(2, Math.min(18, base + demandPenalty + tripComplexity))
+  // Waymo has a higher max wait time (22 min) due to smaller fleet
+  const maxWait = service === 'waymo' ? 22 : 18
+  return Math.max(2, Math.min(maxWait, base + demandPenalty + tripComplexity))
 }
 
 function deriveDriversNearby(
@@ -427,7 +497,8 @@ function deriveDriversNearby(
   surgeMultiplier: number,
   distanceKm: number
 ): number {
-  const baseDrivers = service === 'taxi' ? 3 : service === 'lyft' ? 4 : 5
+  // Waymo has the smallest fleet (2 base), followed by taxi (3), lyft (4), uber (5)
+  const baseDrivers = service === 'waymo' ? 2 : service === 'taxi' ? 3 : service === 'lyft' ? 4 : 5
   const surgePenalty = surgeMultiplier > 1.4 ? 2 : surgeMultiplier > 1.2 ? 1 : 0
   const distanceFactor = distanceKm > 30 ? 1 : 0
 
@@ -444,6 +515,11 @@ function generateRecommendation(results: ComparisonResults): string {
     price: parseFloat(result.price.replace('$', '')),
     wait: parseInt(result.waitTime.replace(' min', ''), 10),
   }))
+
+  // Guard against empty results
+  if (parsed.length === 0) {
+    return 'No ride services available for this route.'
+  }
 
   const scores = parsed.map(entry => ({
     service: entry.service,

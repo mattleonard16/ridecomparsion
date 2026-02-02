@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useState, useEffect } from 'react'
-import { ArrowRight, Loader2, Train, Clock } from 'lucide-react'
+import { useCallback } from 'react'
+import { ArrowRight, Loader2, Clock, MapPin } from 'lucide-react'
 
 const POPULAR_ROUTES = [
   {
@@ -14,7 +14,6 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$45-65',
     estimatedTime: '35-50 min',
     lineColor: 'bg-primary',
-    code: '01',
   },
   {
     id: 'stanford-apple',
@@ -26,7 +25,6 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$15-25',
     estimatedTime: '15-20 min',
     lineColor: 'bg-secondary',
-    code: '02',
   },
   {
     id: 'sjc-santa-clara',
@@ -38,7 +36,6 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$20-30',
     estimatedTime: '20-25 min',
     lineColor: 'bg-accent',
-    code: '03',
   },
   {
     id: 'palo-alto-google',
@@ -50,9 +47,10 @@ const POPULAR_ROUTES = [
     estimatedPrice: '$12-18',
     estimatedTime: '10-15 min',
     lineColor: 'bg-primary',
-    code: '04',
   },
 ]
+
+const ANIMATION_DELAYS = ['delay-100', 'delay-200', 'delay-300', 'delay-400'] as const
 
 interface RouteListProps {
   onRouteSelect: (route: { pickup: string; destination: string }) => void
@@ -60,147 +58,80 @@ interface RouteListProps {
 }
 
 export default function RouteList({ onRouteSelect, processingRouteId }: RouteListProps) {
-  // Client-side time rendering to avoid hydration mismatch
-  const [currentTime, setCurrentTime] = useState<string>('--:--')
-
-  useEffect(() => {
-    const updateTime = () => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-    }
-    updateTime() // Set initial time on mount
-    const interval = setInterval(updateTime, 60000) // Update every minute
-    return () => clearInterval(interval)
-  }, [])
-
   const handleRouteClick = useCallback(
     (route: (typeof POPULAR_ROUTES)[0]) => {
       onRouteSelect({
         pickup: route.pickup,
         destination: route.destination,
       })
-
-      setTimeout(() => {
-        const compareSection = document.getElementById('compare')
-        if (compareSection) {
-          compareSection.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-          })
-        }
-      }, 50)
     },
     [onRouteSelect]
   )
 
   return (
-    <section
-      id="routes"
-      className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28 scanline-overlay"
-    >
-      {/* Subtle background */}
-      <div className="absolute inset-0 bg-dot-grid opacity-30" />
-
-      <div className="relative z-10 container mx-auto px-4 max-w-5xl w-full">
-        {/* Departure Board Header */}
-        <div className="mb-12 border-b-4 border-foreground pb-4 flex items-end justify-between">
-          <div>
-            <span className="text-primary font-mono text-xs tracking-widest uppercase mb-2 block animate-pulse-dot">
-              ● LIVE STATUS
-            </span>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-display font-normal text-foreground leading-none tracking-tight">
-              DEPARTURES
-            </h2>
-          </div>
-          <div className="hidden sm:block text-right">
-            <div className="font-mono text-sm text-muted-foreground">SYSTEM TIME</div>
-            <div className="font-mono text-xl text-foreground font-bold">{currentTime}</div>
-          </div>
+    <section id="routes" className="relative bg-background overflow-hidden py-16">
+      <div className="relative z-10 container mx-auto px-4 max-w-6xl w-full">
+        {/* Elegant Section Header */}
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-normal text-foreground leading-tight tracking-tight mb-3">
+            Popular Routes
+          </h2>
+          <p className="text-muted-foreground font-sans text-base sm:text-lg max-w-xl mx-auto tracking-wide">
+            Explore the most traveled routes in the Bay Area
+          </p>
         </div>
 
-        {/* Departure Board Grid */}
-        <div className="grid grid-cols-1 gap-3">
-          {/* Header Row */}
-          <div className="hidden sm:grid grid-cols-12 gap-4 px-6 py-2 text-xs font-mono text-muted-foreground uppercase tracking-wider border-b border-border/50">
-            <div className="col-span-2">Routes</div>
-            <div className="col-span-5">Destination</div>
-            <div className="col-span-3">Est. Time</div>
-            <div className="col-span-2 text-right">Status</div>
-          </div>
-
+        {/* Card Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {POPULAR_ROUTES.map((route, index) => {
             const isProcessing = processingRouteId === route.id
+            const delayClass = ANIMATION_DELAYS[index] ?? ''
             return (
               <button
                 key={route.id}
                 onClick={() => handleRouteClick(route)}
                 disabled={isProcessing}
-                className={`group relative overflow-hidden transition-all duration-200 w-full text-left
-                  ${isProcessing ? 'opacity-80' : 'hover:-translate-y-1'}
+                className={`group relative overflow-hidden text-left rounded-xl glass-card card-shine float-hover
+                  ${isProcessing ? 'opacity-80 cursor-wait' : 'cursor-pointer'}
+                  animate-fade-in-up ${delayClass}
                 `}
-                style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="card-transit p-0 sm:grid sm:grid-cols-12 sm:gap-4 flex flex-col">
-                  {/* Mobile Layout */}
-                  <div className="sm:hidden p-4 border-b border-border/50 flex justify-between items-center bg-muted/20">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-sm ${route.lineColor}`}></div>
-                      <span className="font-mono text-sm font-bold">{route.code}</span>
-                    </div>
-                    {isProcessing ? (
-                      <span className="text-accent font-mono text-xs animate-pulse">
-                        PROCESSING
-                      </span>
-                    ) : (
-                      <span className="text-primary font-mono text-xs">ON TIME</span>
-                    )}
+                {/* Gradient Top Border */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-1 ${route.lineColor} opacity-80`}
+                />
+
+                <div className="p-6 pt-7">
+                  {/* Route Name */}
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span className="font-sans">{route.shortName}</span>
+                    <ArrowRight className="w-3 h-3" />
+                    <span className="font-sans">{route.endName}</span>
                   </div>
 
-                  {/* Desktop Columns */}
+                  <h3 className="font-display text-xl text-foreground group-hover:text-primary transition-colors mb-4 leading-snug">
+                    {route.displayName}
+                  </h3>
 
-                  {/* Line Info */}
-                  <div className="col-span-2 p-4 sm:border-r border-border/50 flex items-center gap-3 bg-muted/10 group-hover:bg-muted/30 transition-colors">
-                    <div className={`w-1.5 h-8 rounded-sm ${route.lineColor}`}></div>
-                    <span className="font-mono text-lg text-foreground tracking-tight">
-                      {route.code}
-                    </span>
-                  </div>
-
-                  {/* Route Info */}
-                  <div className="col-span-5 p-4 flex flex-col justify-center">
-                    <div className="flex items-center gap-2 text-muted-foreground text-xs font-mono mb-1">
-                      <span>{route.shortName}</span>
-                      <ArrowRight className="w-3 h-3" />
-                      <span>{route.endName}</span>
-                    </div>
-                    <div className="font-display text-2xl text-foreground group-hover:text-primary transition-colors">
-                      {route.displayName}
-                    </div>
-                  </div>
-
-                  {/* Time & Price */}
-                  <div className="col-span-3 p-4 flex flex-col justify-center sm:border-l border-border/50 bg-muted/5">
-                    <div className="flex items-center gap-2 text-foreground font-bold font-mono text-lg">
+                  {/* Price & Duration */}
+                  <div className="space-y-2">
+                    <div className="text-secondary font-semibold text-2xl tabular-nums">
                       {isProcessing ? (
-                        <span className="animate-pulse">---</span>
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="text-muted-foreground text-base font-normal">
+                            Loading...
+                          </span>
+                        </span>
                       ) : (
                         route.estimatedPrice
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {route.estimatedTime}
+                    <div className="text-muted-foreground text-sm flex items-center gap-1.5 font-sans">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{route.estimatedTime}</span>
                     </div>
-                  </div>
-
-                  {/* Status Button */}
-                  <div className="col-span-2 p-4 flex items-center justify-end sm:border-l border-border/50 bg-muted/10 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                    {isProcessing ? (
-                      <Loader2 className="w-5 h-5 animate-spin text-accent" />
-                    ) : (
-                      <span className="font-mono text-sm font-bold tracking-wider group-hover:tracking-widest transition-all">
-                        SELECT
-                      </span>
-                    )}
                   </div>
                 </div>
               </button>
@@ -208,10 +139,11 @@ export default function RouteList({ onRouteSelect, processingRouteId }: RouteLis
           })}
         </div>
 
-        {/* Footer note */}
-        <div className="mt-8 flex items-center justify-center gap-2 text-xs font-mono text-muted-foreground opacity-60">
-          <Train className="w-3 h-3" />
-          <span>CLICK ANY ROUTE FOR LIVE PRICING</span>
+        {/* Helper Text */}
+        <div className="mt-10 text-center">
+          <p className="text-muted-foreground text-sm font-sans">
+            Click any route to compare prices
+          </p>
         </div>
       </div>
     </section>

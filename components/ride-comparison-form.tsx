@@ -198,6 +198,7 @@ type RideResults = {
   uber: RideService
   lyft: RideService
   taxi: RideService
+  waymo?: RideService
 }
 
 type SurgeInfo = {
@@ -951,7 +952,7 @@ export default function RideComparisonForm({
                   <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 animate-pulse-dot"></span>
                   <label
                     htmlFor="pickup"
-                    className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    className="text-sm text-muted-foreground capitalize"
                   >
                     Pickup Location
                   </label>
@@ -960,23 +961,22 @@ export default function RideComparisonForm({
                   type="button"
                   onClick={handleUseMyLocation}
                   disabled={isGettingLocation}
-                  className="flex items-center text-xs font-mono text-primary hover:text-primary/80 disabled:opacity-50 touch-none select-none transition-colors uppercase tracking-wide"
+                  className="flex items-center text-xs text-primary hover:text-primary/80 disabled:opacity-50 touch-none select-none transition-colors"
                   title="Use my current location"
                 >
                   {isGettingLocation ? (
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
                   ) : (
-                    <Locate className="h-3 w-3 mr-1" />
+                    <Locate className="h-3 w-3 mr-1.5" />
                   )}
-                  <span className="hidden sm:inline">Locate Me</span>
-                  <span className="sm:hidden">📍</span>
+                  <span className="hidden sm:inline">Use my location</span>
+                  <span className="sm:hidden"><Locate className="h-4 w-4" /></span>
                 </button>
               </div>
-              <div className="relative group">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary transform scale-y-0 group-focus-within:scale-y-100 transition-transform duration-200"></div>
+              <div className="relative">
                 <input
                   id="pickup"
-                  placeholder="ENTER PICKUP LOCATION"
+                  placeholder="Enter pickup location"
                   value={pickup}
                   onChange={handlePickupChange}
                   onFocus={() => {
@@ -989,44 +989,42 @@ export default function RideComparisonForm({
                       }
                     }
                   }}
-                  className="w-full px-4 py-5 pl-6 bg-muted/30 border-b-2 border-border text-foreground placeholder-muted-foreground/50 focus:border-primary focus:bg-muted/50 transition-all duration-200 outline-none text-lg font-mono tracking-tight rounded-t-sm"
+                  className="w-full px-4 py-4 pr-10 bg-card border border-border rounded-xl text-foreground placeholder-muted-foreground/60 shadow-sm focus:shadow-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
                   required
                 />
-                {/* Mobile-friendly clear button */}
+                {/* Elegant clear button */}
                 {pickup && (
                   <button
                     type="button"
                     onClick={() => setPickup('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation font-mono text-xs"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation w-6 h-6 flex items-center justify-center rounded-full hover:bg-muted"
                   >
-                    [CLR]
+                    <span className="text-lg leading-none">&times;</span>
                   </button>
                 )}
               </div>
 
               {/* Pickup Suggestions Dropdown */}
               {showPickupSuggestions && (
-                <div className="absolute z-10 w-full card-transit mt-1 max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full glass-card rounded-xl mt-2 max-h-60 overflow-y-auto shadow-lg border border-border/50">
                   {isLoadingSuggestions ? (
-                    <div className="p-4 text-center text-muted-foreground font-mono text-xs">
-                      <span className="animate-pulse">SEARCHING_DATABASE...</span>
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                      <span className="animate-pulse">Searching...</span>
                     </div>
                   ) : (
                     suggestions.map((suggestion, index) => (
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="p-3 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0 transition-colors group"
+                        className="p-3 hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-b-0 transition-all duration-150 first:rounded-t-xl last:rounded-b-xl"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">
-                            ▶
-                          </span>
-                          <div>
-                            <div className="font-bold text-sm text-foreground font-mono uppercase tracking-tight">
+                        <div className="flex items-center gap-3">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm text-foreground">
                               {suggestion.name || suggestion.display_name.split(',')[0]}
                             </div>
-                            <div className="text-[10px] text-muted-foreground truncate font-mono mt-0.5 uppercase">
+                            <div className="text-xs text-muted-foreground truncate mt-0.5">
                               {suggestion.display_name}
                             </div>
                           </div>
@@ -1039,16 +1037,14 @@ export default function RideComparisonForm({
             </div>
 
             {/* Airport Quick Select for Pickup */}
-            <div className="flex items-center justify-start border-l-2 border-border pl-4 ml-1">
+            <div className="flex items-center justify-start ml-1">
               <button
                 type="button"
                 onClick={() => openAirportSelector('pickup')}
-                className="flex items-center text-xs font-mono text-muted-foreground hover:text-primary transition-colors group"
+                className="flex items-center text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-muted/50"
               >
-                <Plane className="h-3 w-3 mr-2 group-hover:-translate-y-0.5 transition-transform" />
-                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-primary">
-                  QUICK_SELECT_AIRPORT
-                </span>
+                <Plane className="h-3.5 w-3.5 mr-2" />
+                <span>Select airport</span>
               </button>
             </div>
 
@@ -1058,9 +1054,9 @@ export default function RideComparisonForm({
                   <span className="w-1.5 h-1.5 bg-secondary rounded-full mr-2 animate-pulse-dot"></span>
                   <label
                     htmlFor="destination"
-                    className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider"
+                    className="text-sm text-muted-foreground capitalize"
                   >
-                    Dropoff Location
+                    Destination
                   </label>
                 </div>
                 <button
@@ -1076,19 +1072,18 @@ export default function RideComparisonForm({
                       navigator.vibrate(30)
                     }
                   }}
-                  className="flex items-center text-xs font-mono text-muted-foreground hover:text-foreground touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+                  className="flex items-center text-xs text-muted-foreground hover:text-foreground touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Swap pickup and destination"
                   disabled={!pickup || !destination}
                 >
-                  <span className="text-sm mr-1">⇅</span>
-                  <span className="hidden sm:inline">Reverse Route</span>
+                  <span className="text-sm mr-1.5">&#x21C5;</span>
+                  <span className="hidden sm:inline">Swap</span>
                 </button>
               </div>
-              <div className="relative group">
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary transform scale-y-0 group-focus-within:scale-y-100 transition-transform duration-200"></div>
+              <div className="relative">
                 <input
                   id="destination"
-                  placeholder="ENTER DESTINATION"
+                  placeholder="Enter destination"
                   value={destination}
                   onChange={handleDestinationChange}
                   onFocus={() => {
@@ -1101,44 +1096,42 @@ export default function RideComparisonForm({
                       }
                     }
                   }}
-                  className="w-full px-4 py-5 pl-6 bg-muted/30 border-b-2 border-border text-foreground placeholder-muted-foreground/50 focus:border-secondary focus:bg-muted/50 transition-all duration-200 outline-none text-lg font-mono tracking-tight rounded-t-sm"
+                  className="w-full px-4 py-4 pr-10 bg-card border border-border rounded-xl text-foreground placeholder-muted-foreground/60 shadow-sm focus:shadow-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
                   required
                 />
-                {/* Mobile-friendly clear button */}
+                {/* Elegant clear button */}
                 {destination && (
                   <button
                     type="button"
                     onClick={() => setDestination('')}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation font-mono text-xs"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation w-6 h-6 flex items-center justify-center rounded-full hover:bg-muted"
                   >
-                    [CLR]
+                    <span className="text-lg leading-none">&times;</span>
                   </button>
                 )}
               </div>
 
               {/* Destination Suggestions Dropdown */}
               {showDestinationSuggestions && (
-                <div className="absolute z-10 w-full card-transit mt-1 max-h-60 overflow-y-auto">
+                <div className="absolute z-10 w-full glass-card rounded-xl mt-2 max-h-60 overflow-y-auto shadow-lg border border-border/50">
                   {isLoadingDestSuggestions ? (
-                    <div className="p-4 text-center text-muted-foreground font-mono text-xs">
-                      <span className="animate-pulse">SEARCHING_DATABASE...</span>
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                      <span className="animate-pulse">Searching...</span>
                     </div>
                   ) : (
                     destinationSuggestions.map((suggestion, index) => (
                       <div
                         key={suggestion.place_id || index}
                         onClick={() => handleDestinationSuggestionClick(suggestion)}
-                        className="p-3 hover:bg-muted cursor-pointer border-b border-border/50 last:border-b-0 transition-colors group"
+                        className="p-3 hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-b-0 transition-all duration-150 first:rounded-t-xl last:rounded-b-xl"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-secondary opacity-0 group-hover:opacity-100 transition-opacity font-mono text-xs">
-                            ▶
-                          </span>
-                          <div>
-                            <div className="font-bold text-sm text-foreground font-mono uppercase tracking-tight">
+                        <div className="flex items-center gap-3">
+                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-medium text-sm text-foreground">
                               {suggestion.name || suggestion.display_name.split(',')[0]}
                             </div>
-                            <div className="text-[10px] text-muted-foreground truncate font-mono mt-0.5 uppercase">
+                            <div className="text-xs text-muted-foreground truncate mt-0.5">
                               {suggestion.display_name}
                             </div>
                           </div>
@@ -1151,22 +1144,20 @@ export default function RideComparisonForm({
             </div>
 
             {/* Airport Quick Select for Destination */}
-            <div className="flex items-center justify-start border-l-2 border-border pl-4 ml-1">
+            <div className="flex items-center justify-start ml-1">
               <button
                 type="button"
                 onClick={() => openAirportSelector('destination')}
-                className="flex items-center text-xs font-mono text-muted-foreground hover:text-secondary transition-colors group"
+                className="flex items-center text-xs text-muted-foreground hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-muted/50"
               >
-                <Plane className="h-3 w-3 mr-2 group-hover:-translate-y-0.5 transition-transform" />
-                <span className="border-b border-dashed border-muted-foreground/50 group-hover:border-secondary">
-                  QUICK_SELECT_AIRPORT
-                </span>
+                <Plane className="h-3.5 w-3.5 mr-2" />
+                <span>Select airport</span>
               </button>
             </div>
 
             <button
               type="submit"
-              className="group relative w-full bg-foreground text-background py-5 px-6 overflow-hidden transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover-mechanical"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 px-6 rounded-xl font-semibold text-base shadow-sm hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed btn-glow"
               disabled={isLoading}
               onTouchStart={() => {
                 if (navigator.vibrate) {
@@ -1174,30 +1165,28 @@ export default function RideComparisonForm({
                 }
               }}
             >
-              <div className="absolute top-0 left-0 w-full h-1 bg-accent"></div>
-              <div className="absolute bottom-0 right-0 w-4 h-4 bg-accent opacity-0 group-hover:opacity-100 transition-opacity clip-path-triangle"></div>
-
               {isLoading ? (
-                <div className="flex items-center justify-center font-mono font-bold tracking-widest text-sm">
-                  <span className="animate-pulse">CALCULATING_FARES...</span>
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span>Comparing prices...</span>
                 </div>
               ) : (
-                <div className="flex items-center justify-between font-mono font-bold tracking-widest text-lg">
+                <div className="flex items-center justify-center">
                   <span>Compare Rides</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </div>
               )}
             </button>
 
             {/* reCAPTCHA Protection Indicator */}
-            <div className="flex items-center justify-center text-xs text-muted-foreground mt-2">
-              <Shield className="h-3 w-3 mr-1" />
+            <div className="flex items-center justify-center text-xs text-muted-foreground/70 mt-3">
+              <Shield className="h-3 w-3 mr-1.5" />
               {isRecaptchaLoaded ? (
-                <span className="text-muted-foreground">Protected by reCAPTCHA</span>
+                <span>Protected by reCAPTCHA</span>
               ) : recaptchaError ? (
-                <span className="text-primary">Security protection loading...</span>
+                <span className="text-muted-foreground">Security loading...</span>
               ) : (
-                <span className="text-muted-foreground/60">Loading security protection...</span>
+                <span>Loading security...</span>
               )}
             </div>
           </form>
@@ -1206,27 +1195,28 @@ export default function RideComparisonForm({
 
       {/* Airport Selector Modal */}
       {showAirportSelector && (
-        <div className="fixed inset-0 bg-background/90 flex items-center justify-center z-50 p-4">
-          <div className="card-elevated rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden">
-            <div className="p-6 border-b border-border">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl border border-border/50">
+            <div className="p-6 border-b border-border/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Plane className="h-6 w-6 text-secondary" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Plane className="h-5 w-5 text-primary" />
+                  </div>
                   <div>
-                    <div className="font-bold text-foreground text-lg">
-                      Select Airport for{' '}
-                      {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'}
+                    <div className="font-semibold text-foreground text-lg">
+                      Select Airport
                     </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Choose from major U.S. airports
+                    <div className="text-sm text-muted-foreground">
+                      {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'} location
                     </div>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowAirportSelector(false)}
-                  className="text-muted-foreground hover:text-foreground transition-colors text-xl"
+                  className="text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted"
                 >
-                  ✕
+                  <span className="text-xl leading-none">&times;</span>
                 </button>
               </div>
             </div>
@@ -1236,31 +1226,31 @@ export default function RideComparisonForm({
                   <button
                     key={airport.code}
                     onClick={() => handleAirportSelect(airport.code, airport.name)}
-                    className="p-4 text-left hover:bg-muted rounded-lg transition-all duration-200 group border border-border hover:border-secondary/30"
+                    className="p-4 text-left hover:bg-muted/50 rounded-xl transition-all duration-200 group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-semibold text-foreground group-hover:text-secondary transition-colors">
+                        <div className="font-medium text-foreground group-hover:text-primary transition-colors">
                           {airport.code} - {airport.name}
                         </div>
-                        <div className="text-sm text-muted-foreground mt-1">
+                        <div className="text-sm text-muted-foreground mt-0.5">
                           {airport.city}, {airport.state}
                         </div>
                         {airport.terminals.length > 1 && (
-                          <div className="text-xs text-secondary mt-1">
-                            {airport.terminals.length} terminals available
+                          <div className="text-xs text-primary/70 mt-1">
+                            {airport.terminals.length} terminals
                           </div>
                         )}
                       </div>
-                      <MapPin className="h-5 w-5 text-muted-foreground group-hover:text-secondary ml-2 transition-colors" />
+                      <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary ml-2 transition-colors" />
                     </div>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="p-4 border-t border-border bg-muted/50">
+            <div className="p-4 border-t border-border/50 bg-muted/30">
               <div className="text-xs text-muted-foreground text-center">
-                Don&apos;t see your airport? Use the regular search above for other locations.
+                Don&apos;t see your airport? Use the search field above.
               </div>
             </div>
           </div>
@@ -1268,7 +1258,7 @@ export default function RideComparisonForm({
       )}
 
       {error && (
-        <div className="mt-6 p-5 bg-destructive/10 text-destructive rounded-lg border border-destructive/30">
+        <div className="mt-6 p-4 bg-destructive/10 text-destructive rounded-xl border border-destructive/20">
           <div className="flex items-center">
             <svg
               className="h-5 w-5 mr-3 flex-shrink-0"
@@ -1283,7 +1273,7 @@ export default function RideComparisonForm({
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span>{error}</span>
+            <span className="text-sm">{error}</span>
           </div>
         </div>
       )}

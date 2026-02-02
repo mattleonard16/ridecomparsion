@@ -53,8 +53,8 @@ export default function FeatureGrid() {
       id="features"
       className="relative snap-start min-h-screen bg-background overflow-hidden flex flex-col justify-center py-16 sm:py-24 md:py-28"
     >
-      {/* Subtle background */}
-      <div className="absolute inset-0 bg-route-pattern opacity-20" />
+      {/* Gradient mesh background */}
+      <div className="absolute inset-0 gradient-mesh opacity-60" />
 
       <div className="relative z-10 container mx-auto px-4 max-w-6xl w-full">
         {/* Section header - editorial style */}
@@ -62,7 +62,7 @@ export default function FeatureGrid() {
           <span className="text-primary font-mono text-sm tracking-widest uppercase mb-4 block">
             Why RideCompare
           </span>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-foreground leading-[0.95] max-w-3xl">
+          <h2 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-[0.95] max-w-3xl">
             The fastest way to find your
             <span className="text-accent-gradient"> cheapest ride</span>
           </h2>
@@ -71,19 +71,19 @@ export default function FeatureGrid() {
         {/* Main features - asymmetric grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-16">
           {/* Large featured card */}
-          <div className="lg:col-span-5 card-elevated rounded-2xl p-8 lg:p-10">
+          <div className="lg:col-span-5 card-elevated float-hover rounded-2xl p-8 lg:p-10">
             <div className="flex items-start justify-between mb-6">
               <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center">
                 <Zap className="w-7 h-7 text-primary" />
               </div>
               <div className="text-right">
-                <div className="text-4xl font-black text-foreground">{FEATURES[0].stat}</div>
+                <div className="text-4xl font-bold text-foreground">{FEATURES[0].stat}</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wide">
                   {FEATURES[0].statLabel}
                 </div>
               </div>
             </div>
-            <h3 className="text-2xl font-black text-foreground mb-3">{FEATURES[0].title}</h3>
+            <h3 className="text-2xl font-bold text-foreground mb-3">{FEATURES[0].title}</h3>
             <p className="text-muted-foreground leading-relaxed">{FEATURES[0].description}</p>
           </div>
 
@@ -94,19 +94,19 @@ export default function FeatureGrid() {
               return (
                 <div
                   key={feature.id}
-                  className="card-interactive rounded-2xl p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center gap-6"
+                  className="card-interactive float-hover rounded-2xl p-6 lg:p-8 flex flex-col sm:flex-row sm:items-center gap-6"
                 >
                   <div className="flex items-center gap-4 flex-1">
                     <div className="w-12 h-12 bg-secondary/10 border border-secondary/20 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Icon className="w-6 h-6 text-secondary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-foreground mb-1">{feature.title}</h3>
+                      <h3 className="text-xl font-semibold text-foreground mb-1">{feature.title}</h3>
                       <p className="text-sm text-muted-foreground">{feature.description}</p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right pl-16 sm:pl-0">
-                    <div className="text-3xl font-black text-foreground">{feature.stat}</div>
+                    <div className="text-3xl font-bold text-foreground">{feature.stat}</div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">
                       {feature.statLabel}
                     </div>
@@ -118,18 +118,18 @@ export default function FeatureGrid() {
         </div>
 
         {/* Secondary features - simple row */}
-        <div className="border-t border-border pt-12">
+        <div className="border-t border-border/50 pt-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {SECONDARY_FEATURES.map((feature, index) => {
               const Icon = feature.icon
               return (
-                <div key={index} className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                <div key={index} className="flex items-start gap-4 group">
+                  <div className="w-10 h-10 bg-muted/60 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors group-hover:bg-muted">
                     <Icon className="w-5 h-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-foreground mb-1">{feature.title}</h4>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                    <h4 className="font-semibold text-foreground mb-1">{feature.title}</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                   </div>
                 </div>
               )

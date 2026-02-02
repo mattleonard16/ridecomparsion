@@ -45,7 +45,7 @@ async function handleGet(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const routeId = searchParams.get('routeId')
-    const service = searchParams.get('service') as 'uber' | 'lyft' | 'taxi' | null
+    const service = searchParams.get('service') as 'uber' | 'lyft' | 'taxi' | 'waymo' | null
     const daysBack = parseInt(searchParams.get('daysBack') || '7', 10)
     const getSavedRoutes = searchParams.get('savedRoutes') === 'true'
 
@@ -75,7 +75,7 @@ async function handleGet(request: NextRequest) {
     }
 
     // Validate service parameter
-    if (service && !['uber', 'lyft', 'taxi'].includes(service)) {
+    if (service && !['uber', 'lyft', 'taxi', 'waymo'].includes(service)) {
       return NextResponse.json({ error: 'Invalid service type' }, { status: 400 })
     }
 

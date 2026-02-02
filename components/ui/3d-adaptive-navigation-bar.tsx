@@ -173,27 +173,16 @@ export const PillBase: React.FC = () => {
         height: '56px',
 
         background: `
-
-          linear-gradient(135deg, 
-
-            #fcfcfd 0%, 
-
-            #f8f8fa 15%, 
-
-            #f3f4f6 30%, 
-
-            #eeeff2 45%, 
-
-            #e9eaed 60%, 
-
-            #e4e5e8 75%, 
-
-            #dee0e3 90%, 
-
-            #e2e3e6 100%
-
+          linear-gradient(135deg,
+            #fffdf9 0%,
+            #fdfaf5 15%,
+            #faf7f0 30%,
+            #f7f4eb 45%,
+            #f4f1e6 60%,
+            #f1eee1 75%,
+            #eeeadc 90%,
+            #f0ece0 100%
           )
-
         `,
 
         boxShadow: expanded
@@ -435,7 +424,7 @@ export const PillBase: React.FC = () => {
         className="relative z-10 h-full flex items-center justify-center px-6"
         style={{
           fontFamily:
-            'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
+            'var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "SF Pro", Poppins, sans-serif',
         }}
       >
         {/* Collapsed state - show only active section with smooth text transitions */}
@@ -459,7 +448,7 @@ export const PillBase: React.FC = () => {
                     letterSpacing: '0.45px',
                     whiteSpace: 'nowrap',
                     fontFamily:
-                      'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
+                      'var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
                     WebkitFontSmoothing: 'antialiased',
                     MozOsxFontSmoothing: 'grayscale',
                     textShadow: `
@@ -521,7 +510,7 @@ export const PillBase: React.FC = () => {
                     whiteSpace: 'nowrap',
 
                     fontFamily:
-                      'var(--font-ibm), -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
+                      'var(--font-dm-sans), -apple-system, BlinkMacSystemFont, "SF Pro Display", Poppins, sans-serif',
 
                     WebkitFontSmoothing: 'antialiased',
 
