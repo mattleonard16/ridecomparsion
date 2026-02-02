@@ -14,6 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/prisma'
 
 const RETENTION_DAYS = {
@@ -31,20 +32,33 @@ interface CleanupResult {
 }
 
 /**
- * Verify cron secret for authenticated access
+ * Verify cron secret for authenticated access using constant-time comparison
  * SECURITY: Requires authentication in ALL environments
  */
 function verifyCronSecret(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret) {
-    // Log warning but still require authentication
-    console.warn('[SECURITY] CRON_SECRET not configured - cron endpoints are unprotected')
     // Fail closed: deny access if no secret is configured
     return false
   }
 
   const authHeader = request.headers.get('authorization')
-  return authHeader === `Bearer ${cronSecret}`
+  if (!authHeader) {
+    return false
+  }
+
+  const expectedToken = `Bearer ${cronSecret}`
+
+  // Use constant-time comparison to prevent timing attacks
+  if (authHeader.length !== expectedToken.length) {
+    return false
+  }
+
+  try {
+    return timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedToken))
+  } catch {
+    return false
+  }
 }
 
 /**

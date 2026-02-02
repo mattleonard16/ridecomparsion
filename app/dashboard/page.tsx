@@ -54,8 +54,8 @@ export default function DashboardPage() {
             setSelectedRouteId(data.savedRoutes[0].routeId)
           }
         }
-      } catch (error) {
-        console.error('Error loading saved routes:', error)
+      } catch {
+        // Error loading saved routes - ignore
       } finally {
         setRoutesLoading(false)
       }
@@ -85,8 +85,8 @@ export default function DashboardPage() {
         const data = await response.json()
         setPriceData(data.priceHistory || [])
         setHourlyAverages(data.hourlyAverages || [])
-      } catch (error) {
-        console.error('Error loading dashboard data:', error)
+      } catch {
+        // Error loading dashboard data - ignore
       } finally {
         setDataLoading(false)
       }

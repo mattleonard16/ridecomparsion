@@ -14,7 +14,6 @@ export default function Home() {
   const [processingRouteId, setProcessingRouteId] = useState<string | null>(null)
 
   const handleRouteSelect = (route: { pickup: string; destination: string }) => {
-    console.log('[State] selectedRoute updated:', route)
     // Find the route ID to show processing state
     const routeMap = {
       'San Francisco International Airport (SFO), San Francisco, CA, USA': 'sfo-downtown',

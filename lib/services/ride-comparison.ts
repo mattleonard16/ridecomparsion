@@ -105,12 +105,7 @@ function isInWaymoServiceArea(coords: Coordinates): boolean {
   const [lon, lat] = coords
 
   for (const area of Object.values(WAYMO_SERVICE_AREAS)) {
-    if (
-      lat >= area.minLat &&
-      lat <= area.maxLat &&
-      lon >= area.minLon &&
-      lon <= area.maxLon
-    ) {
+    if (lat >= area.minLat && lat <= area.maxLat && lon >= area.minLon && lon <= area.maxLon) {
       return true
     }
   }
@@ -233,7 +228,11 @@ export async function compareRidesByCoordinates(
   if (eligibleServices.length === 0) {
     // Fall back to default services excluding Waymo for this route
     const fallbackServices = DEFAULT_SERVICES.filter(s => s !== 'waymo')
-    eligibleServices = filterServicesForRoute(fallbackServices, pickup.coordinates, destination.coordinates)
+    eligibleServices = filterServicesForRoute(
+      fallbackServices,
+      pickup.coordinates,
+      destination.coordinates
+    )
   }
 
   const metrics = options?.precomputedMetrics
@@ -305,8 +304,8 @@ export async function compareRidesByCoordinates(
           weather: computation.surgeReason,
           trafficLevel: classifyTraffic(computation.breakdown.trafficMultiplier),
         }
-      ).catch(err => {
-        console.warn('[CompareAPI] Price snapshot logging failed (non-critical):', err.message)
+      ).catch(() => {
+        // Price snapshot logging failed (non-critical) - ignore
       })
     })
 
@@ -316,8 +315,8 @@ export async function compareRidesByCoordinates(
       options?.userId ?? null,
       comparisonResults,
       options?.sessionId ?? undefined
-    ).catch(err => {
-      console.warn('[CompareAPI] Search logging failed (non-critical):', err.message)
+    ).catch(() => {
+      // Search logging failed (non-critical) - ignore
     })
   }
 

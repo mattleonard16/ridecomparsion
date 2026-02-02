@@ -24,12 +24,7 @@ export function getRecaptchaSiteKey(): string {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || RECAPTCHA_SITE_KEY
 
   if (!siteKey) {
-    console.warn('[reCAPTCHA] No site key configured')
     return ''
-  }
-
-  if (typeof window !== 'undefined') {
-    console.log('[reCAPTCHA Enterprise] Using site key for:', window.location.hostname)
   }
 
   return siteKey
@@ -137,18 +132,13 @@ export async function verifyRecaptchaToken(
       if (!projectId) missing.push('RECAPTCHA_PROJECT_ID')
       if (!siteKey) missing.push('NEXT_PUBLIC_RECAPTCHA_SITE_KEY')
 
-      console.error('[reCAPTCHA Enterprise] Missing configuration:', missing.join(', '))
-
       if (isProduction) {
         return {
           success: false,
           error: `reCAPTCHA Enterprise not properly configured: missing ${missing.join(', ')}`,
         }
       } else {
-        // In development, warn but allow through
-        console.warn(
-          '[reCAPTCHA Enterprise] Skipping verification in development due to missing config'
-        )
+        // In development, allow through
         return {
           success: true,
           score: 1.0,
@@ -175,8 +165,6 @@ export async function verifyRecaptchaToken(
     })
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[reCAPTCHA Enterprise] API error:', response.status, errorText)
       return {
         success: false,
         error: `reCAPTCHA Enterprise API request failed: ${response.status} ${response.statusText}`,
@@ -188,7 +176,6 @@ export async function verifyRecaptchaToken(
     // Check if token is valid
     if (!data.tokenProperties?.valid) {
       const invalidReason = data.tokenProperties?.invalidReason || 'Unknown'
-      console.error('[reCAPTCHA Enterprise] Invalid token:', invalidReason)
       return {
         success: false,
         error: `reCAPTCHA token invalid: ${invalidReason}`,
@@ -200,12 +187,6 @@ export async function verifyRecaptchaToken(
 
     // Check action matches
     if (data.tokenProperties?.action !== expectedAction) {
-      console.error(
-        '[reCAPTCHA Enterprise] Action mismatch:',
-        data.tokenProperties?.action,
-        'vs',
-        expectedAction
-      )
       return {
         success: false,
         score,
@@ -216,7 +197,6 @@ export async function verifyRecaptchaToken(
 
     // Check score threshold
     if (score < minimumScore) {
-      console.warn('[reCAPTCHA Enterprise] Low score:', score)
       return {
         success: false,
         score,
@@ -225,14 +205,12 @@ export async function verifyRecaptchaToken(
       }
     }
 
-    console.log('[reCAPTCHA Enterprise] Verification successful, score:', score)
     return {
       success: true,
       score,
       action: data.tokenProperties?.action,
     }
   } catch (error) {
-    console.error('[reCAPTCHA Enterprise] Verification error:', error)
     return {
       success: false,
       error: `reCAPTCHA verification error: ${error instanceof Error ? error.message : 'Unknown error'}`,

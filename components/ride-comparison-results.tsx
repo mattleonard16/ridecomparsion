@@ -10,7 +10,7 @@ import {
   Minus,
   BarChart3,
 } from 'lucide-react'
-import { useState, memo, useMemo } from 'react'
+import { useState, memo, useMemo, useCallback } from 'react'
 import PriceAlert from './price-alert'
 import { useAuth } from '@/lib/auth-context'
 import { saveRouteForUser } from '@/lib/database'
@@ -93,195 +93,7 @@ export default memo(function RideComparisonResults({
   const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [routeSaved, setRouteSaved] = useState(false)
 
-  const getBookingUrl = (serviceName: string) => {
-    // Coordinates are [longitude, latitude] format from geocoding
-    const pickupLat = pickupCoords ? pickupCoords[1] : null
-    const pickupLng = pickupCoords ? pickupCoords[0] : null
-    const destLat = destinationCoords ? destinationCoords[1] : null
-    const destLng = destinationCoords ? destinationCoords[0] : null
-
-    const pickupName = pickup ? encodeURIComponent(pickup.split(',')[0]) : ''
-    const destName = destination ? encodeURIComponent(destination.split(',')[0]) : ''
-
-    switch (serviceName.toLowerCase()) {
-      case 'uber':
-        if (pickupLat && pickupLng && destLat && destLng) {
-          return `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${pickupLat}&pickup[longitude]=${pickupLng}&pickup[nickname]=${pickupName}&dropoff[latitude]=${destLat}&dropoff[longitude]=${destLng}&dropoff[nickname]=${destName}`
-        }
-        return 'https://m.uber.com/looking'
-      case 'lyft':
-        if (pickupLat && pickupLng && destLat && destLng) {
-          return `https://lyft.com/ride?pickup[latitude]=${pickupLat}&pickup[longitude]=${pickupLng}&destination[latitude]=${destLat}&destination[longitude]=${destLng}`
-        }
-        return 'https://www.lyft.com/'
-      case 'waymo':
-        if (pickupLat && pickupLng && destLat && destLng) {
-          return `https://waymo.com/ride?pickup_lat=${pickupLat}&pickup_lng=${pickupLng}&dest_lat=${destLat}&dest_lng=${destLng}`
-        }
-        return 'https://waymo.com/waymo-one/'
-      default:
-        return '#'
-    }
-  }
-
-  const handleBooking = (serviceName: string) => {
-    const url = getBookingUrl(serviceName)
-    if (url !== '#') {
-      // For mobile, try to open directly (which may open the app)
-      // For desktop, open in new tab
-      window.open(url, '_blank', 'noopener,noreferrer')
-    }
-  }
-
-  const handleShare = async () => {
-    const bestPrice = services.reduce((best, current) => {
-      const currentPrice = Number.parseFloat(current.data.price.replace('$', ''))
-      const bestPriceVal = Number.parseFloat(best.data.price.replace('$', ''))
-      return currentPrice < bestPriceVal ? current : best
-    }, services[0])
-
-    const routeInfo = pickup && destination ? `${pickup} → ${destination}` : 'ride comparison'
-    const shareData = {
-      title: 'Ride Comparison Results',
-      text: `${routeInfo}: Best option is ${bestPrice.name} at ${bestPrice.data.price} with ${bestPrice.data.waitTime} wait time. Compare more rides with RideCompare!`,
-      url: window.location.href,
-    }
-
-    try {
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData)
-      } else {
-        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`)
-        alert('Ride comparison copied to clipboard!')
-      }
-    } catch (error) {
-      console.error('Error sharing:', error)
-      try {
-        await navigator.clipboard.writeText(`${shareData.text} ${window.location.href}`)
-        alert('Ride comparison copied to clipboard!')
-      } catch (clipboardError) {
-        console.error('Clipboard error:', clipboardError)
-      }
-    }
-  }
-
-  const handleShareETA = async (serviceName: string, waitTime: string) => {
-    const estimatedPickupTime = new Date(Date.now() + parseInt(waitTime) * 60000)
-    const timeString = estimatedPickupTime.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-
-    const etaMessage =
-      pickup && destination
-        ? `I'm taking a ${serviceName} from ${pickup.split(',')[0]} to ${destination.split(',')[0]}. Estimated pickup at ${timeString}. I'll update you when I'm on my way!`
-        : `I'm taking a ${serviceName}. Estimated pickup at ${timeString}. I'll update you when I'm on my way!`
-
-    const shareData = {
-      title: 'My Ride ETA',
-      text: etaMessage,
-    }
-
-    try {
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData)
-      } else {
-        await navigator.clipboard.writeText(etaMessage)
-        alert('ETA message copied to clipboard!')
-      }
-    } catch (error) {
-      console.error('Error sharing ETA:', error)
-      try {
-        await navigator.clipboard.writeText(etaMessage)
-        alert('ETA message copied to clipboard!')
-      } catch (clipboardError) {
-        console.error('Clipboard error:', clipboardError)
-      }
-    }
-  }
-
-  const handleSaveRoute = async () => {
-    if (!user) {
-      setShowAuthDialog(true)
-      return
-    }
-
-    if (!routeId) {
-      console.error('No route ID available to save')
-      return
-    }
-
-    const nickname = `${pickup?.split(',')[0] || 'Pickup'} → ${destination?.split(',')[0] || 'Destination'}`
-
-    const success = await saveRouteForUser(user.id, routeId, nickname)
-    if (success) {
-      setRouteSaved(true)
-      setTimeout(() => setRouteSaved(false), 3000)
-    }
-  }
-
-  const handleSetPriceAlert = async (threshold: number) => {
-    if (!user) {
-      setShowAuthDialog(true)
-      return
-    }
-
-    // If we have a routeId, use the API to persist the alert
-    if (routeId) {
-      try {
-        const response = await fetch('/api/price-alerts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            routeId,
-            targetPrice: threshold,
-            service: 'any',
-            alertType: 'below',
-          }),
-        })
-
-        if (response.ok) {
-          // Also store in localStorage for quick access
-          const localAlert = {
-            threshold,
-            timestamp: new Date().toISOString(),
-            pickup: pickup?.split(',')[0],
-            destination: destination?.split(',')[0],
-            route:
-              pickup && destination
-                ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}`
-                : 'Route',
-            routeId,
-            synced: true,
-          }
-          const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
-          existingAlerts.push(localAlert)
-          localStorage.setItem('priceAlerts', JSON.stringify(existingAlerts))
-          return
-        }
-
-        console.warn('Failed to save alert to API, falling back to localStorage')
-      } catch (error) {
-        console.warn('Error saving alert to API:', error)
-      }
-    }
-
-    // Fallback to localStorage only (for routes without ID or API errors)
-    const newAlert = {
-      threshold,
-      timestamp: new Date().toISOString(),
-      pickup: pickup?.split(',')[0],
-      destination: destination?.split(',')[0],
-      route:
-        pickup && destination ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}` : 'Route',
-      synced: false,
-    }
-    const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
-    existingAlerts.push(newAlert)
-    localStorage.setItem('priceAlerts', JSON.stringify(existingAlerts))
-  }
-
-  // Memoize services array to prevent unnecessary re-renders
+  // Memoize services array first (used by handlers below)
   const services = useMemo(
     () => [
       {
@@ -317,6 +129,203 @@ export default memo(function RideComparisonResults({
     [results.uber, results.lyft, results.taxi, results.waymo]
   )
 
+  const getBookingUrl = useCallback(
+    (serviceName: string) => {
+      // Coordinates are [longitude, latitude] format from geocoding
+      const pickupLat = pickupCoords ? pickupCoords[1] : null
+      const pickupLng = pickupCoords ? pickupCoords[0] : null
+      const destLat = destinationCoords ? destinationCoords[1] : null
+      const destLng = destinationCoords ? destinationCoords[0] : null
+
+      const pickupName = pickup ? encodeURIComponent(pickup.split(',')[0]) : ''
+      const destName = destination ? encodeURIComponent(destination.split(',')[0]) : ''
+
+      switch (serviceName.toLowerCase()) {
+        case 'uber':
+          if (pickupLat && pickupLng && destLat && destLng) {
+            return `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${pickupLat}&pickup[longitude]=${pickupLng}&pickup[nickname]=${pickupName}&dropoff[latitude]=${destLat}&dropoff[longitude]=${destLng}&dropoff[nickname]=${destName}`
+          }
+          return 'https://m.uber.com/looking'
+        case 'lyft':
+          if (pickupLat && pickupLng && destLat && destLng) {
+            return `https://lyft.com/ride?pickup[latitude]=${pickupLat}&pickup[longitude]=${pickupLng}&destination[latitude]=${destLat}&destination[longitude]=${destLng}`
+          }
+          return 'https://www.lyft.com/'
+        case 'waymo':
+          if (pickupLat && pickupLng && destLat && destLng) {
+            return `https://waymo.com/ride?pickup_lat=${pickupLat}&pickup_lng=${pickupLng}&dest_lat=${destLat}&dest_lng=${destLng}`
+          }
+          return 'https://waymo.com/waymo-one/'
+        default:
+          return '#'
+      }
+    },
+    [pickupCoords, destinationCoords, pickup, destination]
+  )
+
+  const handleBooking = useCallback(
+    (serviceName: string) => {
+      const url = getBookingUrl(serviceName)
+      if (url !== '#') {
+        // For mobile, try to open directly (which may open the app)
+        // For desktop, open in new tab
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    },
+    [getBookingUrl]
+  )
+
+  const handleShare = useCallback(async () => {
+    const bestPriceService = services.reduce((best, current) => {
+      const currentPrice = Number.parseFloat(current.data.price.replace('$', ''))
+      const bestPriceVal = Number.parseFloat(best.data.price.replace('$', ''))
+      return currentPrice < bestPriceVal ? current : best
+    }, services[0])
+
+    const routeInfo = pickup && destination ? `${pickup} → ${destination}` : 'ride comparison'
+    const shareData = {
+      title: 'Ride Comparison Results',
+      text: `${routeInfo}: Best option is ${bestPriceService.name} at ${bestPriceService.data.price} with ${bestPriceService.data.waitTime} wait time. Compare more rides with RideCompare!`,
+      url: window.location.href,
+    }
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData)
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`)
+        alert('Ride comparison copied to clipboard!')
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(`${shareData.text} ${window.location.href}`)
+        alert('Ride comparison copied to clipboard!')
+      } catch {
+        // Clipboard also failed - ignore silently
+      }
+    }
+  }, [services, pickup, destination])
+
+  const handleShareETA = useCallback(
+    async (serviceName: string, waitTime: string) => {
+      const estimatedPickupTime = new Date(Date.now() + parseInt(waitTime) * 60000)
+      const timeString = estimatedPickupTime.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+
+      const etaMessage =
+        pickup && destination
+          ? `I'm taking a ${serviceName} from ${pickup.split(',')[0]} to ${destination.split(',')[0]}. Estimated pickup at ${timeString}. I'll update you when I'm on my way!`
+          : `I'm taking a ${serviceName}. Estimated pickup at ${timeString}. I'll update you when I'm on my way!`
+
+      const shareData = {
+        title: 'My Ride ETA',
+        text: etaMessage,
+      }
+
+      try {
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData)
+        } else {
+          await navigator.clipboard.writeText(etaMessage)
+          alert('ETA message copied to clipboard!')
+        }
+      } catch {
+        try {
+          await navigator.clipboard.writeText(etaMessage)
+          alert('ETA message copied to clipboard!')
+        } catch {
+          // Clipboard also failed - ignore silently
+        }
+      }
+    },
+    [pickup, destination]
+  )
+
+  const handleSaveRoute = useCallback(async () => {
+    if (!user) {
+      setShowAuthDialog(true)
+      return
+    }
+
+    if (!routeId) {
+      return
+    }
+
+    const nickname = `${pickup?.split(',')[0] || 'Pickup'} → ${destination?.split(',')[0] || 'Destination'}`
+
+    const success = await saveRouteForUser(user.id, routeId, nickname)
+    if (success) {
+      setRouteSaved(true)
+      setTimeout(() => setRouteSaved(false), 3000)
+    }
+  }, [user, routeId, pickup, destination])
+
+  const handleSetPriceAlert = useCallback(
+    async (threshold: number) => {
+      if (!user) {
+        setShowAuthDialog(true)
+        return
+      }
+
+      // If we have a routeId, use the API to persist the alert
+      if (routeId) {
+        try {
+          const response = await fetch('/api/price-alerts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              routeId,
+              targetPrice: threshold,
+              service: 'any',
+              alertType: 'below',
+            }),
+          })
+
+          if (response.ok) {
+            // Also store in localStorage for quick access
+            const localAlert = {
+              threshold,
+              timestamp: new Date().toISOString(),
+              pickup: pickup?.split(',')[0],
+              destination: destination?.split(',')[0],
+              route:
+                pickup && destination
+                  ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}`
+                  : 'Route',
+              routeId,
+              synced: true,
+            }
+            const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
+            const updatedAlerts = [...existingAlerts, localAlert]
+            localStorage.setItem('priceAlerts', JSON.stringify(updatedAlerts))
+            return
+          }
+        } catch {
+          // API save failed - fall through to localStorage
+        }
+      }
+
+      // Fallback to localStorage only (for routes without ID or API errors)
+      const newAlert = {
+        threshold,
+        timestamp: new Date().toISOString(),
+        pickup: pickup?.split(',')[0],
+        destination: destination?.split(',')[0],
+        route:
+          pickup && destination
+            ? `${pickup.split(',')[0]} → ${destination.split(',')[0]}`
+            : 'Route',
+        synced: false,
+      }
+      const existingAlerts = JSON.parse(localStorage.getItem('priceAlerts') || '[]')
+      const updatedAlerts = [...existingAlerts, newAlert]
+      localStorage.setItem('priceAlerts', JSON.stringify(updatedAlerts))
+    },
+    [user, routeId, pickup, destination]
+  )
+
   // Memoize best price/wait time calculations
   const bestPrice = useMemo(
     () =>
@@ -339,42 +348,48 @@ export default memo(function RideComparisonResults({
   )
 
   // Helper to get price comparison vs historical average
-  const getPriceComparison = (serviceName: string, currentPrice: number) => {
-    const serviceKey = serviceName.toLowerCase() as ServiceType
-    const stats = historicalStats?.[serviceKey]
-    if (!stats) return null
+  const getPriceComparison = useCallback(
+    (serviceName: string, currentPrice: number) => {
+      const serviceKey = serviceName.toLowerCase() as ServiceType
+      const stats = historicalStats?.[serviceKey]
+      if (!stats) return null
 
-    const statsForSource =
-      stats.source === 'exact' ? stats.exact : stats.source === 'cluster' ? stats.cluster : null
-    if (!statsForSource) return null
+      const statsForSource =
+        stats.source === 'exact' ? stats.exact : stats.source === 'cluster' ? stats.cluster : null
+      if (!statsForSource) return null
 
-    const historicalAvg = statsForSource.avg
-    if (!historicalAvg) return null
+      const historicalAvg = statsForSource.avg
+      if (!historicalAvg) return null
 
-    const diff = currentPrice - historicalAvg
-    const percentDiff = ((diff / historicalAvg) * 100).toFixed(0)
-    const isHigher = diff > historicalAvg * 0.05 // 5% threshold
-    const isLower = diff < -historicalAvg * 0.05
+      const diff = currentPrice - historicalAvg
+      const percentDiff = ((diff / historicalAvg) * 100).toFixed(0)
+      const isHigher = diff > historicalAvg * 0.05 // 5% threshold
+      const isLower = diff < -historicalAvg * 0.05
 
-    return {
-      avg: historicalAvg,
-      diff,
-      percentDiff,
-      isHigher,
-      isLower,
-      isTypical: !isHigher && !isLower,
-      source: stats.source,
-      confidence: stats.confidence,
-      sampleCount: statsForSource.count,
-    }
-  }
+      return {
+        avg: historicalAvg,
+        diff,
+        percentDiff,
+        isHigher,
+        isLower,
+        isTypical: !isHigher && !isLower,
+        source: stats.source,
+        confidence: stats.confidence,
+        sampleCount: statsForSource.count,
+      }
+    },
+    [historicalStats]
+  )
 
   // Check if we have any historical stats to display
-  const hasHistoricalStats =
-    historicalStats &&
-    Object.values(historicalStats).some(
-      s => s && ((s.source === 'exact' && s.exact) || (s.source === 'cluster' && s.cluster))
-    )
+  const hasHistoricalStats = useMemo(
+    () =>
+      historicalStats &&
+      Object.values(historicalStats).some(
+        s => s && ((s.source === 'exact' && s.exact) || (s.source === 'cluster' && s.cluster))
+      ),
+    [historicalStats]
+  )
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8">
@@ -433,12 +448,11 @@ export default memo(function RideComparisonResults({
             <div className="text-4xl font-display text-foreground">
               $
               {(
-                services.reduce((sum, s) => sum + parseFloat(s.data.price.replace('$', '')), 0) / services.length
+                services.reduce((sum, s) => sum + parseFloat(s.data.price.replace('$', '')), 0) /
+                services.length
               ).toFixed(0)}
             </div>
-            <div className="text-sm text-muted-foreground">
-              Average Price
-            </div>
+            <div className="text-sm text-muted-foreground">Average Price</div>
           </div>
         </div>
       </div>
@@ -451,9 +465,7 @@ export default memo(function RideComparisonResults({
               <AlertCircle className="h-5 w-5" />
             </div>
             <div className="flex-1">
-              <div className="font-medium text-secondary text-sm mb-1">
-                Our Recommendation
-              </div>
+              <div className="font-medium text-secondary text-sm mb-1">Our Recommendation</div>
               <div className="text-foreground text-sm leading-relaxed">{insights}</div>
             </div>
           </div>
@@ -477,12 +489,17 @@ export default memo(function RideComparisonResults({
             )}
 
             {/* Service Header - Subtle Gradient Border Top */}
-            <div className={`h-1 w-full bg-gradient-to-r ${
-              service.name === 'Uber' ? 'from-zinc-900 to-zinc-700' :
-              service.name === 'Lyft' ? 'from-pink-600 to-pink-400' :
-              service.name === 'Waymo' ? 'from-teal-500 to-teal-300' :
-              'from-amber-500 to-amber-300'
-            }`}></div>
+            <div
+              className={`h-1 w-full bg-gradient-to-r ${
+                service.name === 'Uber'
+                  ? 'from-zinc-900 to-zinc-700'
+                  : service.name === 'Lyft'
+                    ? 'from-pink-600 to-pink-400'
+                    : service.name === 'Waymo'
+                      ? 'from-teal-500 to-teal-300'
+                      : 'from-amber-500 to-amber-300'
+              }`}
+            ></div>
 
             <div className="p-5">
               <div className="flex items-center justify-between mb-6">
@@ -496,9 +513,7 @@ export default memo(function RideComparisonResults({
                     <h3 className="text-2xl font-display font-normal text-foreground leading-none">
                       {service.name}
                     </h3>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Standard Service
-                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Standard Service</div>
                   </div>
                 </div>
                 {service.data.surgeMultiplier && (
@@ -506,9 +521,7 @@ export default memo(function RideComparisonResults({
                     <span className="bg-accent/20 text-accent-foreground text-xs font-semibold px-2 py-1 rounded-lg">
                       {service.data.surgeMultiplier}x
                     </span>
-                    <span className="text-xs text-muted-foreground mt-1">
-                      Surge Active
-                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">Surge Active</span>
                   </div>
                 )}
               </div>
@@ -516,9 +529,7 @@ export default memo(function RideComparisonResults({
               {/* Price Display */}
               <div className="mb-6 pb-6 border-b border-border/50">
                 <div className="flex items-baseline justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Estimated Fare
-                  </span>
+                  <span className="text-sm text-muted-foreground">Estimated Fare</span>
                   <div
                     className={`text-4xl font-display font-semibold tracking-tight tabular-nums ${
                       service.name === bestPrice.name ? 'text-secondary' : 'text-foreground'
@@ -532,9 +543,7 @@ export default memo(function RideComparisonResults({
               {/* Metrics Grid */}
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="bg-muted/30 p-3 rounded-xl">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Wait Time
-                  </div>
+                  <div className="text-xs text-muted-foreground mb-1">Wait Time</div>
                   <div
                     className={`text-xl font-semibold ${
                       service.name === bestWaitTime.name ? 'text-primary' : 'text-foreground'
@@ -544,9 +553,7 @@ export default memo(function RideComparisonResults({
                   </div>
                 </div>
                 <div className="bg-muted/30 p-3 rounded-xl">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Nearby Drivers
-                  </div>
+                  <div className="text-xs text-muted-foreground mb-1">Nearby Drivers</div>
                   <div className="text-xl font-semibold text-foreground">
                     {service.data.driversNearby}
                   </div>
@@ -566,7 +573,11 @@ export default memo(function RideComparisonResults({
                   disabled={service.name === 'Taxi'}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {service.name === 'Taxi' ? `Call Dispatch` : service.name === 'Waymo' ? `Book Waymo One` : `Book with ${service.name}`}
+                    {service.name === 'Taxi'
+                      ? `Call Dispatch`
+                      : service.name === 'Waymo'
+                        ? `Book Waymo One`
+                        : `Book with ${service.name}`}
                     {service.name !== 'Taxi' && <span className="text-sm">&#8594;</span>}
                   </span>
                 </button>
@@ -596,7 +607,9 @@ export default memo(function RideComparisonResults({
               <div className="text-foreground">
                 <span className="font-medium">Surge Active:</span>{' '}
                 <span className="text-muted-foreground">{surgeInfo.reason}</span>{' '}
-                <span className="text-primary font-semibold">({surgeInfo.multiplier.toFixed(1)}x)</span>
+                <span className="text-primary font-semibold">
+                  ({surgeInfo.multiplier.toFixed(1)}x)
+                </span>
               </div>
             </div>
           </div>
@@ -648,9 +661,7 @@ export default memo(function RideComparisonResults({
                     className="bg-muted/10 border border-border/30 p-3 rounded-xl"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">
-                        {service.name}
-                      </span>
+                      <span className="text-sm text-muted-foreground">{service.name}</span>
                       <div className="flex items-center gap-1">
                         {comparison.isHigher && (
                           <>

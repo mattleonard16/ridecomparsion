@@ -28,8 +28,7 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
 
       alert(`Price alert set! You'll be notified when rides drop below $${threshold.toFixed(2)}`)
       onClose()
-    } catch (error) {
-      console.error('Error setting price alert:', error)
+    } catch {
       alert('Failed to set price alert. Please try again.')
     } finally {
       setIsSubmitting(false)

@@ -13,15 +13,39 @@ import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 import { auth } from '@/auth'
 
+/**
+ * Get or generate a request ID for traceability
+ */
+function getRequestId(request: NextRequest): string {
+  return request.headers.get('x-request-id') ?? crypto.randomUUID()
+}
+
+/**
+ * Create response headers with request ID
+ */
+function createResponseHeaders(
+  requestId: string,
+  additionalHeaders?: Record<string, string>
+): Record<string, string> {
+  return {
+    'x-request-id': requestId,
+    ...additionalHeaders,
+  }
+}
+
 async function handleGet(request: NextRequest) {
+  const requestId = getRequestId(request)
+
   try {
     const { searchParams } = new URL(request.url)
     const pickup = searchParams.get('pickup')
     const destination = searchParams.get('destination')
 
     if (!pickup || !destination) {
-      console.error('[CompareAPI GET] Missing params')
-      return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Pickup and destination are required' },
+        { status: 400, headers: createResponseHeaders(requestId) }
+      )
     }
 
     const isPrecomputedRoute = !!findPrecomputedRouteByAddresses(pickup, destination)
@@ -39,8 +63,10 @@ async function handleGet(request: NextRequest) {
     )
 
     if (!comparisons) {
-      console.error('[CompareAPI GET] No comparisons returned')
-      return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Could not compute comparisons' },
+        { status: 500, headers: createResponseHeaders(requestId) }
+      )
     }
 
     const cacheControl = isPrecomputedRoute
@@ -58,26 +84,22 @@ async function handleGet(request: NextRequest) {
         timeRecommendations: comparisons.timeRecommendations,
       },
       {
-        headers: {
-          'Cache-Control': cacheControl,
-        },
+        headers: createResponseHeaders(requestId, { 'Cache-Control': cacheControl }),
       }
     )
-  } catch (error: unknown) {
-    const err = error as Error
-    console.error('[CompareAPI GET] Error:', err)
-    console.error('[CompareAPI GET] Error stack:', err?.stack)
+  } catch {
     return NextResponse.json(
       {
         error: 'Failed to prefetch ride comparisons',
-        detail: err?.message || 'Unknown error',
       },
-      { status: 500 }
+      { status: 500, headers: createResponseHeaders(requestId) }
     )
   }
 }
 
 async function handlePost(request: NextRequest) {
+  const requestId = getRequestId(request)
+
   try {
     const body = await request.json()
 
@@ -99,13 +121,9 @@ async function handlePost(request: NextRequest) {
       if (!recaptchaResult.success) {
         // Action mismatch is suspicious - could indicate replay attack
         if (recaptchaResult.error?.includes('Action mismatch')) {
-          console.error(
-            '[SECURITY] reCAPTCHA action mismatch - potential replay attack:',
-            recaptchaResult.error
-          )
           return NextResponse.json(
             { error: 'Security verification failed. Please refresh and try again.' },
-            { status: 403 }
+            { status: 403, headers: createResponseHeaders(requestId) }
           )
         }
 
@@ -119,27 +137,25 @@ async function handlePost(request: NextRequest) {
               error: 'Security verification failed. Please try again.',
               details: 'Your request appears to be automated. Please try again in a few moments.',
             },
-            { status: 403 }
+            { status: 403, headers: createResponseHeaders(requestId) }
           )
         }
 
         // For other errors in production, fail closed
         if (isProduction) {
-          console.error('[SECURITY] reCAPTCHA verification failed:', recaptchaResult.error)
           return NextResponse.json(
             { error: 'Security verification unavailable. Please try again later.' },
-            { status: 503 }
-          )
-        } else {
-          console.warn(
-            '[reCAPTCHA] Verification failed in development, continuing:',
-            recaptchaResult.error
+            { status: 503, headers: createResponseHeaders(requestId) }
           )
         }
+        // In development, continue without reCAPTCHA
       }
     } else if (!isPrecomputedRoute && !body.recaptchaToken && isProduction) {
       // In production, require reCAPTCHA token for non-precomputed routes
-      return NextResponse.json({ error: 'Security token required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Security token required' },
+        { status: 400, headers: createResponseHeaders(requestId) }
+      )
     }
 
     let requestData
@@ -179,7 +195,7 @@ async function handlePost(request: NextRequest) {
               message: err.message,
             })),
           },
-          { status: 400 }
+          { status: 400, headers: createResponseHeaders(requestId) }
         )
       }
 
@@ -189,7 +205,10 @@ async function handlePost(request: NextRequest) {
       const toName = requestData.to.name
 
       if (detectSpamPatterns(fromName) || detectSpamPatterns(toName)) {
-        return NextResponse.json({ error: 'Invalid location names detected' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'Invalid location names detected' },
+          { status: 400, headers: createResponseHeaders(requestId) }
+        )
       }
 
       if (
@@ -200,7 +219,7 @@ async function handlePost(request: NextRequest) {
       ) {
         return NextResponse.json(
           { error: 'Invalid route: pickup and destination are too close' },
-          { status: 400 }
+          { status: 400, headers: createResponseHeaders(requestId) }
         )
       }
     }
@@ -209,7 +228,10 @@ async function handlePost(request: NextRequest) {
       const { pickup, destination } = body
 
       if (!pickup || !destination) {
-        return NextResponse.json({ error: 'Pickup and destination are required' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'Pickup and destination are required' },
+          { status: 400, headers: createResponseHeaders(requestId) }
+        )
       }
 
       // Apply validation to legacy requests (security fix)
@@ -217,7 +239,10 @@ async function handlePost(request: NextRequest) {
       const sanitizedDestination = sanitizeString(destination)
 
       if (detectSpamPatterns(sanitizedPickup) || detectSpamPatterns(sanitizedDestination)) {
-        return NextResponse.json({ error: 'Invalid location names detected' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'Invalid location names detected' },
+          { status: 400, headers: createResponseHeaders(requestId) }
+        )
       }
 
       const comparisons = await compareRidesByAddresses(
@@ -233,18 +258,24 @@ async function handlePost(request: NextRequest) {
       )
 
       if (!comparisons) {
-        return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Could not compute comparisons' },
+          { status: 500, headers: createResponseHeaders(requestId) }
+        )
       }
 
-      return NextResponse.json({
-        routeId: comparisons.routeId,
-        comparisons: comparisons.results,
-        insights: comparisons.insights,
-        pickupCoords: comparisons.pickup,
-        destinationCoords: comparisons.destination,
-        surgeInfo: comparisons.surgeInfo,
-        timeRecommendations: comparisons.timeRecommendations,
-      })
+      return NextResponse.json(
+        {
+          routeId: comparisons.routeId,
+          comparisons: comparisons.results,
+          insights: comparisons.insights,
+          pickupCoords: comparisons.pickup,
+          destinationCoords: comparisons.destination,
+          surgeInfo: comparisons.surgeInfo,
+          timeRecommendations: comparisons.timeRecommendations,
+        },
+        { headers: createResponseHeaders(requestId) }
+      )
     }
 
     const pickup = requestData.from.name
@@ -267,28 +298,30 @@ async function handlePost(request: NextRequest) {
     )
 
     if (!comparisons) {
-      return NextResponse.json({ error: 'Could not compute comparisons' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Could not compute comparisons' },
+        { status: 500, headers: createResponseHeaders(requestId) }
+      )
     }
 
-    return NextResponse.json({
-      routeId: comparisons.routeId,
-      comparisons: comparisons.results,
-      insights: comparisons.insights,
-      pickupCoords: comparisons.pickup,
-      destinationCoords: comparisons.destination,
-      surgeInfo: comparisons.surgeInfo,
-      timeRecommendations: comparisons.timeRecommendations,
-    })
-  } catch (error: unknown) {
-    const err = error as Error
-    console.error('[CompareAPI POST] Error comparing rides:', err)
-    console.error('[CompareAPI POST] Error stack:', err?.stack)
+    return NextResponse.json(
+      {
+        routeId: comparisons.routeId,
+        comparisons: comparisons.results,
+        insights: comparisons.insights,
+        pickupCoords: comparisons.pickup,
+        destinationCoords: comparisons.destination,
+        surgeInfo: comparisons.surgeInfo,
+        timeRecommendations: comparisons.timeRecommendations,
+      },
+      { headers: createResponseHeaders(requestId) }
+    )
+  } catch {
     return NextResponse.json(
       {
         error: 'Failed to compare rides',
-        detail: err?.message || 'Unknown error',
       },
-      { status: 500 }
+      { status: 500, headers: createResponseHeaders(requestId) }
     )
   }
 }

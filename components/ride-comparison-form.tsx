@@ -1,17 +1,21 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MapPin, Loader2, Locate, Shield, Plane, ArrowRight } from 'lucide-react'
+import { Loader2, Locate, Shield, Plane, ArrowRight } from 'lucide-react'
 import RideComparisonResults from './ride-comparison-results'
 import RouteMap from './RouteMap'
 import RouteHeader from './route-header'
+import { LocationInput } from './location-input'
+import { AirportSelector } from './airport-selector'
 import { useRecaptcha } from '@/lib/hooks/use-recaptcha'
+import { useUserLocation } from '@/lib/hooks/useUserLocation'
 import { RECAPTCHA_CONFIG } from '@/lib/recaptcha'
-import { getPopularAirports } from '@/lib/airports'
+import { getAirportByCode } from '@/lib/airports'
 import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
+import type { LocationSuggestion, CommonPlaces, Coordinates } from '@/types'
 
 // Common places for faster autocomplete
-const COMMON_PLACES = {
+const COMMON_PLACES: CommonPlaces = {
   'santa clara university': {
     display_name: 'Santa Clara University, Santa Clara, CA, USA',
     name: 'Santa Clara University',
@@ -129,63 +133,10 @@ const COMMON_PLACES = {
 }
 
 // Constants
-const DEBOUNCE_DELAY_MS = 150 // Reduced from 300ms for faster response
 const AUTO_SUBMIT_DELAY_PRECOMPUTED_MS = 0 // Instant submit for precomputed routes
 const AUTO_SUBMIT_DELAY_DYNAMIC_MS = 50 // Minimal delay for dynamic routes
 
-// Cache configuration
-const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
-const MAX_SEARCH_CACHE_SIZE = 50
-
-// Bounded cache for API results with TTL
-interface CacheEntry {
-  data: LocationSuggestion[]
-  expiresAt: number
-}
-const searchCache = new Map<string, CacheEntry>()
-
-/**
- * Get cached search result if it exists and hasn't expired
- */
-function getCachedResult(key: string): LocationSuggestion[] | null {
-  const entry = searchCache.get(key)
-  if (!entry) return null
-
-  if (entry.expiresAt <= Date.now()) {
-    searchCache.delete(key)
-    return null
-  }
-
-  return entry.data
-}
-
-/**
- * Set cache entry with TTL and enforce size limits
- */
-function setCacheEntry(key: string, data: LocationSuggestion[]): void {
-  // Enforce max cache size by removing oldest entries
-  if (searchCache.size >= MAX_SEARCH_CACHE_SIZE) {
-    const firstKey = searchCache.keys().next().value
-    if (firstKey) {
-      searchCache.delete(firstKey)
-    }
-  }
-
-  searchCache.set(key, {
-    data,
-    expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
-  })
-}
-
 // Type definitions
-type LocationSuggestion = {
-  display_name: string
-  lat: string
-  lon: string
-  name?: string
-  place_id?: string
-}
-
 type RideService = {
   price: string
   waitTime: string
@@ -222,6 +173,9 @@ export default function RideComparisonForm({
   // reCAPTCHA integration
   const { executeRecaptcha, isLoaded: isRecaptchaLoaded, error: recaptchaError } = useRecaptcha()
 
+  // User location hook
+  const { getLocation, isGettingLocation, error: locationError } = useUserLocation()
+
   // Form state
   const [pickup, setPickup] = useState('')
   const [destination, setDestination] = useState('')
@@ -229,9 +183,6 @@ export default function RideComparisonForm({
 
   // Loading states
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
-  const [isLoadingDestSuggestions, setIsLoadingDestSuggestions] = useState(false)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   // Results state
   const [results, setResults] = useState<RideResults | null>(null)
@@ -242,27 +193,12 @@ export default function RideComparisonForm({
   const [timeRecommendations, setTimeRecommendations] = useState<string[]>([])
 
   // Location state
-  const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null)
-  const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null)
-
-  // Autocomplete suggestions
-  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([])
-  const [destinationSuggestions, setDestinationSuggestions] = useState<LocationSuggestion[]>([])
-  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false)
-  const [showDestinationSuggestions, setShowDestinationSuggestions] = useState(false)
+  const [pickupCoords, setPickupCoords] = useState<Coordinates | null>(null)
+  const [destinationCoords, setDestinationCoords] = useState<Coordinates | null>(null)
 
   // Airport selector state
   const [showAirportSelector, setShowAirportSelector] = useState(false)
   const [airportSelectorMode, setAirportSelectorMode] = useState<'pickup' | 'destination'>('pickup')
-
-  const pickupRef = useRef<HTMLDivElement>(null)
-  const destinationRef = useRef<HTMLDivElement>(null)
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>()
-  const destDebounceTimeoutRef = useRef<NodeJS.Timeout>()
-
-  // AbortControllers for canceling stale autocomplete requests
-  const pickupAbortRef = useRef<AbortController | null>(null)
-  const destAbortRef = useRef<AbortController | null>(null)
 
   // Request deduplication - track in-flight request to prevent duplicate submissions
   const currentRequestRef = useRef<string | null>(null)
@@ -277,6 +213,13 @@ export default function RideComparisonForm({
     isRecaptchaLoadedRef.current = isRecaptchaLoaded
     executeRecaptchaRef.current = executeRecaptcha
   }, [isRecaptchaLoaded, executeRecaptcha])
+
+  // Handle location error from hook
+  useEffect(() => {
+    if (locationError) {
+      setError(locationError)
+    }
+  }, [locationError])
 
   // Handle popular route selection
   // Uses refs for reCAPTCHA to prevent race conditions from dependency changes
@@ -321,8 +264,8 @@ export default function RideComparisonForm({
               recaptchaToken = await executeRecaptchaRef.current(
                 RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON
               )
-            } catch (err) {
-              console.warn('reCAPTCHA failed, proceeding without token:', err)
+            } catch {
+              // Continue without token if reCAPTCHA fails
             }
           }
 
@@ -337,11 +280,11 @@ export default function RideComparisonForm({
               recaptchaToken,
             }),
             signal: abortController.signal,
-          }).catch(error => {
-            if (error.name === 'AbortError') {
+          }).catch(fetchError => {
+            if (fetchError.name === 'AbortError') {
               return null
             }
-            throw error
+            throw fetchError
           })
 
           // If request was aborted, exit early
@@ -350,7 +293,6 @@ export default function RideComparisonForm({
           const data = await response.json()
 
           if (!response.ok) {
-            console.error('[AutoSubmit] Error response:', data)
             setError('Failed to fetch ride comparisons for this route. Please try again.')
             return
           }
@@ -363,8 +305,7 @@ export default function RideComparisonForm({
           setSurgeInfo(data.surgeInfo || null)
           setTimeRecommendations(data.timeRecommendations || [])
           setShowForm(false)
-        } catch (error) {
-          console.error('[AutoSubmit] Fetch error:', error)
+        } catch {
           setError('Failed to get pricing for this route. Please try again.')
         } finally {
           setIsLoading(false)
@@ -393,336 +334,53 @@ export default function RideComparisonForm({
     }
   }, [selectedRoute, onRouteProcessed])
 
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickupRef.current && !pickupRef.current.contains(event.target as Node)) {
-        setShowPickupSuggestions(false)
-      }
-      if (destinationRef.current && !destinationRef.current.contains(event.target as Node)) {
-        setShowDestinationSuggestions(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-  // Instant common places matching - no API call needed
-  const getInstantMatches = (query: string): LocationSuggestion[] => {
-    const normalizedQuery = query.toLowerCase().trim()
-    if (normalizedQuery.length < 2) return []
-
-    return Object.entries(COMMON_PLACES)
-      .filter(
-        ([key, place]) =>
-          key.includes(normalizedQuery) ||
-          place.name.toLowerCase().includes(normalizedQuery) ||
-          place.display_name.toLowerCase().includes(normalizedQuery)
-      )
-      .map(([key, place]) => ({
-        place_id: key,
-        display_name: place.display_name,
-        name: place.name,
-        lat: place.lat,
-        lon: place.lon,
-      }))
-      .slice(0, 5)
-  }
-
-  // Enhanced search function that checks common places first
-  const searchPlaces = async (
-    query: string,
-    signal?: AbortSignal
-  ): Promise<LocationSuggestion[]> => {
-    const normalizedQuery = query.toLowerCase().trim()
-
-    // Check cache first (with TTL)
-    const cached = getCachedResult(normalizedQuery)
-    if (cached) {
-      return cached
-    }
-
-    // Check common places first
-    const commonMatches = Object.entries(COMMON_PLACES)
-      .filter(
-        ([key, place]) =>
-          key.includes(normalizedQuery) ||
-          place.name.toLowerCase().includes(normalizedQuery) ||
-          place.display_name.toLowerCase().includes(normalizedQuery)
-      )
-      .map(([key, place]) => ({
-        place_id: key,
-        display_name: place.display_name,
-        name: place.name,
-        lat: place.lat,
-        lon: place.lon,
-      }))
-
-    // If we have good common matches, return them first
-    if (commonMatches.length > 0 && normalizedQuery.length >= 3) {
-      try {
-        // Still fetch from API but combine results
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' California')}&format=json&limit=3&countrycodes=us&addressdetails=1&extratags=1`,
-          {
-            headers: {
-              'User-Agent': 'RideCompareApp/1.0',
-            },
-            signal,
-          }
-        )
-        const apiData = await response.json()
-
-        // Combine common places with API results, prioritizing common places
-        const combinedResults = [...commonMatches, ...apiData.slice(0, 3)]
-        const uniqueResults = combinedResults
-          .filter(
-            (item, index, self) =>
-              index ===
-              self.findIndex(
-                t =>
-                  t.display_name === item.display_name ||
-                  (t.name && item.name && t.name === item.name) ||
-                  (t.lat &&
-                    item.lat &&
-                    Math.abs(parseFloat(t.lat) - parseFloat(item.lat)) < 0.001 &&
-                    t.lon &&
-                    item.lon &&
-                    Math.abs(parseFloat(t.lon) - parseFloat(item.lon)) < 0.001)
-              )
-          )
-          .slice(0, 5)
-
-        setCacheEntry(normalizedQuery, uniqueResults)
-        return uniqueResults
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') {
-          return commonMatches // Return common matches if aborted
-        }
-        console.error('API error, using common places:', error)
-        setCacheEntry(normalizedQuery, commonMatches)
-        return commonMatches
-      }
-    }
-
-    // Fallback to API only
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' California')}&format=json&limit=5&countrycodes=us&addressdetails=1&extratags=1`,
-        {
-          headers: {
-            'User-Agent': 'RideCompareApp/1.0',
-          },
-          signal,
-        }
-      )
-      const data = await response.json()
-      setCacheEntry(normalizedQuery, data)
-      return data
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        return [] // Silently return empty if aborted
-      }
-      console.error('Error fetching suggestions:', error)
-      return []
-    }
-  }
-
-  // fetch function for pickup with abort support
-  const debouncedFetchSuggestions = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setSuggestions([])
-      setShowPickupSuggestions(false)
-      return
-    }
-
-    // Cancel any in-flight request
-    if (pickupAbortRef.current) {
-      pickupAbortRef.current.abort()
-    }
-    pickupAbortRef.current = new AbortController()
-
-    setIsLoadingSuggestions(true)
-    try {
-      const data = await searchPlaces(query, pickupAbortRef.current.signal)
-      setSuggestions(data)
-      setShowPickupSuggestions(data.length > 0)
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Error fetching suggestions:', error)
-        setSuggestions([])
-        setShowPickupSuggestions(false)
-      }
-    } finally {
-      setIsLoadingSuggestions(false)
-    }
-  }, [])
-
-  // fetch function for destination with abort support
-  const debouncedFetchDestinationSuggestions = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setDestinationSuggestions([])
-      setShowDestinationSuggestions(false)
-      return
-    }
-
-    // Cancel any in-flight request
-    if (destAbortRef.current) {
-      destAbortRef.current.abort()
-    }
-    destAbortRef.current = new AbortController()
-
-    setIsLoadingDestSuggestions(true)
-    try {
-      const data = await searchPlaces(query, destAbortRef.current.signal)
-      setDestinationSuggestions(data)
-      setShowDestinationSuggestions(data.length > 0)
-    } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Error fetching destination suggestions:', error)
-        setDestinationSuggestions([])
-        setShowDestinationSuggestions(false)
-      }
-    } finally {
-      setIsLoadingDestSuggestions(false)
-    }
-  }, [])
-
-  const handlePickupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setPickup(value)
-
-    // Clear existing timeout and abort any in-flight request
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current)
-    }
-    if (pickupAbortRef.current) {
-      pickupAbortRef.current.abort()
-    }
-
-    // Show instant matches immediately (no debounce for common places)
-    const instantMatches = getInstantMatches(value)
-    if (instantMatches.length > 0) {
-      setSuggestions(instantMatches)
-      setShowPickupSuggestions(true)
-    } else if (value.length < 2) {
-      setSuggestions([])
-      setShowPickupSuggestions(false)
-    }
-
-    // Debounce API call to fetch additional results
-    if (value.length >= 2) {
-      debounceTimeoutRef.current = setTimeout(() => {
-        debouncedFetchSuggestions(value)
-      }, DEBOUNCE_DELAY_MS)
-    }
-  }
-
-  const handleSuggestionClick = (suggestion: LocationSuggestion) => {
+  // Handle pickup suggestion selection
+  const handlePickupSelect = useCallback((suggestion: LocationSuggestion) => {
     setPickup(suggestion.display_name)
-    setSuggestions([])
-    setShowPickupSuggestions(false)
     // Immediately update coordinates for instant map response
     setPickupCoords([parseFloat(suggestion.lon), parseFloat(suggestion.lat)])
-  }
+  }, [])
 
-  const handleDestinationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setDestination(value)
-
-    // Clear existing timeout and abort any in-flight request
-    if (destDebounceTimeoutRef.current) {
-      clearTimeout(destDebounceTimeoutRef.current)
-    }
-    if (destAbortRef.current) {
-      destAbortRef.current.abort()
-    }
-
-    // Show instant matches immediately (no debounce for common places)
-    const instantMatches = getInstantMatches(value)
-    if (instantMatches.length > 0) {
-      setDestinationSuggestions(instantMatches)
-      setShowDestinationSuggestions(true)
-    } else if (value.length < 2) {
-      setDestinationSuggestions([])
-      setShowDestinationSuggestions(false)
-    }
-
-    // Debounce API call to fetch additional results
-    if (value.length >= 2) {
-      destDebounceTimeoutRef.current = setTimeout(() => {
-        debouncedFetchDestinationSuggestions(value)
-      }, DEBOUNCE_DELAY_MS)
-    }
-  }
-
-  const handleDestinationSuggestionClick = (suggestion: LocationSuggestion) => {
+  // Handle destination suggestion selection
+  const handleDestinationSelect = useCallback((suggestion: LocationSuggestion) => {
     setDestination(suggestion.display_name)
-    setDestinationSuggestions([])
-    setShowDestinationSuggestions(false)
     // Immediately update coordinates for instant map response
     setDestinationCoords([parseFloat(suggestion.lon), parseFloat(suggestion.lat)])
-  }
+  }, [])
 
   // Airport selector handlers
-  const handleAirportSelect = (airportCode: string, airportName: string) => {
-    const airportString = `${airportName} (${airportCode})`
+  const handleAirportSelect = useCallback(
+    (airportCode: string, airportName: string) => {
+      const airportString = `${airportName} (${airportCode})`
 
-    // Get airport coordinates from our database
-    import('@/lib/airports')
-      .then(({ getAirportByCode }) => {
-        const airport = getAirportByCode(airportCode)
-        if (airport) {
-          const coords: [number, number] = [airport.coordinates[0], airport.coordinates[1]]
+      const airport = getAirportByCode(airportCode)
+      if (airport) {
+        const coords: Coordinates = [airport.coordinates[0], airport.coordinates[1]]
 
-          if (airportSelectorMode === 'pickup') {
-            setPickup(airportString)
-            setPickupCoords(coords)
-          } else {
-            setDestination(airportString)
-            setDestinationCoords(coords)
-          }
+        if (airportSelectorMode === 'pickup') {
+          setPickup(airportString)
+          setPickupCoords(coords)
         } else {
-          // Fallback if airport not found
-          if (airportSelectorMode === 'pickup') {
-            setPickup(airportString)
-          } else {
-            setDestination(airportString)
-          }
+          setDestination(airportString)
+          setDestinationCoords(coords)
         }
-      })
-      .catch(error => {
-        // Handle dynamic import failure gracefully
-        console.error('Failed to load airports module:', error)
-        // Still set the airport string even if we can't get coordinates
+      } else {
+        // Fallback if airport not found
         if (airportSelectorMode === 'pickup') {
           setPickup(airportString)
         } else {
           setDestination(airportString)
         }
-      })
+      }
 
-    setShowAirportSelector(false)
-  }
+      setShowAirportSelector(false)
+    },
+    [airportSelectorMode]
+  )
 
-  const openAirportSelector = (mode: 'pickup' | 'destination') => {
+  const openAirportSelector = useCallback((mode: 'pickup' | 'destination') => {
     setAirportSelectorMode(mode)
     setShowAirportSelector(true)
-  }
-
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current)
-      }
-      if (destDebounceTimeoutRef.current) {
-        clearTimeout(destDebounceTimeoutRef.current)
-      }
-    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -761,8 +419,7 @@ export default function RideComparisonForm({
       if (isRecaptchaLoaded) {
         try {
           recaptchaToken = await executeRecaptcha(RECAPTCHA_CONFIG.ACTIONS.RIDE_COMPARISON)
-        } catch (recaptchaErr) {
-          console.warn('reCAPTCHA failed, proceeding without token:', recaptchaErr)
+        } catch {
           // Continue without reCAPTCHA token - the server will handle this gracefully
         }
       }
@@ -778,12 +435,11 @@ export default function RideComparisonForm({
           recaptchaToken, // Include reCAPTCHA token if available
         }),
         signal: abortController.signal,
-      }).catch(error => {
+      }).catch(fetchError => {
         // Don't throw on abort
-        if (error.name === 'AbortError') {
+        if (fetchError.name === 'AbortError') {
           return null
         }
-        console.error('Fetch error:', error)
         throw new Error('Network error')
       })
 
@@ -812,9 +468,8 @@ export default function RideComparisonForm({
       setSurgeInfo(data.surgeInfo || null)
       setTimeRecommendations(data.timeRecommendations || [])
       setShowForm(false)
-    } catch (error) {
-      console.error('Error:', error)
-      // to simulated data for demo purposes
+    } catch {
+      // Fallback to simulated data for demo purposes
       const basePrice = 15 + Math.random() * 10
       const baseWaitTime = 2 + Math.floor(Math.random() * 5)
 
@@ -856,67 +511,33 @@ export default function RideComparisonForm({
     }
   }
 
-  // Get user's current location and reverse geocode
-  const handleUseMyLocation = async () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by this browser.')
-      return
+  // Get user's current location
+  const handleUseMyLocation = useCallback(async () => {
+    const result = await getLocation()
+    if (result) {
+      setPickup(result.address)
+      setPickupCoords(result.coordinates)
     }
+  }, [getLocation])
 
-    setIsGettingLocation(true)
+  // Swap pickup and destination
+  const handleSwap = useCallback(() => {
+    const tempPickup = pickup
+    const tempPickupCoords = pickupCoords
+    setPickup(destination)
+    setDestination(tempPickup)
+    setPickupCoords(destinationCoords)
+    setDestinationCoords(tempPickupCoords)
+    if (navigator.vibrate) {
+      navigator.vibrate(30)
+    }
+  }, [pickup, destination, pickupCoords, destinationCoords])
 
-    navigator.geolocation.getCurrentPosition(
-      async position => {
-        try {
-          const { latitude, longitude } = position.coords
-
-          // Reverse geocode the coordinates
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            {
-              headers: {
-                'User-Agent': 'RideCompareApp/1.0',
-              },
-            }
-          )
-          const data = await response.json()
-
-          if (data.display_name) {
-            setPickup(data.display_name)
-            // Immediately set coordinates for instant map response
-            setPickupCoords([longitude, latitude])
-            // Add haptic feedback if supported
-            if (navigator.vibrate) {
-              navigator.vibrate(50)
-            }
-          } else {
-            setError('Could not determine your location address.')
-          }
-        } catch (error) {
-          console.error('Error reverse geocoding:', error)
-          setError('Failed to get your current address.')
-        } finally {
-          setIsGettingLocation(false)
-        }
-      },
-      error => {
-        console.error('Geolocation error:', error)
-        setError('Could not access your location. Please check permissions.')
-        setIsGettingLocation(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5 minutes
-      }
-    )
-  }
-
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     setShowForm(true)
-  }
+  }, [])
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setPickup('')
     setDestination('')
     setResults(null)
@@ -925,12 +546,8 @@ export default function RideComparisonForm({
     setError('')
     setPickupCoords(null)
     setDestinationCoords(null)
-    setSuggestions([])
-    setDestinationSuggestions([])
-    setShowPickupSuggestions(false)
-    setShowDestinationSuggestions(false)
     setShowForm(true)
-  }
+  }, [])
 
   return (
     <div className="w-full max-w-3xl mx-auto">
@@ -946,17 +563,19 @@ export default function RideComparisonForm({
       {showForm && (
         <div className="transition-all duration-300">
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="space-y-2 relative" ref={pickupRef}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 animate-pulse-dot"></span>
-                  <label
-                    htmlFor="pickup"
-                    className="text-sm text-muted-foreground capitalize"
-                  >
-                    Pickup Location
-                  </label>
-                </div>
+            {/* Pickup Location Input */}
+            <LocationInput
+              id="pickup"
+              label="Pickup Location"
+              placeholder="Enter pickup location"
+              value={pickup}
+              onChange={setPickup}
+              onSelect={handlePickupSelect}
+              commonPlaces={COMMON_PLACES}
+              labelIcon={
+                <span className="w-1.5 h-1.5 bg-primary rounded-full mr-2 animate-pulse-dot"></span>
+              }
+              headerAction={
                 <button
                   type="button"
                   onClick={handleUseMyLocation}
@@ -970,71 +589,12 @@ export default function RideComparisonForm({
                     <Locate className="h-3 w-3 mr-1.5" />
                   )}
                   <span className="hidden sm:inline">Use my location</span>
-                  <span className="sm:hidden"><Locate className="h-4 w-4" /></span>
+                  <span className="sm:hidden">
+                    <Locate className="h-4 w-4" />
+                  </span>
                 </button>
-              </div>
-              <div className="relative">
-                <input
-                  id="pickup"
-                  placeholder="Enter pickup location"
-                  value={pickup}
-                  onChange={handlePickupChange}
-                  onFocus={() => {
-                    if (pickup.length >= 2) {
-                      if (suggestions.length > 0) {
-                        setShowPickupSuggestions(true)
-                      } else {
-                        // Trigger search immediately on focus if there's content
-                        debouncedFetchSuggestions(pickup)
-                      }
-                    }
-                  }}
-                  className="w-full px-4 py-4 pr-10 bg-card border border-border rounded-xl text-foreground placeholder-muted-foreground/60 shadow-sm focus:shadow-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
-                  required
-                />
-                {/* Elegant clear button */}
-                {pickup && (
-                  <button
-                    type="button"
-                    onClick={() => setPickup('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation w-6 h-6 flex items-center justify-center rounded-full hover:bg-muted"
-                  >
-                    <span className="text-lg leading-none">&times;</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Pickup Suggestions Dropdown */}
-              {showPickupSuggestions && (
-                <div className="absolute z-10 w-full glass-card rounded-xl mt-2 max-h-60 overflow-y-auto shadow-lg border border-border/50">
-                  {isLoadingSuggestions ? (
-                    <div className="p-4 text-center text-muted-foreground text-sm">
-                      <span className="animate-pulse">Searching...</span>
-                    </div>
-                  ) : (
-                    suggestions.map((suggestion, index) => (
-                      <div
-                        key={suggestion.place_id || index}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="p-3 hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-b-0 transition-all duration-150 first:rounded-t-xl last:rounded-b-xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm text-foreground">
-                              {suggestion.name || suggestion.display_name.split(',')[0]}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate mt-0.5">
-                              {suggestion.display_name}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+              }
+            />
 
             {/* Airport Quick Select for Pickup */}
             <div className="flex items-center justify-start ml-1">
@@ -1048,30 +608,22 @@ export default function RideComparisonForm({
               </button>
             </div>
 
-            <div className="space-y-2 relative" ref={destinationRef}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="w-1.5 h-1.5 bg-secondary rounded-full mr-2 animate-pulse-dot"></span>
-                  <label
-                    htmlFor="destination"
-                    className="text-sm text-muted-foreground capitalize"
-                  >
-                    Destination
-                  </label>
-                </div>
+            {/* Destination Input */}
+            <LocationInput
+              id="destination"
+              label="Destination"
+              placeholder="Enter destination"
+              value={destination}
+              onChange={setDestination}
+              onSelect={handleDestinationSelect}
+              commonPlaces={COMMON_PLACES}
+              labelIcon={
+                <span className="w-1.5 h-1.5 bg-secondary rounded-full mr-2 animate-pulse-dot"></span>
+              }
+              headerAction={
                 <button
                   type="button"
-                  onClick={() => {
-                    const temp = pickup
-                    const tempCoords = pickupCoords
-                    setPickup(destination)
-                    setDestination(temp)
-                    setPickupCoords(destinationCoords)
-                    setDestinationCoords(tempCoords)
-                    if (navigator.vibrate) {
-                      navigator.vibrate(30)
-                    }
-                  }}
+                  onClick={handleSwap}
                   className="flex items-center text-xs text-muted-foreground hover:text-foreground touch-none select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Swap pickup and destination"
                   disabled={!pickup || !destination}
@@ -1079,69 +631,8 @@ export default function RideComparisonForm({
                   <span className="text-sm mr-1.5">&#x21C5;</span>
                   <span className="hidden sm:inline">Swap</span>
                 </button>
-              </div>
-              <div className="relative">
-                <input
-                  id="destination"
-                  placeholder="Enter destination"
-                  value={destination}
-                  onChange={handleDestinationChange}
-                  onFocus={() => {
-                    if (destination.length >= 2) {
-                      if (destinationSuggestions.length > 0) {
-                        setShowDestinationSuggestions(true)
-                      } else {
-                        // Trigger search immediately on focus if there's content
-                        debouncedFetchDestinationSuggestions(destination)
-                      }
-                    }
-                  }}
-                  className="w-full px-4 py-4 pr-10 bg-card border border-border rounded-xl text-foreground placeholder-muted-foreground/60 shadow-sm focus:shadow-md focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 outline-none text-base"
-                  required
-                />
-                {/* Elegant clear button */}
-                {destination && (
-                  <button
-                    type="button"
-                    onClick={() => setDestination('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors touch-manipulation w-6 h-6 flex items-center justify-center rounded-full hover:bg-muted"
-                  >
-                    <span className="text-lg leading-none">&times;</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Destination Suggestions Dropdown */}
-              {showDestinationSuggestions && (
-                <div className="absolute z-10 w-full glass-card rounded-xl mt-2 max-h-60 overflow-y-auto shadow-lg border border-border/50">
-                  {isLoadingDestSuggestions ? (
-                    <div className="p-4 text-center text-muted-foreground text-sm">
-                      <span className="animate-pulse">Searching...</span>
-                    </div>
-                  ) : (
-                    destinationSuggestions.map((suggestion, index) => (
-                      <div
-                        key={suggestion.place_id || index}
-                        onClick={() => handleDestinationSuggestionClick(suggestion)}
-                        className="p-3 hover:bg-muted/50 cursor-pointer border-b border-border/30 last:border-b-0 transition-all duration-150 first:rounded-t-xl last:rounded-b-xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="font-medium text-sm text-foreground">
-                              {suggestion.name || suggestion.display_name.split(',')[0]}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate mt-0.5">
-                              {suggestion.display_name}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+              }
+            />
 
             {/* Airport Quick Select for Destination */}
             <div className="flex items-center justify-start ml-1">
@@ -1194,68 +685,12 @@ export default function RideComparisonForm({
       )}
 
       {/* Airport Selector Modal */}
-      {showAirportSelector && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl border border-border/50">
-            <div className="p-6 border-b border-border/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Plane className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground text-lg">
-                      Select Airport
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {airportSelectorMode === 'pickup' ? 'Pickup' : 'Destination'} location
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAirportSelector(false)}
-                  className="text-muted-foreground hover:text-foreground transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted"
-                >
-                  <span className="text-xl leading-none">&times;</span>
-                </button>
-              </div>
-            </div>
-            <div className="p-3 max-h-80 overflow-y-auto">
-              <div className="grid grid-cols-1 gap-2">
-                {getPopularAirports().map(airport => (
-                  <button
-                    key={airport.code}
-                    onClick={() => handleAirportSelect(airport.code, airport.name)}
-                    className="p-4 text-left hover:bg-muted/50 rounded-xl transition-all duration-200 group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-foreground group-hover:text-primary transition-colors">
-                          {airport.code} - {airport.name}
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-0.5">
-                          {airport.city}, {airport.state}
-                        </div>
-                        {airport.terminals.length > 1 && (
-                          <div className="text-xs text-primary/70 mt-1">
-                            {airport.terminals.length} terminals
-                          </div>
-                        )}
-                      </div>
-                      <MapPin className="h-4 w-4 text-muted-foreground group-hover:text-primary ml-2 transition-colors" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="p-4 border-t border-border/50 bg-muted/30">
-              <div className="text-xs text-muted-foreground text-center">
-                Don&apos;t see your airport? Use the search field above.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AirportSelector
+        isOpen={showAirportSelector}
+        onClose={() => setShowAirportSelector(false)}
+        onSelect={handleAirportSelect}
+        mode={airportSelectorMode}
+      />
 
       {error && (
         <div className="mt-6 p-4 bg-destructive/10 text-destructive rounded-xl border border-destructive/20">
