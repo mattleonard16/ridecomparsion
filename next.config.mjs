@@ -1,10 +1,66 @@
 const isDev = process.env.NODE_ENV === 'development'
 
+const securityHeaders = [
+  {
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    key: 'X-Frame-Options',
+    value: 'DENY',
+  },
+  {
+    key: 'X-XSS-Protection',
+    value: '1; mode=block',
+  },
+  {
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    key: 'Permissions-Policy',
+    value: 'geolocation=(self), microphone=()',
+  },
+]
+
+// Add HSTS and CSP only in production
+const productionHeaders = isDev
+  ? []
+  : [
+      {
+        key: 'Strict-Transport-Security',
+        value: 'max-age=31536000; includeSubDomains',
+      },
+      {
+        key: 'Content-Security-Policy',
+        value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
+          "font-src 'self'",
+          "connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org https://www.google.com",
+          'frame-src https://www.google.com',
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+        ].join('; '),
+      },
+    ]
+
 const nextConfig = {
   output: 'standalone',
   // TypeScript and ESLint checks are now enforced at build time
   // This ensures type errors and linting issues don't hide security vulnerabilities
   transpilePackages: ['ngeohash'],
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [...securityHeaders, ...productionHeaders],
+      },
+    ]
+  },
 }
 
 // Only load PWA in production to avoid babel compatibility issues

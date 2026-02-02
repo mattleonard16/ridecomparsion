@@ -19,6 +19,7 @@ enum ServiceType {
   UBER
   LYFT
   TAXI
+  WAYMO
   ANY
 }
 

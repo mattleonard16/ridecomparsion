@@ -1,28 +1,27 @@
 import type { Metadata, Viewport } from 'next'
-import { Bebas_Neue, IBM_Plex_Sans, JetBrains_Mono } from 'next/font/google'
+import { Playfair_Display, DM_Sans, Space_Mono } from 'next/font/google'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import { Providers } from './providers'
 import { PillBase } from '@/components/ui/3d-adaptive-navigation-bar'
 
-const bebasNeue = Bebas_Neue({
-  weight: '400',
+const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
-  variable: '--font-bebas',
+  variable: '--font-playfair',
   display: 'swap',
 })
 
-const ibmPlexSans = IBM_Plex_Sans({
+const dmSans = DM_Sans({
   weight: ['300', '400', '500', '600', '700'],
   subsets: ['latin'],
-  variable: '--font-ibm',
+  variable: '--font-dm-sans',
   display: 'swap',
 })
 
-const jetbrainsMono = JetBrains_Mono({
+const spaceMono = Space_Mono({
   weight: ['400', '700'],
   subsets: ['latin'],
-  variable: '--font-mono',
+  variable: '--font-space-mono',
   display: 'swap',
 })
 
@@ -45,7 +44,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#1e40ff',
+  themeColor: '#3b82f6',
 }
 
 export default function RootLayout({
@@ -56,7 +55,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${bebasNeue.variable} ${ibmPlexSans.variable} ${jetbrainsMono.variable} antialiased font-sans`}
+        className={`${playfairDisplay.variable} ${dmSans.variable} ${spaceMono.variable} antialiased font-sans`}
       >
         <Providers>
           {/* Fixed Navigation Bar */}

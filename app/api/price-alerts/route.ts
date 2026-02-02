@@ -5,6 +5,22 @@ import { createPriceAlert } from '@/lib/database'
 import { auth } from '@/auth'
 import { z } from 'zod'
 
+/**
+ * Get or generate a request ID for traceability
+ */
+function getRequestId(request: NextRequest): string {
+  return request.headers.get('x-request-id') ?? crypto.randomUUID()
+}
+
+/**
+ * Create response headers with request ID
+ */
+function createResponseHeaders(requestId: string): Record<string, string> {
+  return {
+    'x-request-id': requestId,
+  }
+}
+
 const PriceAlertSchema = z.object({
   routeId: z.string().min(1, 'Route ID is required'),
   targetPrice: z.number().positive('Target price must be positive'),
@@ -13,11 +29,16 @@ const PriceAlertSchema = z.object({
 })
 
 async function handlePost(request: NextRequest) {
+  const requestId = getRequestId(request)
+
   try {
     // Auth check
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: createResponseHeaders(requestId) }
+      )
     }
 
     const body = await request.json()
@@ -33,7 +54,7 @@ async function handlePost(request: NextRequest) {
             message: err.message,
           })),
         },
-        { status: 400 }
+        { status: 400, headers: createResponseHeaders(requestId) }
       )
     }
 
@@ -44,21 +65,23 @@ async function handlePost(request: NextRequest) {
     if (!alert) {
       return NextResponse.json(
         { error: 'Failed to create price alert. Route may not exist.' },
-        { status: 400 }
+        { status: 400, headers: createResponseHeaders(requestId) }
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      alertId: alert.id,
-      message: 'Price alert created successfully',
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        alertId: alert.id,
+        message: 'Price alert created successfully',
+      },
+      { headers: createResponseHeaders(requestId) }
+    )
   } catch (error: unknown) {
     const err = error as Error
-    console.error('[PriceAlerts POST] Error:', err)
     return NextResponse.json(
       { error: 'Failed to create price alert', detail: err?.message },
-      { status: 500 }
+      { status: 500, headers: createResponseHeaders(requestId) }
     )
   }
 }

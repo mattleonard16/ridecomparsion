@@ -21,7 +21,6 @@ function parseEnvInt(value: string | undefined, defaultValue: number): number {
   if (!value) return defaultValue
   const parsed = parseInt(value, 10)
   if (isNaN(parsed) || parsed <= 0) {
-    console.warn(`[RateLimit] Invalid env config: "${value}", using default ${defaultValue}`)
     return defaultValue
   }
   return parsed
@@ -32,11 +31,30 @@ const RATE_LIMIT_CONFIG = {
   REQUESTS_PER_HOUR: parseEnvInt(process.env.RATE_LIMIT_PER_HOUR, 50),
   BURST_REQUESTS: parseEnvInt(process.env.RATE_LIMIT_BURST, 3),
   BURST_WINDOW_SECONDS: parseEnvInt(process.env.RATE_LIMIT_BURST_WINDOW, 10),
+  MAX_MEMORY_ENTRIES: 10000, // Max entries per in-memory Map to prevent unbounded growth
 } as const
 
 // In-memory fallback storage (used when Redis is not configured or fails)
 const inMemoryBurstTracking = new Map<string, { count: number; resetTime: number }>()
 const inMemoryHourTracking = new Map<string, { count: number; resetTime: number }>()
+
+/**
+ * Evict oldest entries from a Map if it exceeds the max size limit.
+ * Uses FIFO eviction (first inserted = first evicted) since Map maintains insertion order.
+ */
+function evictOldestIfNeeded<T>(
+  map: Map<string, T>,
+  maxSize: number = RATE_LIMIT_CONFIG.MAX_MEMORY_ENTRIES
+): void {
+  if (map.size <= maxSize) return
+
+  const entriesToRemove = map.size - maxSize
+  const keys = Array.from(map.keys())
+
+  for (let i = 0; i < entriesToRemove; i++) {
+    map.delete(keys[i])
+  }
+}
 
 // Track if we're currently using in-memory fallback (runtime state)
 let usingInMemoryFallback = !isRedisAvailable
@@ -133,6 +151,7 @@ async function checkRateLimitRedis(
 
 /**
  * Check rate limit using in-memory storage (fallback)
+ * Uses immutable updates and bounded cache eviction.
  */
 function checkRateLimitInMemory(clientId: string): {
   allowed: boolean
@@ -144,62 +163,80 @@ function checkRateLimitInMemory(clientId: string): {
 
   // Check burst protection
   const burstData = inMemoryBurstTracking.get(clientId)
-  if (burstData) {
-    if (now < burstData.resetTime) {
-      if (burstData.count >= RATE_LIMIT_CONFIG.BURST_REQUESTS) {
-        return {
-          allowed: false,
-          remainingRequests: 0,
-          resetTime: burstData.resetTime,
-          reason: `Burst limit exceeded (${RATE_LIMIT_CONFIG.BURST_REQUESTS} requests per ${RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS} seconds)`,
-        }
+  let currentBurstCount: number
+  let currentBurstResetTime: number
+
+  if (burstData && now < burstData.resetTime) {
+    // Window still active
+    if (burstData.count >= RATE_LIMIT_CONFIG.BURST_REQUESTS) {
+      return {
+        allowed: false,
+        remainingRequests: 0,
+        resetTime: burstData.resetTime,
+        reason: `Burst limit exceeded (${RATE_LIMIT_CONFIG.BURST_REQUESTS} requests per ${RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS} seconds)`,
       }
-      burstData.count++
-    } else {
-      inMemoryBurstTracking.set(clientId, {
-        count: 1,
-        resetTime: now + RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS * 1000,
-      })
     }
-  } else {
+    // Immutable update: create new object with incremented count
+    currentBurstCount = burstData.count + 1
+    currentBurstResetTime = burstData.resetTime
     inMemoryBurstTracking.set(clientId, {
-      count: 1,
-      resetTime: now + RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS * 1000,
+      count: currentBurstCount,
+      resetTime: currentBurstResetTime,
     })
+  } else {
+    // Window expired or new client - start fresh
+    currentBurstCount = 1
+    currentBurstResetTime = now + RATE_LIMIT_CONFIG.BURST_WINDOW_SECONDS * 1000
+    inMemoryBurstTracking.set(clientId, {
+      count: currentBurstCount,
+      resetTime: currentBurstResetTime,
+    })
+    // Evict oldest entries if we exceed max size
+    evictOldestIfNeeded(inMemoryBurstTracking)
   }
 
   // Check per-hour limit
   const hourData = inMemoryHourTracking.get(clientId)
-  if (hourData) {
-    if (now < hourData.resetTime) {
-      if (hourData.count >= RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR) {
-        return {
-          allowed: false,
-          remainingRequests: 0,
-          resetTime: hourData.resetTime,
-          reason: `Rate limit exceeded (${RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR} requests per hour)`,
-        }
+  let currentHourCount: number
+  let currentHourResetTime: number
+
+  if (hourData && now < hourData.resetTime) {
+    // Window still active
+    if (hourData.count >= RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR) {
+      return {
+        allowed: false,
+        remainingRequests: 0,
+        resetTime: hourData.resetTime,
+        reason: `Rate limit exceeded (${RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR} requests per hour)`,
       }
-      hourData.count++
-    } else {
-      inMemoryHourTracking.set(clientId, { count: 1, resetTime: now + 3600000 })
     }
+    // Immutable update: create new object with incremented count
+    currentHourCount = hourData.count + 1
+    currentHourResetTime = hourData.resetTime
+    inMemoryHourTracking.set(clientId, {
+      count: currentHourCount,
+      resetTime: currentHourResetTime,
+    })
   } else {
-    inMemoryHourTracking.set(clientId, { count: 1, resetTime: now + 3600000 })
+    // Window expired or new client - start fresh
+    currentHourCount = 1
+    currentHourResetTime = now + 3600000
+    inMemoryHourTracking.set(clientId, {
+      count: currentHourCount,
+      resetTime: currentHourResetTime,
+    })
+    // Evict oldest entries if we exceed max size
+    evictOldestIfNeeded(inMemoryHourTracking)
   }
 
-  // Get fresh data from Maps (may have been reset above)
-  const currentBurstData = inMemoryBurstTracking.get(clientId)!
-  const currentHourData = inMemoryHourTracking.get(clientId)!
-
-  const burstRemaining = RATE_LIMIT_CONFIG.BURST_REQUESTS - currentBurstData.count
-  const hourRemaining = RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR - currentHourData.count
+  const burstRemaining = RATE_LIMIT_CONFIG.BURST_REQUESTS - currentBurstCount
+  const hourRemaining = RATE_LIMIT_CONFIG.REQUESTS_PER_HOUR - currentHourCount
 
   // Return the most restrictive values so headers reflect the active constraint
   return {
     allowed: true,
     remainingRequests: Math.min(burstRemaining, hourRemaining),
-    resetTime: Math.min(currentBurstData.resetTime, currentHourData.resetTime),
+    resetTime: Math.min(currentBurstResetTime, currentHourResetTime),
   }
 }
 
@@ -220,10 +257,8 @@ export async function checkRateLimit(request: Request): Promise<{
       const result = await checkRateLimitRedis(clientId)
       usingInMemoryFallback = false // Redis is working
       return result
-    } catch (error) {
-      console.error('Redis rate limit check failed, falling back to in-memory:', error)
-      usingInMemoryFallback = true // Mark that we fell back
-      // Fall through to in-memory
+    } catch {
+      usingInMemoryFallback = true // Mark that we fell back to in-memory
     }
   }
 

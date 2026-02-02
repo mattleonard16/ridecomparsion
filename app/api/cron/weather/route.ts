@@ -5,19 +5,46 @@
 
 import { fetchAndStoreWeatherData } from '@/lib/etl/weather-cron'
 import { NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 
-export async function GET(request: Request) {
-  // SECURITY: Verify cron secret in ALL environments
-  const authHeader = request.headers.get('authorization')
+/**
+ * Verify cron secret using constant-time comparison
+ */
+function verifyCronSecret(request: Request): { valid: boolean; error?: string; status?: number } {
   const cronSecret = process.env.CRON_SECRET
 
   if (!cronSecret) {
-    console.warn('[SECURITY] CRON_SECRET not configured - weather cron endpoint is unprotected')
-    return NextResponse.json({ error: 'Server misconfigured' }, { status: 503 })
+    return { valid: false, error: 'Server misconfigured', status: 503 }
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return { valid: false, error: 'Unauthorized', status: 401 }
+  }
+
+  const expectedToken = `Bearer ${cronSecret}`
+
+  // Use constant-time comparison to prevent timing attacks
+  if (authHeader.length !== expectedToken.length) {
+    return { valid: false, error: 'Unauthorized', status: 401 }
+  }
+
+  try {
+    const isValid = timingSafeEqual(Buffer.from(authHeader), Buffer.from(expectedToken))
+    if (!isValid) {
+      return { valid: false, error: 'Unauthorized', status: 401 }
+    }
+    return { valid: true }
+  } catch {
+    return { valid: false, error: 'Unauthorized', status: 401 }
+  }
+}
+
+export async function GET(request: Request) {
+  // SECURITY: Verify cron secret in ALL environments using constant-time comparison
+  const authResult = verifyCronSecret(request)
+  if (!authResult.valid) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status })
   }
 
   try {
@@ -27,7 +54,6 @@ export async function GET(request: Request) {
       status: result.success ? 200 : 500,
     })
   } catch (error) {
-    console.error('Weather cron error:', error)
     return NextResponse.json(
       {
         error: 'Internal server error',

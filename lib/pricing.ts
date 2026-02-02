@@ -8,6 +8,11 @@ function kmToMiles(km: number): number {
 }
 
 // Types for pricing configuration
+interface SurgeSchedule {
+  weekday: Record<string, number>
+  weekend: Record<string, number>
+}
+
 interface PricingConfig {
   services: Record<
     string,
@@ -32,10 +37,8 @@ interface PricingConfig {
       maxSurge?: number
     }
   >
-  surgeSchedule: {
-    weekday: Record<string, number>
-    weekend: Record<string, number>
-  }
+  surgeSchedule: SurgeSchedule
+  waymoSurgeSchedule?: SurgeSchedule
   locationModifiers: {
     airports: Record<string, number>
     downtown: Record<string, number>
@@ -137,7 +140,8 @@ export class PricingEngine {
       input.pickupCoords,
       input.destCoords,
       timestamp,
-      serviceConfig
+      serviceConfig,
+      input.service
     )
 
     const { multiplier: trafficMultiplier } = this.calculateTrafficMultiplier(
@@ -302,7 +306,8 @@ export class PricingEngine {
     pickup: Coordinates,
     dest: Coordinates,
     timestamp: Date,
-    configOverride?: PricingConfig['services'][string]
+    configOverride?: PricingConfig['services'][string],
+    service?: ServiceType
   ): { multiplier: number; surgeReason: string } {
     const hour = timestamp.getHours()
     const minute = timestamp.getMinutes()
@@ -310,7 +315,13 @@ export class PricingEngine {
     const isWeekend = day === 0 || day === 6
     const timeSlot = this.getTimeSlot(hour, minute)
     const scheduleType = isWeekend ? 'weekend' : 'weekday'
-    const schedule = CONFIG.surgeSchedule[scheduleType]
+
+    // Use Waymo-specific surge schedule if available and service is waymo
+    const surgeConfig =
+      service === 'waymo' && CONFIG.waymoSurgeSchedule
+        ? CONFIG.waymoSurgeSchedule
+        : CONFIG.surgeSchedule
+    const schedule = surgeConfig[scheduleType]
 
     let baseSurge = schedule[timeSlot] ?? schedule[hour.toString()] ?? 1
 

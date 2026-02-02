@@ -44,8 +44,8 @@ export const LocationNameSchema = z
 /**
  * Service type validation schema
  */
-export const ServiceTypeSchema = z.enum(['uber', 'lyft', 'taxi'], {
-  errorMap: () => ({ message: 'Service type must be uber, lyft, or taxi' }),
+export const ServiceTypeSchema = z.enum(['uber', 'lyft', 'taxi', 'waymo'], {
+  errorMap: () => ({ message: 'Service type must be uber, lyft, taxi, or waymo' }),
 })
 
 /**
@@ -65,7 +65,7 @@ export const RideComparisonRequestSchema = z.object({
   services: z
     .array(ServiceTypeSchema)
     .min(1, 'At least one service must be selected')
-    .max(3, 'Maximum 3 services can be selected')
+    .max(4, 'Maximum 4 services can be selected')
     .refine(services => {
       const uniqueServices = new Set(services)
       return uniqueServices.size === services.length
