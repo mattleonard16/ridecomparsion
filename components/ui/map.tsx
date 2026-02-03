@@ -45,8 +45,8 @@ function useMap() {
 }
 
 const defaultStyles = {
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  dark: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
+  light: 'https://tiles.stadiamaps.com/styles/osm_bright.json',
 }
 
 type MapStyleOption = string | MapLibreGL.StyleSpecification
