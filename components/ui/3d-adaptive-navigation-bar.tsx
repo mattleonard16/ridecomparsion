@@ -96,36 +96,27 @@ export const PillBase: React.FC = () => {
 
   // Handle hover expansion
 
-  useEffect(() => {
-    if (hovering) {
-      setExpanded(true)
-
-      pillWidth.set(580)
-
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current)
-      }
-    } else {
-      hoverTimeoutRef.current = setTimeout(() => {
-        setExpanded(false)
-
-        pillWidth.set(140)
-      }, 600)
-    }
-
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current)
-      }
-    }
-  }, [hovering, pillWidth])
-
   const handleMouseEnter = () => {
     setHovering(true)
+    setExpanded(true)
+    pillWidth.set(580)
+
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
   }
 
   const handleMouseLeave = () => {
     setHovering(false)
+
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+
+    hoverTimeoutRef.current = setTimeout(() => {
+      setExpanded(false)
+      pillWidth.set(140)
+    }, 600)
   }
 
   const handleSectionClick = (sectionId: string) => {
@@ -150,8 +141,14 @@ export const PillBase: React.FC = () => {
     }
 
     // Collapse the pill after selection
-
     setHovering(false)
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setExpanded(false)
+      pillWidth.set(140)
+    }, 600)
 
     // Reset transition state after animation completes
 

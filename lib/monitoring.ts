@@ -29,7 +29,7 @@ export function log(message: string, context?: LogContext) {
 
   // In development, log to console
   if (process.env.NODE_ENV === 'development') {
-    console.log('[LOG]', logEntry)
+    console.debug('[LOG]', logEntry)
   }
 
   // In production, send to Axiom
@@ -57,8 +57,9 @@ export function logError(context: ErrorContext) {
   // Send to Sentry in production
   if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     // Sentry would be initialized in _app.tsx or layout.tsx
-    // This is a placeholder for the integration
-    console.error('Sentry:', error, rest)
+    // TODO: Integrate actual Sentry SDK when available
+    // import * as Sentry from '@sentry/nextjs'
+    // Sentry.captureException(error, { extra: rest, level })
   }
 
   // Also log to structured logging
