@@ -1,13 +1,17 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 
-export default function ModalPortal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false)
+const emptySubscribe = () => () => {}
+const getSnapshot = () => true
+const getServerSnapshot = () => false
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+function useIsMounted() {
+  return useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot)
+}
+
+export default function ModalPortal({ children }: { children: React.ReactNode }) {
+  const mounted = useIsMounted()
 
   if (!mounted) return null
 

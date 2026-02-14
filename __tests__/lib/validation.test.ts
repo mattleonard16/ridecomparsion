@@ -165,7 +165,9 @@ describe('validation module', () => {
     })
 
     it('should reject location with HTML tags', () => {
-      expect(() => LocationNameSchema.parse('<script>alert(1)</script>')).toThrow(/invalid characters/)
+      expect(() => LocationNameSchema.parse('<script>alert(1)</script>')).toThrow(
+        /invalid characters/
+      )
     })
 
     it('should reject location with quotes', () => {
@@ -201,16 +203,21 @@ describe('validation module', () => {
       expect(ServiceTypeSchema.parse('taxi')).toBe('taxi')
     })
 
+    it('should accept waymo', () => {
+      expect(() => ServiceTypeSchema.parse('waymo')).not.toThrow()
+      expect(ServiceTypeSchema.parse('waymo')).toBe('waymo')
+    })
+
     it('should reject uppercase service names', () => {
-      expect(() => ServiceTypeSchema.parse('Uber')).toThrow(/uber, lyft, or taxi/)
+      expect(() => ServiceTypeSchema.parse('Uber')).toThrow(/uber, lyft, taxi, or waymo/)
     })
 
     it('should reject unknown service', () => {
-      expect(() => ServiceTypeSchema.parse('waymo')).toThrow(/uber, lyft, or taxi/)
+      expect(() => ServiceTypeSchema.parse('bird')).toThrow(/uber, lyft, taxi, or waymo/)
     })
 
     it('should reject empty string', () => {
-      expect(() => ServiceTypeSchema.parse('')).toThrow(/uber, lyft, or taxi/)
+      expect(() => ServiceTypeSchema.parse('')).toThrow(/uber, lyft, taxi, or waymo/)
     })
 
     it('should reject number', () => {
@@ -256,8 +263,13 @@ describe('validation module', () => {
       expect(() => RideComparisonRequestSchema.parse(request)).toThrow(/At least one service/)
     })
 
-    it('should reject request with more than 3 services', () => {
-      const request = { ...validRequest, services: ['uber', 'lyft', 'taxi', 'uber'] }
+    it('should accept request with all four services', () => {
+      const request = { ...validRequest, services: ['uber', 'lyft', 'taxi', 'waymo'] }
+      expect(() => RideComparisonRequestSchema.parse(request)).not.toThrow()
+    })
+
+    it('should reject request with more than 4 services', () => {
+      const request = { ...validRequest, services: ['uber', 'lyft', 'taxi', 'waymo', 'uber'] }
       expect(() => RideComparisonRequestSchema.parse(request)).toThrow()
     })
 
@@ -306,8 +318,8 @@ describe('validation module', () => {
     })
 
     it('should reject request with invalid service type', () => {
-      const request = { ...validRequest, services: ['uber', 'waymo'] }
-      expect(() => RideComparisonRequestSchema.parse(request)).toThrow(/uber, lyft, or taxi/)
+      const request = { ...validRequest, services: ['uber', 'bird'] }
+      expect(() => RideComparisonRequestSchema.parse(request)).toThrow(/uber, lyft, taxi, or waymo/)
     })
   })
 

@@ -26,8 +26,8 @@ export const isRedisAvailable = isRedisConfigured
  */
 if (process.env.NODE_ENV === 'development') {
   if (isRedisConfigured) {
-    console.log('✅ Redis configured - using persistent rate limiting')
+    console.debug('Redis configured - using persistent rate limiting')
   } else {
-    console.log('⚠️ Redis not configured - using in-memory rate limiting (resets on restart)')
+    console.debug('Redis not configured - using in-memory rate limiting (resets on restart)')
   }
 }

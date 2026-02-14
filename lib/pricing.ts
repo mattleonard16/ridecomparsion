@@ -150,7 +150,7 @@ export class PricingEngine {
     )
 
     const surgeFee = subtotal * (surgeMultiplier - 1)
-    const trafficFee = (subtotal + surgeFee) * (trafficMultiplier - 1)
+    const trafficFee = subtotal * (trafficMultiplier - 1)
     let finalFare = subtotal + surgeFee + trafficFee
 
     const appliedMinFare = finalFare < serviceConfig.minFare
@@ -204,7 +204,7 @@ export class PricingEngine {
 
     if (hour >= 7 && hour <= 9) {
       return [
-        'Rush hour pricing in effect. Expect 20-40% increase over standard rates',
+        'Rush hour pricing in effect. Expect 15-25% increase over standard rates',
         'Best prices: 2-4 PM (avoid peak hours for savings)',
       ]
     }
@@ -218,14 +218,14 @@ export class PricingEngine {
 
     if (hour >= 20 || hour <= 5) {
       return [
-        'Late night premium in effect (up to 30% increase)',
+        'Late night premium in effect (up to 20% increase)',
         'Best prices: 2-4 PM (avoid peak hours for savings)',
       ]
     }
 
     return [
       'Best prices: 2-4 PM (avoid peak hours for savings)',
-      'Avoid rush hours: 7-9 AM and 5-7 PM (up to 40% increase)',
+      'Avoid rush hours: 7-9 AM and 5-7 PM (up to 25% increase)',
     ]
   }
 
@@ -350,7 +350,7 @@ export class PricingEngine {
     }
 
     const surgeCap = configOverride?.maxSurge ?? 3
-    const finalMultiplier = Math.min(baseSurge * locationMultiplier, surgeCap)
+    const finalMultiplier = Math.min(baseSurge + (locationMultiplier - 1), surgeCap)
 
     if (this.isDebug) {
       console.debug('[pricing] surge', {

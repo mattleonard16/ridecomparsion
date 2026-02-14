@@ -18,11 +18,11 @@ function logConnectionStatus() {
   const hasDirectUrl = !!process.env.DIRECT_URL
 
   if (hasPooledUrl && hasDirectUrl) {
-    console.log('✅ Database configured with connection pooling (DATABASE_URL + DIRECT_URL)')
+    console.debug('Database configured with connection pooling (DATABASE_URL + DIRECT_URL)')
   } else if (hasPooledUrl) {
-    console.log('⚠️ Database configured without DIRECT_URL - migrations may fail in serverless')
+    console.debug('Database configured without DIRECT_URL - migrations may fail in serverless')
   } else {
-    console.log('❌ DATABASE_URL not configured - lib/database.ts functions will use mock mode')
+    console.debug('DATABASE_URL not configured - lib/database.ts functions will use mock mode')
   }
 }
 

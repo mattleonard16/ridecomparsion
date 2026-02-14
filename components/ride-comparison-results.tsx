@@ -11,11 +11,14 @@ import {
   BarChart3,
 } from 'lucide-react'
 import { useState, memo, useMemo, useCallback } from 'react'
+import { toast } from 'sonner'
 import PriceAlert from './price-alert'
+import RecommendationsPanel from './recommendations-panel'
 import { useAuth } from '@/lib/auth-context'
 import { saveRouteForUser } from '@/lib/database'
 import { AuthDialog } from './auth-dialog'
 import ModalPortal from './ModalPortal'
+import type { AIRecommendation } from '@/types'
 
 type RideData = {
   price: string
@@ -74,6 +77,7 @@ type RideComparisonResultsProps = {
   pickupCoords?: [number, number] | null
   destinationCoords?: [number, number] | null
   historicalStats?: Partial<Record<ServiceType, RouteClusterStats | null>>
+  aiRecommendations?: AIRecommendation[]
 }
 
 export default memo(function RideComparisonResults({
@@ -87,6 +91,7 @@ export default memo(function RideComparisonResults({
   pickupCoords = null,
   destinationCoords = null,
   historicalStats,
+  aiRecommendations = [],
 }: RideComparisonResultsProps) {
   const { user } = useAuth()
   const [showPriceAlert, setShowPriceAlert] = useState(false)
@@ -194,12 +199,12 @@ export default memo(function RideComparisonResults({
         await navigator.share(shareData)
       } else {
         await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`)
-        alert('Ride comparison copied to clipboard!')
+        toast.success('Ride comparison copied to clipboard!')
       }
     } catch {
       try {
         await navigator.clipboard.writeText(`${shareData.text} ${window.location.href}`)
-        alert('Ride comparison copied to clipboard!')
+        toast.success('Ride comparison copied to clipboard!')
       } catch {
         // Clipboard also failed - ignore silently
       }
@@ -229,12 +234,12 @@ export default memo(function RideComparisonResults({
           await navigator.share(shareData)
         } else {
           await navigator.clipboard.writeText(etaMessage)
-          alert('ETA message copied to clipboard!')
+          toast.success('ETA message copied to clipboard!')
         }
       } catch {
         try {
           await navigator.clipboard.writeText(etaMessage)
-          alert('ETA message copied to clipboard!')
+          toast.success('ETA message copied to clipboard!')
         } catch {
           // Clipboard also failed - ignore silently
         }
@@ -407,6 +412,7 @@ export default memo(function RideComparisonResults({
                 : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground'
             }`}
             title={user ? 'Save this route' : 'Sign in to save routes'}
+            aria-label="Save route"
           >
             <Bookmark className={`h-4 w-4 ${routeSaved ? 'fill-current' : ''}`} />
             <span className="hidden sm:inline">{routeSaved ? 'Saved!' : 'Save'}</span>
@@ -414,6 +420,7 @@ export default memo(function RideComparisonResults({
           <button
             onClick={handleShare}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-all duration-200 text-sm font-medium"
+            aria-label="Share route"
           >
             <Share2 className="h-4 w-4" />
             <span className="hidden sm:inline">Share</span>
@@ -422,6 +429,7 @@ export default memo(function RideComparisonResults({
             onClick={() => setShowPriceAlert(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground transition-all duration-200 text-sm font-medium"
             title={user ? 'Set price alert' : 'Sign in to set alerts'}
+            aria-label="Set price alert"
           >
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alert</span>
@@ -594,6 +602,20 @@ export default memo(function RideComparisonResults({
           </div>
         ))}
       </div>
+
+      {/* Route Insights */}
+      {aiRecommendations.length > 0 && (
+        <RecommendationsPanel
+          recommendations={aiRecommendations}
+          onAction={(recId, action) => {
+            fetch('/api/recommendations/actions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ recommendationId: recId, action }),
+            }).catch(() => {})
+          }}
+        />
+      )}
 
       {/* Additional Information */}
       <div className="space-y-4">

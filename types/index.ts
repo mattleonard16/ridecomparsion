@@ -50,6 +50,23 @@ export interface SurgeInfo {
   multiplier: number
 }
 
+// AI Recommendation types
+export interface AIRecommendation {
+  id?: string
+  type: 'DEPARTURE_TIME' | 'SERVICE_CHOICE' | 'SURGE_FORECAST' | 'SAVINGS_INSIGHT'
+  title: string
+  message: string
+  confidence: number
+  dataPoints: {
+    potentialSavings?: number
+    bestHour?: number
+    currentPrice?: number
+    bestPrice?: number
+    bestService?: string
+    surgeEndEstimate?: string
+  }
+}
+
 // API response types
 export interface ComparisonApiResponse {
   comparisons: ComparisonResults
@@ -58,6 +75,7 @@ export interface ComparisonApiResponse {
   destinationCoords: Coordinates
   surgeInfo: SurgeInfo
   timeRecommendations: string[]
+  aiRecommendations?: AIRecommendation[]
 }
 
 // Common places type

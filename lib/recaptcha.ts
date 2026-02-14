@@ -31,7 +31,7 @@ export function getRecaptchaSiteKey(): string {
 }
 
 /**
- * Load reCAPTCHA Enterprise script
+ * Load reCAPTCHA Enterprise script with timeout protection
  */
 export function loadRecaptchaScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -47,6 +47,15 @@ export function loadRecaptchaScript(): Promise<void> {
       return
     }
 
+    // Timeout configuration
+    const LOAD_TIMEOUT_MS = 10000
+    const POLL_INTERVAL_MS = 100
+    const MAX_POLL_COUNT = 50 // 5 seconds max (50 * 100ms)
+
+    const timeoutId = setTimeout(() => {
+      reject(new Error('reCAPTCHA script load timeout'))
+    }, LOAD_TIMEOUT_MS)
+
     // Create script element for Enterprise
     const script = document.createElement('script')
     script.src = `https://www.google.com/recaptcha/enterprise.js?render=${siteKey}`
@@ -54,20 +63,28 @@ export function loadRecaptchaScript(): Promise<void> {
     script.defer = true
 
     script.onload = () => {
-      // Wait for grecaptcha.enterprise to be ready
+      // Wait for grecaptcha.enterprise to be ready with poll limit
+      let pollCount = 0
+
       const checkReady = () => {
         if (window.grecaptcha?.enterprise?.ready) {
+          clearTimeout(timeoutId)
           window.grecaptcha.enterprise.ready(() => {
             resolve()
           })
+        } else if (pollCount >= MAX_POLL_COUNT) {
+          clearTimeout(timeoutId)
+          reject(new Error('reCAPTCHA ready timeout'))
         } else {
-          setTimeout(checkReady, 100)
+          pollCount++
+          setTimeout(checkReady, POLL_INTERVAL_MS)
         }
       }
       checkReady()
     }
 
     script.onerror = () => {
+      clearTimeout(timeoutId)
       reject(new Error('Failed to load reCAPTCHA Enterprise script'))
     }
 

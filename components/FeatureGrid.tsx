@@ -101,7 +101,9 @@ export default function FeatureGrid() {
                       <Icon className="w-6 h-6 text-secondary" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-foreground mb-1">{feature.title}</h3>
+                      <h3 className="text-xl font-semibold text-foreground mb-1">
+                        {feature.title}
+                      </h3>
                       <p className="text-sm text-muted-foreground">{feature.description}</p>
                     </div>
                   </div>
@@ -129,7 +131,9 @@ export default function FeatureGrid() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-foreground mb-1">{feature.title}</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
                 </div>
               )

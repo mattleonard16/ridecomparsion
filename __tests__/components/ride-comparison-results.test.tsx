@@ -71,7 +71,7 @@ describe('RideComparisonResults', () => {
     expect(screen.getByText('4')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
-    expect(screen.getAllByText(/nearby units/i)).toHaveLength(3)
+    expect(screen.getAllByText(/nearby drivers/i)).toHaveLength(3)
   })
 
   it('displays service icons correctly', () => {
@@ -102,6 +102,6 @@ describe('RideComparisonResults', () => {
     render(<RideComparisonResults results={edgeCaseResults} insights={mockInsights} />)
 
     expect(screen.getByText('0')).toBeInTheDocument() // Driver count for Uber
-    expect(screen.getAllByText(/nearby units/i)).toHaveLength(3)
+    expect(screen.getAllByText(/nearby drivers/i)).toHaveLength(3)
   })
 })

@@ -12,6 +12,8 @@ import { verifyRecaptchaToken, RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { compareRidesByAddresses } from '@/lib/services/ride-comparison'
 import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
 import { auth } from '@/auth'
+import { generateRecommendations } from '@/lib/services/recommendations'
+import { enhanceWithAI } from '@/lib/services/ai-insights'
 
 /**
  * Get or generate a request ID for traceability
@@ -73,6 +75,14 @@ async function handleGet(request: NextRequest) {
       ? 'private, max-age=300, stale-while-revalidate=1800'
       : 'private, max-age=30, stale-while-revalidate=120'
 
+    // Non-blocking: generate AI recommendations in parallel
+    const aiRecommendations = await generateRecommendations({
+      routeId: comparisons.routeId ?? undefined,
+      timestamp: new Date(),
+    })
+      .then(r => enhanceWithAI(r.recommendations))
+      .catch(() => [])
+
     return NextResponse.json(
       {
         routeId: comparisons.routeId,
@@ -82,6 +92,7 @@ async function handleGet(request: NextRequest) {
         destinationCoords: comparisons.destination,
         surgeInfo: comparisons.surgeInfo,
         timeRecommendations: comparisons.timeRecommendations,
+        aiRecommendations,
       },
       {
         headers: createResponseHeaders(requestId, { 'Cache-Control': cacheControl }),
@@ -264,6 +275,14 @@ async function handlePost(request: NextRequest) {
         )
       }
 
+      // Non-blocking: generate AI recommendations
+      const aiRecsLegacy = await generateRecommendations({
+        routeId: comparisons.routeId ?? undefined,
+        timestamp: new Date(),
+      })
+        .then(r => enhanceWithAI(r.recommendations))
+        .catch(() => [])
+
       return NextResponse.json(
         {
           routeId: comparisons.routeId,
@@ -273,6 +292,7 @@ async function handlePost(request: NextRequest) {
           destinationCoords: comparisons.destination,
           surgeInfo: comparisons.surgeInfo,
           timeRecommendations: comparisons.timeRecommendations,
+          aiRecommendations: aiRecsLegacy,
         },
         { headers: createResponseHeaders(requestId) }
       )
@@ -304,6 +324,15 @@ async function handlePost(request: NextRequest) {
       )
     }
 
+    // Non-blocking: generate AI recommendations
+    const aiRecs = await generateRecommendations({
+      routeId: comparisons.routeId ?? undefined,
+      userId: authenticatedUserId ?? undefined,
+      timestamp: new Date(),
+    })
+      .then(r => enhanceWithAI(r.recommendations))
+      .catch(() => [])
+
     return NextResponse.json(
       {
         routeId: comparisons.routeId,
@@ -313,6 +342,7 @@ async function handlePost(request: NextRequest) {
         destinationCoords: comparisons.destination,
         surgeInfo: comparisons.surgeInfo,
         timeRecommendations: comparisons.timeRecommendations,
+        aiRecommendations: aiRecs,
       },
       { headers: createResponseHeaders(requestId) }
     )

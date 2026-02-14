@@ -175,14 +175,19 @@ function DefaultMarkerIcon() {
 
 function MarkerContent({ children, className }: MarkerContentProps) {
   const { markerElementRef, isReady } = useMarkerContext()
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null)
 
-  if (!isReady || !markerElementRef.current) return null
+  useEffect(() => {
+    setPortalTarget(markerElementRef.current)
+  }, [isReady, markerElementRef])
+
+  if (!isReady || !portalTarget) return null
 
   return createPortal(
     <div className={cn('relative cursor-pointer', className)}>
       {children || <DefaultMarkerIcon />}
     </div>,
-    markerElementRef.current
+    portalTarget
   )
 }
 

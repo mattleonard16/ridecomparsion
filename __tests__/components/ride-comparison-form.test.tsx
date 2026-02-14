@@ -19,7 +19,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     expect(screen.getByLabelText(/pickup location/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/dropoff location/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/destination/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /compare rides/i })).toBeInTheDocument()
   })
 
@@ -30,14 +30,14 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
     const submitButton = screen.getByRole('button', { name: /compare rides/i })
 
     await userEvent.type(pickupInput, '123 Main St')
     await userEvent.type(destinationInput, '456 Market St')
     fireEvent.click(submitButton)
 
-    expect(screen.getByText(/calculating_fares/i)).toBeInTheDocument()
+    expect(screen.getByText(/comparing prices/i)).toBeInTheDocument()
   })
 
   it('handles form submission and shows results', async () => {
@@ -47,7 +47,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
     const submitButton = screen.getByRole('button', { name: /compare rides/i })
 
     await userEvent.type(pickupInput, '123 Main St')
@@ -65,7 +65,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
     const submitButton = screen.getByRole('button', { name: /compare rides/i })
 
     // Submit empty form
@@ -84,7 +84,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
 
     // Fill in valid inputs
     await userEvent.type(pickupInput, '123 Main St')
@@ -106,7 +106,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
     const submitButton = screen.getByRole('button', { name: /compare rides/i })
 
     await userEvent.type(pickupInput, '123 Main St')
@@ -120,7 +120,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
 
     await userEvent.type(pickupInput, '123 Main St')
     await userEvent.type(destinationInput, '456 Market St')
@@ -136,7 +136,7 @@ describe('RideComparisonForm', () => {
     render(<RideComparisonForm />)
 
     const pickupInput = screen.getByLabelText(/pickup location/i)
-    const destinationInput = screen.getByLabelText(/dropoff location/i)
+    const destinationInput = screen.getByLabelText(/destination/i)
     const submitButton = screen.getByRole('button', { name: /compare rides/i })
 
     await userEvent.type(pickupInput, '123 Main St')

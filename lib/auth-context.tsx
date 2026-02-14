@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext } from 'react'
 import { useSession as useNextAuthSession } from 'next-auth/react'
 import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from 'next-auth/react'
 import type { Session } from 'next-auth'
@@ -17,13 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useNextAuthSession()
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (status !== 'loading') {
-      setLoading(false)
-    }
-  }, [status])
+  const loading = status === 'loading'
 
   const signIn = async (email: string, password: string) => {
     const result = await nextAuthSignIn('credentials', {

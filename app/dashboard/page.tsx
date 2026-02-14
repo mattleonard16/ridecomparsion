@@ -31,6 +31,15 @@ export default function DashboardPage() {
   const [selectedService, setSelectedService] = useState<'uber' | 'lyft' | 'taxi' | 'waymo'>('uber')
   const [dataLoading, setDataLoading] = useState(true)
   const [routesLoading, setRoutesLoading] = useState(true)
+  const [savingsData, setSavingsData] = useState<{
+    totalSavings: number
+    comparisonCount: number
+    recsFollowed: number
+    alertsSet: number
+  }>({ totalSavings: 0, comparisonCount: 0, recsFollowed: 0, alertsSet: 0 })
+  const [surgeInsights, setSurgeInsights] = useState<
+    { hour: number; probability: number }[]
+  >([])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -62,6 +71,30 @@ export default function DashboardPage() {
     }
 
     loadSavedRoutes()
+  }, [user])
+
+  // Fetch savings and surge insights
+  useEffect(() => {
+    async function loadSavingsData() {
+      if (!user) return
+
+      try {
+        const response = await fetch('/api/dashboard?savings=true')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.savings) {
+            setSavingsData(data.savings)
+          }
+          if (data.surgeInsights) {
+            setSurgeInsights(data.surgeInsights)
+          }
+        }
+      } catch {
+        // Error loading savings data - ignore
+      }
+    }
+
+    loadSavingsData()
   }, [user])
 
   // Fetch price data when route or service changes
@@ -275,26 +308,58 @@ export default function DashboardPage() {
                 </div>
                 <h2 className="text-xl font-bold text-foreground">Surge Insights</h2>
               </div>
-              <div className="space-y-4">
-                <div className="p-4 bg-secondary/10 border border-secondary/20 rounded-lg">
-                  <div className="font-medium text-foreground mb-1">Pro Tip</div>
-                  <p className="text-sm text-muted-foreground">
-                    Prices are typically lowest between 10 AM - 3 PM on weekdays
-                  </p>
+              {surgeInsights.length > 0 ? (
+                <div className="space-y-3">
+                  {surgeInsights.map((insight, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                    >
+                      <span className="text-sm text-muted-foreground">
+                        {insight.hour}:00 - {insight.hour + 1}:00
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              insight.probability > 0.7
+                                ? 'bg-destructive'
+                                : insight.probability > 0.4
+                                  ? 'bg-amber-500'
+                                  : 'bg-secondary'
+                            }`}
+                            style={{ width: `${insight.probability * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-foreground w-10 text-right">
+                          {(insight.probability * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                  <div className="font-medium text-foreground mb-1">Peak Hours</div>
-                  <p className="text-sm text-muted-foreground">
-                    Expect 1.5-2.5x surge during rush hours (7-9 AM, 5-7 PM)
-                  </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-secondary/10 border border-secondary/20 rounded-lg">
+                    <div className="font-medium text-foreground mb-1">Pro Tip</div>
+                    <p className="text-sm text-muted-foreground">
+                      Prices are typically lowest between 10 AM - 3 PM on weekdays
+                    </p>
+                  </div>
+                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                    <div className="font-medium text-foreground mb-1">Peak Hours</div>
+                    <p className="text-sm text-muted-foreground">
+                      Expect 1.5-2.5x surge during rush hours (7-9 AM, 5-7 PM)
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <div className="font-medium text-foreground mb-1">Weather Impact</div>
+                    <p className="text-sm text-muted-foreground">
+                      Rain can increase prices by 20-40% due to higher demand
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 bg-muted rounded-lg">
-                  <div className="font-medium text-foreground mb-1">Weather Impact</div>
-                  <p className="text-sm text-muted-foreground">
-                    Rain can increase prices by 20-40% due to higher demand
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Savings Card */}
@@ -307,16 +372,31 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-6">
                 <div className="text-center py-6">
-                  <div className="text-5xl font-black text-secondary mb-2">$0.00</div>
+                  <div className="text-5xl font-black text-secondary mb-2">
+                    ${savingsData.totalSavings.toFixed(2)}
+                  </div>
                   <div className="text-muted-foreground">Total saved this month</div>
+                  {savingsData.recsFollowed > 0 && (
+                    <div className="flex items-center justify-center gap-1 mt-2 text-xs text-secondary">
+                      <TrendingDown className="w-3 h-3" />
+                      <span>
+                        From {savingsData.recsFollowed} tip
+                        {savingsData.recsFollowed !== 1 ? 's' : ''} followed
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
                   <div className="text-center">
-                    <div className="text-3xl font-black text-foreground">0</div>
+                    <div className="text-3xl font-black text-foreground">
+                      {savingsData.comparisonCount}
+                    </div>
                     <div className="text-sm text-muted-foreground">Comparisons</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-black text-foreground">0</div>
+                    <div className="text-3xl font-black text-foreground">
+                      {savingsData.alertsSet}
+                    </div>
                     <div className="text-sm text-muted-foreground">Alerts Set</div>
                   </div>
                 </div>
