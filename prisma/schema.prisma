@@ -42,11 +42,13 @@ model Route {
   destination_geohash String?        @db.VarChar(12)
   geohash_precision   Int            @default(8)
 
-  savedRoutes    SavedRoute[]   @relation("RouteToSavedRoute")
-  rideHistories  RideHistory[]
-  searchLogs     SearchLog[]
-  priceSnapshots PriceSnapshot[]
-  trafficLogs    TrafficLog[]
+  savedRoutes     SavedRoute[]     @relation("RouteToSavedRoute")
+  rideHistories   RideHistory[]
+  searchLogs      SearchLog[]
+  priceSnapshots  PriceSnapshot[]
+  trafficLogs     TrafficLog[]
+  routeInsights   RouteInsights[]
+  recommendations Recommendation[]
 
   @@index([createdAt])
   @@index([pickup_geohash, destination_geohash])
@@ -93,6 +95,8 @@ model SearchLog {
   @@index([userId])
   @@index([routeId])
   @@index([createdAt])
+  @@index([routeId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model EventLog {
@@ -221,15 +225,87 @@ model User {
   sessions      Session[]
   
   // App-specific relations
-  savedRoutes   SavedRoute[]
-  priceAlerts   PriceAlert[]
-  rideHistories RideHistory[]
-  searchLogs    SearchLog[]
+  savedRoutes           SavedRoute[]
+  priceAlerts           PriceAlert[]
+  rideHistories         RideHistory[]
+  searchLogs            SearchLog[]
+  recommendations       Recommendation[]
+  recommendationActions RecommendationAction[]
 }
 
 enum AlertType {
   BELOW
   ABOVE
+}
+
+enum RecommendationType {
+  DEPARTURE_TIME
+  SERVICE_CHOICE
+  SURGE_FORECAST
+  SAVINGS_INSIGHT
+}
+
+enum RecommendationActionType {
+  VIEWED
+  CLICKED
+  FOLLOWED
+  DISMISSED
+}
+
+model RouteInsights {
+  id                     String      @id @default(cuid())
+  route                  Route       @relation(fields: [routeId], references: [id])
+  routeId                String
+  service                ServiceType
+  cheapestHour           Int
+  cheapestAvgPrice       Float
+  expensiveHour          Int
+  expensiveAvgPrice      Float
+  avgPriceByHour         Json        // {"0": 12.50, "1": 11.20, ...}
+  surgeProbabilityByHour Json        // {"7": 0.85, "8": 0.92, ...}
+  cheapestService        String?
+  sampleSize             Int         @default(0)
+  lastUpdated            DateTime    @default(now())
+
+  @@unique([routeId, service])
+  @@index([routeId])
+}
+
+model Recommendation {
+  id          String             @id @default(cuid())
+  route       Route?             @relation(fields: [routeId], references: [id])
+  routeId     String?
+  user        User?              @relation(fields: [userId], references: [id])
+  userId      String?
+  type        RecommendationType
+  title       String
+  message     String
+  dataPoints  Json               // Supporting data for UI rendering
+  confidence  Float              @default(0.5)
+  validUntil  DateTime
+  impressions Int                @default(0)
+  clicks      Int                @default(0)
+  createdAt   DateTime           @default(now())
+
+  actions RecommendationAction[]
+
+  @@index([routeId, type, validUntil])
+  @@index([userId])
+}
+
+model RecommendationAction {
+  id               String                   @id @default(cuid())
+  recommendation   Recommendation           @relation(fields: [recommendationId], references: [id])
+  recommendationId String
+  user             User?                    @relation(fields: [userId], references: [id])
+  userId           String?
+  action           RecommendationActionType
+  estimatedSavings Float?
+  createdAt        DateTime                 @default(now())
+
+  @@index([recommendationId])
+  @@index([userId, createdAt])
+  @@index([userId, action, createdAt])
 }
 
 // NextAuth.js models

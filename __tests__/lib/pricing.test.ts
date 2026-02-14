@@ -68,10 +68,10 @@ describe('PricingEngine', () => {
       expect(result.breakdown.baseFare).toBe(2.85)
       expect(result.breakdown.bookingFee).toBe(1.65)
       expect(result.breakdown.safetyFee).toBe(0.75)
-      // Distance fee: 6.21 miles * $1.58/mile = ~$9.81
-      expect(result.breakdown.distanceFee).toBeCloseTo(9.81, 1)
-      // Time fee: 15 min * $0.42/min = $6.30
-      expect(result.breakdown.timeFee).toBeCloseTo(6.3, 2)
+      // Distance fee: 6.21 miles * $1.15/mile = ~$7.15
+      expect(result.breakdown.distanceFee).toBeCloseTo(7.15, 1)
+      // Time fee: 15 min * $0.38/min = $5.70
+      expect(result.breakdown.timeFee).toBeCloseTo(5.7, 2)
       expect(result.price).toBeGreaterThan(0)
     })
 
@@ -86,10 +86,10 @@ describe('PricingEngine', () => {
       })
 
       expect(result.breakdown.baseFare).toBe(2.65)
-      expect(result.breakdown.bookingFee).toBe(1.45)
+      expect(result.breakdown.bookingFee).toBe(2.75)
       expect(result.breakdown.safetyFee).toBe(0.65)
-      // Distance fee: 6.21 miles * $1.48/mile = ~$9.19
-      expect(result.breakdown.distanceFee).toBeCloseTo(9.19, 1)
+      // Distance fee: 6.21 miles * $1.05/mile = ~$6.52
+      expect(result.breakdown.distanceFee).toBeCloseTo(6.52, 1)
       // Time fee: 15 min * $0.38/min = $5.70
       expect(result.breakdown.timeFee).toBeCloseTo(5.7, 2)
     })
@@ -107,8 +107,8 @@ describe('PricingEngine', () => {
       expect(result.breakdown.baseFare).toBe(4.25)
       expect(result.breakdown.bookingFee).toBe(0)
       expect(result.breakdown.safetyFee).toBe(0)
-      // Distance fee: 6.21 miles * $3.15/mile = ~$19.57
-      expect(result.breakdown.distanceFee).toBeCloseTo(19.57, 1)
+      // Distance fee: 6.21 miles * $3.25/mile = ~$20.19
+      expect(result.breakdown.distanceFee).toBeCloseTo(20.19, 1)
       // Time fee: 15 min * $0.65/min = $9.75
       expect(result.breakdown.timeFee).toBeCloseTo(9.75, 2)
     })
@@ -154,8 +154,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T08:15:00'), // Monday 8:15 AM
         })
 
-        // 08:00-08:30 surge is 1.45
-        expect(result.breakdown.surgeMultiplier).toBe(1.45)
+        // 08:00-08:30 surge is 1.25
+        expect(result.breakdown.surgeMultiplier).toBe(1.25)
         expect(result.surgeReason).toBe('Rush hour demand')
       })
 
@@ -169,8 +169,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T18:15:00'), // Monday 6:15 PM
         })
 
-        // 18:00-18:30 surge is 1.55
-        expect(result.breakdown.surgeMultiplier).toBe(1.55)
+        // 18:00-18:30 surge is 1.30
+        expect(result.breakdown.surgeMultiplier).toBe(1.3)
         expect(result.surgeReason).toBe('Rush hour demand')
       })
 
@@ -273,7 +273,7 @@ describe('PricingEngine', () => {
     })
 
     describe('surge cap (maxSurge)', () => {
-      it('should cap Uber surge at 2.5', () => {
+      it('should cap Uber surge at 2.0', () => {
         // Mock airport to get location multiplier
         mockIsAirportLocation.mockImplementation(coords => {
           if (coords === COORDS.sfo) return AIRPORTS.SFO as any
@@ -289,8 +289,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-20T02:00:00'), // Saturday 2 AM late night airport
         })
 
-        // Even with base surge 1.85 * location 1.25 = 2.3125, should not exceed 2.5
-        expect(result.breakdown.surgeMultiplier).toBeLessThanOrEqual(2.5)
+        // Additive: base surge 1.55 + (1.12 - 1) = 1.67, should not exceed 2.0
+        expect(result.breakdown.surgeMultiplier).toBeLessThanOrEqual(2.0)
       })
 
       it('should cap Taxi surge at 1.4 when surge would exceed cap', () => {
@@ -306,11 +306,11 @@ describe('PricingEngine', () => {
           destCoords: COORDS.regularDest,
           distanceKm: 10,
           durationMin: 15,
-          timestamp: new Date('2024-01-15T08:00:00'), // Weekday 8 AM rush hour + airport
+          timestamp: new Date('2024-01-15T18:00:00'), // Weekday 6 PM rush hour + airport
         })
 
-        // Weekday 08:00-08:30 surge is 1.45, airport peak hours adds 1.35 multiplier
-        // 1.45 * 1.35 = 1.9575, but taxi cap is 1.4
+        // Weekday 18:00-18:30 surge is 1.30, airport peakHours adds 0.12 (additive)
+        // 1.30 + 0.12 = 1.42, but taxi cap is 1.4
         expect(result.breakdown.surgeMultiplier).toBe(1.4)
       })
     })
@@ -333,8 +333,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T14:00:00'),
         })
 
-        // Uber airport pickup fee is $6.50
-        expect(result.breakdown.airportFees).toBe(6.5)
+        // Uber airport pickup fee is $5.50
+        expect(result.breakdown.airportFees).toBe(5.5)
       })
 
       it('should apply airport dropoff fee', () => {
@@ -372,8 +372,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T14:00:00'),
         })
 
-        // Uber: $6.50 pickup + $3.25 dropoff = $9.75
-        expect(result.breakdown.airportFees).toBe(9.75)
+        // Uber: $5.50 pickup + $3.25 dropoff = $8.75
+        expect(result.breakdown.airportFees).toBe(8.75)
       })
     })
 
@@ -396,7 +396,7 @@ describe('PricingEngine', () => {
         })
 
         // Uber doesn't have sjcFee in config, so use regular airport fee
-        expect(result.breakdown.airportFees).toBe(6.5)
+        expect(result.breakdown.airportFees).toBe(5.5)
       })
 
       it('should not apply SJC fees for Taxi (no sjcFee config)', () => {
@@ -409,8 +409,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T14:00:00'),
         })
 
-        // Taxi airport pickup fee is $6.50
-        expect(result.breakdown.airportFees).toBe(6.5)
+        // Taxi airport pickup fee is $6.00
+        expect(result.breakdown.airportFees).toBe(6.0)
       })
     })
 
@@ -430,8 +430,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T14:00:00'),
         })
 
-        // Lyft airport pickup fee is $6.25
-        expect(result.breakdown.airportFees).toBe(6.25)
+        // Lyft airport pickup fee is $5.50
+        expect(result.breakdown.airportFees).toBe(5.5)
       })
 
       it('should apply Lyft airport dropoff fee', () => {
@@ -449,8 +449,8 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T14:00:00'),
         })
 
-        // Lyft airport dropoff fee is $3.00
-        expect(result.breakdown.airportFees).toBe(3.0)
+        // Lyft airport dropoff fee is $2.50
+        expect(result.breakdown.airportFees).toBe(2.5)
       })
     })
   })
@@ -681,9 +681,8 @@ describe('PricingEngine', () => {
         expectedDurationSec: 900, // Heavy traffic (1.25)
       })
 
-      // Traffic fee = (subtotal + surgeFee) * (trafficMultiplier - 1)
-      const expectedTrafficFee =
-        (result.breakdown.subtotal + result.breakdown.surgeFee) * (1.25 - 1)
+      // Traffic fee = subtotal * (trafficMultiplier - 1)
+      const expectedTrafficFee = result.breakdown.subtotal * (1.25 - 1)
       expect(result.breakdown.trafficFee).toBeCloseTo(expectedTrafficFee, 2)
     })
   })
@@ -956,7 +955,9 @@ describe('PricingEngine', () => {
       )
 
       expect(recommendations).toContain("Great timing! You're booking during off-peak hours")
-      expect(recommendations).toContain('Best prices are typically 2-4 PM (avoid rush hours for savings)')
+      expect(recommendations).toContain(
+        'Best prices are typically 2-4 PM (avoid rush hours for savings)'
+      )
     })
 
     it('should return morning rush hour message (7-9 AM)', () => {
@@ -965,7 +966,7 @@ describe('PricingEngine', () => {
       )
 
       expect(recommendations).toContain(
-        'Rush hour pricing in effect. Expect 20-40% increase over standard rates'
+        'Rush hour pricing in effect. Expect 15-25% increase over standard rates'
       )
     })
 
@@ -984,7 +985,7 @@ describe('PricingEngine', () => {
         new Date('2024-01-15T22:00:00')
       )
 
-      expect(recommendations).toContain('Late night premium in effect (up to 30% increase)')
+      expect(recommendations).toContain('Late night premium in effect (up to 20% increase)')
     })
 
     it('should return default message for other times', () => {
@@ -993,7 +994,7 @@ describe('PricingEngine', () => {
       )
 
       expect(recommendations).toContain('Best prices: 2-4 PM (avoid peak hours for savings)')
-      expect(recommendations).toContain('Avoid rush hours: 7-9 AM and 5-7 PM (up to 40% increase)')
+      expect(recommendations).toContain('Avoid rush hours: 7-9 AM and 5-7 PM (up to 25% increase)')
     })
 
     it('should use current time if no timestamp provided', () => {
@@ -1129,9 +1130,9 @@ describe('PricingEngine', () => {
           timestamp: new Date('2024-01-15T08:30:00'), // 08:30-09:00 slot
         })
 
-        // 08:00-08:30 is 1.45, 08:30-09:00 is 1.35
-        expect(before.breakdown.surgeMultiplier).toBe(1.45)
-        expect(after.breakdown.surgeMultiplier).toBe(1.35)
+        // 08:00-08:30 is 1.25, 08:30-09:00 is 1.20
+        expect(before.breakdown.surgeMultiplier).toBe(1.25)
+        expect(after.breakdown.surgeMultiplier).toBe(1.2)
       })
     })
   })
