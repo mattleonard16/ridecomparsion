@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Bell, X } from 'lucide-react'
 
 interface PriceAlertProps {
@@ -14,7 +15,7 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (threshold >= currentBestPrice) {
-      alert('Alert threshold must be lower than current best price!')
+      toast.error('Alert threshold must be lower than current best price!')
       return
     }
 
@@ -26,10 +27,12 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
         await Notification.requestPermission()
       }
 
-      alert(`Price alert set! You'll be notified when rides drop below $${threshold.toFixed(2)}`)
+      toast.success(
+        `Price alert set! You'll be notified when rides drop below $${threshold.toFixed(2)}`
+      )
       onClose()
     } catch {
-      alert('Failed to set price alert. Please try again.')
+      toast.error('Failed to set price alert. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -48,6 +51,7 @@ export default function PriceAlert({ currentBestPrice, onSetAlert, onClose }: Pr
           <button
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close price alert dialog"
           >
             <X className="h-5 w-5" />
           </button>

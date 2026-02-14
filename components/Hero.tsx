@@ -70,8 +70,12 @@ export default function Hero() {
               className="glass-card card-accent-border float-hover rounded-xl px-6 py-4 min-w-[180px] animate-fade-in-up"
               style={{ animationDelay: '0.2s' }}
             >
-              <div className="font-display text-3xl sm:text-4xl text-foreground mb-1 tabular-nums">40%</div>
-              <div className="font-sans text-sm text-muted-foreground tracking-wide">Average Savings</div>
+              <div className="font-display text-3xl sm:text-4xl text-foreground mb-1 tabular-nums">
+                40%
+              </div>
+              <div className="font-sans text-sm text-muted-foreground tracking-wide">
+                Average Savings
+              </div>
             </div>
 
             {/* Stat Card 2 */}
@@ -79,8 +83,12 @@ export default function Hero() {
               className="glass-card card-accent-border float-hover rounded-xl px-6 py-4 min-w-[180px] animate-fade-in-up"
               style={{ animationDelay: '0.4s' }}
             >
-              <div className="font-display text-3xl sm:text-4xl text-foreground mb-1 tabular-nums">3</div>
-              <div className="font-sans text-sm text-muted-foreground tracking-wide">Services Compared</div>
+              <div className="font-display text-3xl sm:text-4xl text-foreground mb-1 tabular-nums">
+                3
+              </div>
+              <div className="font-sans text-sm text-muted-foreground tracking-wide">
+                Services Compared
+              </div>
             </div>
 
             {/* Stat Card 3 */}
@@ -91,7 +99,9 @@ export default function Hero() {
               <div className="font-display text-3xl sm:text-4xl text-foreground mb-1 tabular-nums">
                 &lt;200ms
               </div>
-              <div className="font-sans text-sm text-muted-foreground tracking-wide">Response Time</div>
+              <div className="font-sans text-sm text-muted-foreground tracking-wide">
+                Response Time
+              </div>
             </div>
           </div>
         </div>

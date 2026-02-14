@@ -1,10 +1,21 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Loader2, Locate, Shield, Plane, ArrowRight } from 'lucide-react'
 import RideComparisonResults from './ride-comparison-results'
-import RouteMap from './RouteMap'
 import RouteHeader from './route-header'
+import { Skeleton } from './ui/skeleton'
+
+// Lazy-load RouteMap to defer loading the 300KB MapLibre library
+const RouteMap = dynamic(() => import('./RouteMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-64 rounded-xl bg-muted animate-pulse flex items-center justify-center">
+      <span className="text-muted-foreground text-sm">Loading map...</span>
+    </div>
+  ),
+})
 import { LocationInput } from './location-input'
 import { AirportSelector } from './airport-selector'
 import { useRecaptcha } from '@/lib/hooks/use-recaptcha'
@@ -12,7 +23,7 @@ import { useUserLocation } from '@/lib/hooks/useUserLocation'
 import { RECAPTCHA_CONFIG } from '@/lib/recaptcha'
 import { getAirportByCode } from '@/lib/airports'
 import { findPrecomputedRouteByAddresses } from '@/lib/popular-routes-data'
-import type { LocationSuggestion, CommonPlaces, Coordinates } from '@/types'
+import type { LocationSuggestion, CommonPlaces, Coordinates, AIRecommendation } from '@/types'
 
 // Common places for faster autocomplete
 const COMMON_PLACES: CommonPlaces = {
@@ -191,6 +202,7 @@ export default function RideComparisonForm({
   const [error, setError] = useState('')
   const [surgeInfo, setSurgeInfo] = useState<SurgeInfo | null>(null)
   const [timeRecommendations, setTimeRecommendations] = useState<string[]>([])
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([])
 
   // Location state
   const [pickupCoords, setPickupCoords] = useState<Coordinates | null>(null)
@@ -304,6 +316,7 @@ export default function RideComparisonForm({
           setDestinationCoords(data.destinationCoords)
           setSurgeInfo(data.surgeInfo || null)
           setTimeRecommendations(data.timeRecommendations || [])
+          setAiRecommendations(data.aiRecommendations || [])
           setShowForm(false)
         } catch {
           setError('Failed to get pricing for this route. Please try again.')
@@ -467,6 +480,7 @@ export default function RideComparisonForm({
       setDestinationCoords(data.destinationCoords)
       setSurgeInfo(data.surgeInfo || null)
       setTimeRecommendations(data.timeRecommendations || [])
+      setAiRecommendations(data.aiRecommendations || [])
       setShowForm(false)
     } catch {
       // Fallback to simulated data for demo purposes
@@ -496,6 +510,7 @@ export default function RideComparisonForm({
 
       setResults(simulatedResults)
       setRouteId(null) // Simulated data has no real route
+      setAiRecommendations([])
       setInsights(
         'Based on price and wait time, Lyft appears to be your best option for this trip.'
       )
@@ -546,6 +561,7 @@ export default function RideComparisonForm({
     setError('')
     setPickupCoords(null)
     setDestinationCoords(null)
+    setAiRecommendations([])
     setShowForm(true)
   }, [])
 
@@ -722,6 +738,78 @@ export default function RideComparisonForm({
           />
         )}
 
+        {/* Skeleton loading cards */}
+        {isLoading && !results && (
+          <div className="w-full max-w-6xl mx-auto space-y-8">
+            {/* Skeleton header */}
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-10 w-48" />
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-9 w-20" />
+              </div>
+            </div>
+
+            {/* Skeleton quick summary */}
+            <div className="card-elevated rounded-2xl p-6 sm:p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="space-y-2 flex flex-col items-center">
+                    <Skeleton className="h-10 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Skeleton ride cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="card-elevated rounded-2xl overflow-hidden">
+                  <Skeleton className="h-1 w-full" />
+                  <div className="p-5">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-6">
+                      <Skeleton className="w-12 h-12 rounded-xl" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-6 w-20" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="mb-6 pb-6 border-b border-border/50">
+                      <div className="flex items-baseline justify-between">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-20" />
+                      </div>
+                    </div>
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <div className="bg-muted/30 p-3 rounded-xl space-y-2">
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-6 w-12" />
+                      </div>
+                      <div className="bg-muted/30 p-3 rounded-xl space-y-2">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-6 w-8" />
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="space-y-3">
+                      <Skeleton className="h-12 w-full rounded-xl" />
+                      <Skeleton className="h-8 w-full rounded-lg" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {results && (
           <RideComparisonResults
             routeId={routeId}
@@ -733,6 +821,7 @@ export default function RideComparisonForm({
             destination={destination}
             pickupCoords={pickupCoords}
             destinationCoords={destinationCoords}
+            aiRecommendations={aiRecommendations}
           />
         )}
       </section>
