@@ -162,8 +162,8 @@ body {
     background: hsl(var(--card) / 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 4px 24px hsl(var(--foreground) / 0.05);
+    border: 1px solid hsl(var(--border) / 0.8);
+    box-shadow: 0 4px 24px hsl(var(--foreground) / 0.10);
   }
 
   /* Gradient Mesh Background */
@@ -190,7 +190,7 @@ body {
   .card-elevated {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    box-shadow: 0 4px 16px hsl(var(--foreground) / 0.06);
+    box-shadow: 0 4px 16px hsl(var(--foreground) / 0.12);
   }
 
   /* Interactive Card */
@@ -220,7 +220,7 @@ body {
 
   /* Legacy transit utilities - kept for compatibility */
   .bg-dot-grid {
-    background-image: radial-gradient(hsl(var(--muted-foreground) / 0.2) 1px, transparent 1px);
+    background-image: radial-gradient(hsl(var(--muted-foreground) / 0.35) 1px, transparent 1px);
     background-size: 20px 20px;
   }
 
@@ -369,7 +369,7 @@ body {
 @layer base {
   :root {
     /* Liquid Luxury Palette - Light Mode */
-    --background: 45 30% 97%; /* warm cream */
+    --background: 45 25% 94%; /* warm cream */
     --foreground: 220 40% 13%; /* deep navy */
     --card: 0 0% 100%;
     --card-foreground: 220 40% 13%;
@@ -383,13 +383,13 @@ body {
     --accent: 340 70% 55%; /* rose */
     --accent-foreground: 0 0% 100%;
 
-    --muted: 45 20% 92%; /* soft beige */
+    --muted: 45 18% 88%; /* soft beige */
     --muted-foreground: 220 20% 45%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 45 15% 85%;
+    --border: 45 15% 78%;
     --input: 45 15% 95%;
     --ring: 220 80% 50%;
 

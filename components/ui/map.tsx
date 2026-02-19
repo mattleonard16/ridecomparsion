@@ -46,7 +46,7 @@ function useMap() {
 
 const defaultStyles = {
   dark: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
-  light: 'https://tiles.stadiamaps.com/styles/osm_bright.json',
+  light: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
 }
 
 type MapStyleOption = string | MapLibreGL.StyleSpecification
